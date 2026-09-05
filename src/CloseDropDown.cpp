@@ -1,11 +1,12 @@
 #include "CloseDropDown.h"
 
+#include "MouseEvent.h"
 
 CloseDropDown::CloseDropDown(int x, int y)
 : WindowLabel(x, y, "Close")
 {}
 
-TUIApp::NextOp CloseDropDown::mayHandleMouseEvent(MEVENT event)
+TUIApp::NextOp CloseDropDown::mayHandleMouseEvent(MouseEvent const& event)
 {
     if(!this->handleMouseEvent(event))
     {
@@ -24,8 +25,8 @@ TUIApp::NextOp CloseDropDown::mayHandleMouseEvent(MEVENT event)
                 nextOp = TUIApp::NextOp::REDRAW_ALL;
                 return WindowLoopControl::DONE;
             case KEY_MOUSE:
-                MEVENT event;
-                if (getmouse(&event) == OK )
+                MouseEvent event;
+                if (getMouseEvent(event) == OK )
                 {
                     if(confirmWindow.handleMouseEvent(event))
                     {

@@ -2,6 +2,7 @@
 
 
 #include "WindowLabel.h"
+#include "MouseEvent.h"
 #include "Window.h"
 
 #include <string>
@@ -52,8 +53,8 @@ int WindowLabel::nextX()const
     //return getmaxx(win)+1;
 }
 
-bool WindowLabel::handleMouseEvent(MEVENT event)
+bool WindowLabel::handleMouseEvent(MouseEvent const& event)
 {
-    return (event.bstate & BUTTON1_PRESSED || event.bstate & BUTTON1_CLICKED) &&
-        windowContainsMouseEvent(win, event);
+    return (event.left) &&
+        windowContainsMouseEvent(win, event.x, event.y);
 }

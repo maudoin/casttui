@@ -15,6 +15,8 @@
 #include <set>
 #include <variant>
 
+class MouseEvent;
+
 class TableWindow
 {
     using NoIndex = std::monostate;
@@ -51,7 +53,7 @@ public:
     ~TableWindow();
     void resize(int w, int h)const;
     void draw(bool redrawBorder = false, bool refresh = true)const;
-    bool handleMouseEvent(MEVENT const&);
+    bool handleMouseEvent(MouseEvent const&);
     std::optional<int> currentSelectedItemIndex() const;
     WINDOW * handle()const{return window;}
 
@@ -61,7 +63,7 @@ private:
     {
         std::string const title;
         int const index, start, size;
-        const char* format()const;
+        std::string format()const;
     };
     using ColInfo = std::vector<SingleColInfo>;
 

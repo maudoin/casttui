@@ -2,9 +2,12 @@
 
 
 #include "TableWindow.h"
+#include "MouseEvent.h"
 #include "Window.h"
 
+#include <algorithm>
 #include <limits>
+#include <type_traits>
 
 TableWindow::TableWindow(int x, int y, int w, int h, Callbacks const& callbacks)
 : window(newwin(h, w, y, x))
@@ -18,9 +21,9 @@ TableWindow:: ~TableWindow()
     delwin(window);
 }
 
-bool TableWindow::handleMouseEvent(MEVENT const& event)
+bool TableWindow::handleMouseEvent(MouseEvent const& event)
 {
-    if (windowContainsMouseEvent(window, event))
+    if (windowContainsMouseEvent(window, event.x, event.y))
     {
         int const count = _callbacks.itemCount();
         int const contentHeight =  windowContentHeight(window);
@@ -28,15 +31,15 @@ bool TableWindow::handleMouseEvent(MEVENT const& event)
         int const maxRangeStart = count>contentHeight ? (count - 1 - contentHeight) : 0;
         int const scrollJump = contentHeight / 3;
         int const clickedIndex = rangeStart + event.y - getbegy(window) -1 ;
-        if (event.bstate & BUTTON4_PRESSED)
+        if (event.prev)
         {
             rangeStart = std::max(minRangeStart, rangeStart-scrollJump);
         }
-        else if (event.bstate & BUTTON5_PRESSED)
+        else if (event.next)
         {
             rangeStart = std::min(maxRangeStart, rangeStart+scrollJump);
         }
-        else if ((event.bstate & BUTTON1_PRESSED)==BUTTON1_PRESSED)
+        else if (event.left)
         {
             if((event.x-getbegx(window)) == scrollbarX())
             {
@@ -49,7 +52,7 @@ bool TableWindow::handleMouseEvent(MEVENT const& event)
                 selection = clickedIndex;
             }
         }
-        else if ((event.bstate & (BUTTON1_PRESSED|BUTTON_CTRL)) == (BUTTON1_PRESSED|BUTTON_CTRL))
+        else if (event.left && event.ctrl)
         {
             std::visit([&](auto&& content)
             {
@@ -97,7 +100,7 @@ bool TableWindow::handleMouseEvent(MEVENT const& event)
                 }
             }, selection);
         }
-        else if (event.bstate & (BUTTON1_PRESSED|BUTTON_SHIFT))
+        else if (event.left && event.shift)
         {
             std::visit([&](auto&& content)
             {
@@ -190,10 +193,10 @@ int TableWindow::rangeEnd()const
 }
 
 
-const char* TableWindow::SingleColInfo::format()const
+std::string TableWindow::SingleColInfo::format()const
 {
     //if size is negative it formats left, see printf documentation
-    return (std::string("%")+std::to_string(size)+"s").c_str();
+    return (std::string("%")+std::to_string(size)+"s");
 }
 TableWindow::ColInfo TableWindow::drawColumns()const
 {
@@ -319,7 +322,7 @@ void TableWindow::draw(bool const redrawBorder, bool const refresh)const
         wattrset(window, COLOR_PAIR(col)|(A_REVERSE*isSel));
         for(SingleColInfo const& c:columns)
         {
-            mvwprintw(window, y, c.start, c.format(), _callbacks.stringAt(c.index, line).c_str());
+            mvwprintw(window, y, c.start, c.format().c_str(), _callbacks.stringAt(c.index, line).c_str());
         }
     }
     //draw empty lines
@@ -333,7 +336,7 @@ void TableWindow::draw(bool const redrawBorder, bool const refresh)const
         wattrset(window, COLOR_PAIR(col)|(A_REVERSE*isSel));
         for(SingleColInfo const& c:columns)
         {
-            mvwprintw(window, y, c.start, c.format(), "");
+            mvwprintw(window, y, c.start, c.format().c_str(), "");
         }
     }
 

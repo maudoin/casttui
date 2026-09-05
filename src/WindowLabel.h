@@ -12,6 +12,7 @@
 #include <limits>
 #include <string.h>
 
+struct MouseEvent;
 
 struct WindowLabel
 {
@@ -20,7 +21,7 @@ struct WindowLabel
 
     void draw(bool bold=false)const;
     int nextX()const;
-    bool handleMouseEvent(MEVENT event);
+    bool handleMouseEvent(MouseEvent const& event);
     void set(std::string const&);
     int x()const;
     int y()const;

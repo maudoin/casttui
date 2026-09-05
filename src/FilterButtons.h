@@ -17,6 +17,8 @@
 #include <limits>
 #include <string.h>
 
+struct MouseEvent;
+
 class FilterButtons
 {
 public:
@@ -26,12 +28,12 @@ public:
 
     void redrawFilters() const;
 
-    TUIApp::NextOp mayHandleMouseEvent(MEVENT event);
+    TUIApp::NextOp mayHandleMouseEvent(MouseEvent const& event);
 private:
 
     void drawFilter(WindowLabel const& win, Filter f) const;
 
-    bool handleFilter(MEVENT event, WindowLabel& win, Filter f);
+    bool handleFilter(MouseEvent const& event, WindowLabel& win, Filter f);
 
     Filter _activeFilter = Filter::All;
     Callback _callback;

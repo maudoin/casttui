@@ -7,6 +7,7 @@
 #include <functional>
 #include <vector>
 
+class MouseEvent;
 
 class DropDown : public WindowLabel
 {
@@ -21,7 +22,7 @@ public:
 
     DropDown(int x, int y, Callbacks const& callbacks);
 
-    TUIApp::NextOp mayHandleMouseEvent(MEVENT event);
+    TUIApp::NextOp mayHandleMouseEvent(MouseEvent const& event);
 private:
     int _xMax, _yMax;
     Callbacks _callbacks;

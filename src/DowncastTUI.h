@@ -12,6 +12,8 @@
 
 #include <string>
 
+struct MouseEvent;
+
 class Downcast
 {
     static constexpr int FIRST_LINE_Y = 0;
@@ -40,5 +42,5 @@ public:
 
     void resize();
 
-    TUIApp::NextOp handleMouseEvent(MEVENT const& event);
+    TUIApp::NextOp handleMouseEvent(MouseEvent const& event);
 };

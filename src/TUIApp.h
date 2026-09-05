@@ -3,6 +3,7 @@
 
 #include "TableWindow.h"
 #include "DialogNew.h"
+#include "MouseEvent.h"
 #include "Window.h"
 #include "WindowLabel.h"
 
@@ -25,7 +26,7 @@ enum NextOp : int{NONE = 0, REDRAW_ALL, QUIT};
 /// void redrawAll();
 /// void resize();
 /// WINDOWS* mainHandle();
-/// bool handleMouseEvent(MEVENT const&);
+/// bool handleMouseEvent(MouseEvent const&);
 template<typename T, typename... ARGS>
 int main(int argc, char *argv[], ARGS&&... args)
 {
@@ -44,7 +45,7 @@ int main(int argc, char *argv[], ARGS&&... args)
 
     mousemask(ALL_MOUSE_EVENTS, NULL);
     mouseinterval(0);//CLICKED will not work but gives fast mouse event response
-    set_escdelay(0);
+    // set_escdelay(0); // wgetch(win) -> wgetch_escdelay(win, delay)
     loopWindowInput(impl.mainHandle(), [&](int ch)
     {
         switch (ch) {
@@ -52,8 +53,9 @@ int main(int argc, char *argv[], ARGS&&... args)
                 impl.resize();
                 break;
             case KEY_MOUSE:
-                MEVENT event;
-                if (getmouse(&event) == OK )
+            {
+                MouseEvent event;
+                if (getMouseEvent(event) == OK )
                 {
                     switch( impl.handleMouseEvent(event) )
                     {
@@ -63,9 +65,13 @@ int main(int argc, char *argv[], ARGS&&... args)
                             impl.redrawAll();
                             //loop again
                             return WindowLoopControl::CONTINUE;
+                        case NextOp::NONE:
+                            // TODO: CHECK
+                            break;
                     }
                 }
                 break;
+            }
             case 0x1b : //KEY_ESC
                 return WindowLoopControl::DONE;
         }

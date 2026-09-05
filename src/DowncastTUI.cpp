@@ -1,5 +1,7 @@
 #include "DowncastTUI.h"
 
+#include "MouseEvent.h"
+
 Downcast::Downcast(DropDown::Callbacks const& podcastCallbacks,
                     TableWindow::Callbacks const& showsCallbacks,
                     FilterButtons::Callback const& filterCallback)
@@ -48,7 +50,7 @@ void Downcast::resize()
     _tableWindow.resize(getmaxx(stdscr), getmaxy(stdscr));
 }
 
-TUIApp::NextOp Downcast::handleMouseEvent(MEVENT const& event)
+TUIApp::NextOp Downcast::handleMouseEvent(MouseEvent const& event)
 {
     if(_tableWindow.handleMouseEvent(event))
     {

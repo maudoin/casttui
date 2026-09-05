@@ -9,9 +9,10 @@
 #include <algorithm>
 #include <functional>
 #include <numeric>
+#include <stdint.h>
 
 //-----------------------------------------------------------------------------------
-using Blob = std::vector<std::uint8_t>;
+using Blob = std::vector<uint8_t>;
 //-----------------------------------------------------------------------------------
 enum class SqlColKind{REGULAR, AUTO_PRIMARY_KEY, UNIQUE};
 template <typename V>

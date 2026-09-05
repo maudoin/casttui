@@ -1,5 +1,7 @@
 #include "DropDown.h"
 
+#include "MouseEvent.h"
+
 DropDown::DropDown(int x, int y,
     Callbacks const& callbacks)
 : WindowLabel(x, y, callbacks.stringAt(0))
@@ -8,7 +10,7 @@ DropDown::DropDown(int x, int y,
 , _callbacks(callbacks)
 {}
 
-TUIApp::NextOp DropDown::mayHandleMouseEvent(MEVENT event)
+TUIApp::NextOp DropDown::mayHandleMouseEvent(MouseEvent const& event)
 {
     if(!this->handleMouseEvent(event))
     {
@@ -26,8 +28,8 @@ TUIApp::NextOp DropDown::mayHandleMouseEvent(MEVENT event)
             case KEY_ESC:
                 return WindowLoopControl::DONE;
             case KEY_MOUSE:
-                MEVENT event;
-                if (getmouse(&event) == OK )
+                MouseEvent event;
+                if (getMouseEvent(event) == OK )
                 {
                     if(this->handleMouseEvent(event))
                     {

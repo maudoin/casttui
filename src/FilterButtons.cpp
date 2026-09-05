@@ -1,5 +1,7 @@
 #include "FilterButtons.h"
 
+#include "MouseEvent.h"
+
 FilterButtons::FilterButtons(int x, int y, int space, Callback const& callback)
 : _activeFilter( Filter::All )
 , _callback( callback )
@@ -19,7 +21,7 @@ void FilterButtons::redrawFilters() const
     drawFilter(_filterAllWindow, Filter::All);
 }
 
-TUIApp::NextOp FilterButtons::mayHandleMouseEvent(MEVENT event)
+TUIApp::NextOp FilterButtons::mayHandleMouseEvent(MouseEvent const& event)
 {
     return ( handleFilter(event, _filterNewWindow, Filter::New)
     || handleFilter(event, _filterQueueWindow, Filter::Queue)
@@ -35,7 +37,7 @@ void FilterButtons::drawFilter(WindowLabel const& win, Filter f) const
     win.draw(_activeFilter == f);
 }
 
-bool FilterButtons::handleFilter(MEVENT event, WindowLabel& win, Filter f)
+bool FilterButtons::handleFilter(MouseEvent const& event, WindowLabel& win, Filter f)
 {
     if(win.handleMouseEvent(event))
     {
