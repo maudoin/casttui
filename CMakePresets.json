@@ -1,0 +1,62 @@
+{
+  "version": 5,
+  "configurePresets": [
+    {
+      "name": "windows",
+      "displayName": "Windows Build",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-windows",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchain-clang-win.cmake",
+        "CMAKE_BUILD_TYPE": "Release"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "$env{OS}",
+        "rhs": "Windows_NT"
+      }
+    },
+    {
+      "name": "linux",
+      "displayName": "Linux Build",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-linux",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "$hostSystemName",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "wsl",
+      "displayName": "WSL Build",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-wsl",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "$env{WSL_DISTRO_NAME}",
+        "rhs": "Ubuntu"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "windows-build",
+      "configurePreset": "windows"
+    },
+    {
+      "name": "linux-build",
+      "configurePreset": "linux"
+    },
+    {
+      "name": "wsl-build",
+      "configurePreset": "wsl"
+    }
+  ]
+}
