@@ -25,16 +25,15 @@ TUIApp::NextOp CloseDropDown::mayHandleMouseEvent(MouseEvent const& event)
                 nextOp = TUIApp::NextOp::REDRAW_ALL;
                 return WindowLoopControl::DONE;
             case KEY_MOUSE:
-                MouseEvent event;
-                if (getMouseEvent(event) == OK )
+                if (auto event = getMouseEvent())
                 {
-                    if(confirmWindow.handleMouseEvent(event))
+                    if(confirmWindow.handleMouseEvent(*event))
                     {
                         nextOp = TUIApp::NextOp::QUIT;
                         return WindowLoopControl::DONE;
                     }
-                    if(cancelWindow.handleMouseEvent(event)
-                        || this->handleMouseEvent(event))
+                    if(cancelWindow.handleMouseEvent(*event)
+                        || this->handleMouseEvent(*event))
                     {
                         nextOp = TUIApp::NextOp::REDRAW_ALL;
                         return WindowLoopControl::DONE;

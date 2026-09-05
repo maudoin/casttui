@@ -43,7 +43,7 @@ int main(int argc, char *argv[], ARGS&&... args)
 
     impl.redrawAll();
 
-    mousemask(ALL_MOUSE_EVENTS, NULL);
+    mousemask(ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION, NULL);
     mouseinterval(0);//CLICKED will not work but gives fast mouse event response
     // set_escdelay(0); // wgetch(win) -> wgetch_escdelay(win, delay)
     loopWindowInput(impl.mainHandle(), [&](int ch)
@@ -54,10 +54,9 @@ int main(int argc, char *argv[], ARGS&&... args)
                 break;
             case KEY_MOUSE:
             {
-                MouseEvent event;
-                if (getMouseEvent(event) == OK )
+                if (auto event = getMouseEvent())
                 {
-                    switch( impl.handleMouseEvent(event) )
+                    switch( impl.handleMouseEvent(*event) )
                     {
                         case NextOp::QUIT:
                             return WindowLoopControl::DONE;

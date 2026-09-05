@@ -28,14 +28,13 @@ TUIApp::NextOp DropDown::mayHandleMouseEvent(MouseEvent const& event)
             case KEY_ESC:
                 return WindowLoopControl::DONE;
             case KEY_MOUSE:
-                MouseEvent event;
-                if (getMouseEvent(event) == OK )
+                if (auto event = getMouseEvent())
                 {
-                    if(this->handleMouseEvent(event))
+                    if(this->handleMouseEvent(*event))
                     {
                         return WindowLoopControl::DONE;
                     }
-                    if(podcastListWindow.handleMouseEvent(event))
+                    if(podcastListWindow.handleMouseEvent(*event))
                     {
                         if(std::optional<int> newPod = podcastListWindow.currentSelectedItemIndex())
                         {
