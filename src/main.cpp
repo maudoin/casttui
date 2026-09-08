@@ -1,7 +1,7 @@
 #include "DowncastTUI.h"
 #include "DowncastLogic.h"
 
-int main(int argc, char *argv[])
+int main2(int argc, char *argv[])
 {
     DowncastLogic downcast("castapod.db3");
 

@@ -117,10 +117,22 @@ if (WIN32)
         ${pdcurses_SOURCE_DIR}
         ${pdcurses_SOURCE_DIR}/pdcurses
     )
-
+    target_compile_definitions(curses PUBLIC 
+        PDC_WIDE           # Equivalent to WIDE=Y (Enables wchar_t and cchar_t)
+        PDC_FORCE_UTF8     # Equivalent to UTF8=Y (Treats narrow strings as UTF-8)
+    )
 else()
     # ---------------- Linux/WSL: ncurses ----------------
+    set(CURSES_NEED_WIDE TRUE)
     find_package(Curses REQUIRED)
+
+    # Force wide curses on distros like Ubuntu/Debian
+    if (NOT CURSES_CURSES_LIBRARY MATCHES "ncursesw")
+        message(STATUS "Forcing wide-character ncursesw")
+        find_library(NCURSESW_LIBRARY ncursesw REQUIRED)
+        set(CURSES_CURSES_LIBRARY ${NCURSESW_LIBRARY})
+    endif()
+
     add_library(curses INTERFACE)
     target_link_libraries(curses INTERFACE ${CURSES_LIBRARIES})
     target_include_directories(curses INTERFACE ${CURSES_INCLUDE_DIR})
@@ -160,7 +172,7 @@ endif()
 # ------------------------------------------------------------
 # Application
 # ------------------------------------------------------------
-file(GLOB source_list "src/*.cpp" "src/*.hpp")
+file(GLOB source_list "src/*.cpp" "src/*.h")
 
 add_executable(${PROJECT_NAME}
     ${source_list}
@@ -177,6 +189,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     curses
     httplib
 )
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE USE_WIDEC_SUPPORT=1)
 
 if (WIN32)
     # If using DLL OpenSSL:
