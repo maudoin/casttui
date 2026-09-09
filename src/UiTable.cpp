@@ -3,18 +3,6 @@
 #include <ranges>
 
 
-inline SortDir header_sort(
-    const std::string& sort_col,
-    const std::string& sort_dir,
-    const std::string& colname)
-{
-    if (sort_col == colname)
-    {
-        return sort_dir == "ASC" ? SortDir::UP : SortDir::DOWN;
-    }
-    return SortDir::NONE;
-}
-
 // --------------------------------------------------------------------
 // Safe write helpers
 // --------------------------------------------------------------------

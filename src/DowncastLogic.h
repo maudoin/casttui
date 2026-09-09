@@ -127,3 +127,5 @@ private:
   std::atomic_bool m_abortDownload = false;
   std::unique_ptr<std::thread> m_work;
 };
+
+std::wstring utf8_to_wstring(const std::string& s);

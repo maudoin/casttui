@@ -7,6 +7,7 @@
 
 #include "UiTable.h"
 #include "DowncastLogic.h"
+#include "HtmlToText.h"
 
 #include <string>
 #include <vector>
@@ -20,7 +21,7 @@
 // --------------------------------------------------------------------
 inline std::wstring to_wstring(const std::string& s)
 {
-    return std::wstring(s.begin(), s.end());
+    return utf8_to_wstring(s);
 }
 
 // --------------------------------------------------------------------
@@ -151,13 +152,13 @@ private:
 
         int count = logic.podcastCount() + 2;
 
-        std::vector<std::string> titles;
+        std::vector<std::wstring> titles;
         titles.reserve(count);
-        titles.push_back("Add podcast...");
-        titles.push_back("All");
+        titles.push_back(L"Add podcast...");
+        titles.push_back(L"All");
         for (int i = 0; i < logic.podcastCount(); ++i)
         {
-            titles.push_back(logic.podcastTitle(i));
+            titles.push_back(to_wstring(logic.podcastTitle(i)));
         }
 
         std::vector<HeaderColumn> cols{
@@ -166,7 +167,7 @@ private:
 
         auto cell_cb = [&](int row, int /*col*/) -> Cell
         {
-            const std::string& title = titles[row];
+            const std::wstring& title = titles[row];
             bool isCursor   = (row == podcast_table.cursor() && focus == Focus::Podcasts);
             bool isSelected = (row >= 2 && logic.isCurrentPodcast(row - 2));
 
@@ -180,7 +181,7 @@ private:
             else
                 style = A_NORMAL;
 
-            return Cell{to_wstring(title), style};
+            return Cell{title, style};
         };
 
         podcast_table.render(win, count, cols, cell_cb, focused);
@@ -350,20 +351,19 @@ private:
         else if (logic.isDownloading())
         {
             auto progress = logic.getCurrentDownloadProgress();
-            char spinner_chars[] = "|/-\\";
+            wchar_t spinner_chars[] = L"|/-\\";
             auto now = std::chrono::system_clock::now();
             auto ms  = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
             int idx  = static_cast<int>((ms / 100) & 3);
 
-            std::string s =
-                "Downloading " + std::to_string(progress.currentFile) + "/" +
-                std::to_string(progress.totalFiles) + ": " +
-                progress.currentLabel + " " + spinner_chars[idx];
-            text = to_wstring(s);
+            text =
+                L"Downloading " + std::to_wstring(progress.currentFile) + L"/" +
+                std::to_wstring(progress.totalFiles) + L": " +
+                to_wstring(progress.currentLabel) + L" " + spinner_chars[idx];
         }
         else if (auto err = logic.lastError())
         {
-            text = to_wstring("Error: " + *err);
+            text = L"Error: " + to_wstring(*err);
         }
         else
         {
@@ -391,8 +391,8 @@ private:
 
         UiTable confirm_table(UiTable::Mode::CURSOR, 0, 0);
 
-        std::string title = logic.podcastTitle(podcast_table.cursor() - 2);
-        std::wstring wtitle = to_wstring("Delete '" + title + "'?");
+        std::wstring title = to_wstring(logic.podcastTitle(podcast_table.cursor() - 2));
+        std::wstring wtitle = L"Delete '" + title + L"'?";
         std::vector<std::wstring> lines{wtitle, L"Cancel"};
 
         confirm_table.renderArray(win, lines, std::nullopt, true);
@@ -418,7 +418,7 @@ private:
 
         auto const& shows = logic.showsInRankRange(shows_table.cursor(), 1);
 
-        std::string text = shows.empty() ? "No show selected." : shows[0].summary;
+        std::string text = shows.empty() ? "No show selected." : html_to_text(shows[0].summary);
         std::vector<std::wstring> lines;
 
         int max_lines = mh - 2;
@@ -480,17 +480,17 @@ private:
         draw_mid_border_header(win, 2, 0, cols, true);
 
         int row = 3;
-        std::vector<std::pair<std::string, std::string>> fields{
-            {"URL",     modal_url},
-            {"Title",   modal_title},
-            {"Target",  modal_target},
-            {"Pattern", modal_pattern},
+        std::vector<std::pair<std::wstring, std::wstring>> fields{
+            {L"URL",     to_wstring(modal_url)},
+            {L"Title",   to_wstring(modal_title)},
+            {L"Target",  to_wstring(modal_target)},
+            {L"Pattern", to_wstring(modal_pattern)},
         };
 
-        std::string caption = (modal_mode == ModalMode::Add ? "add" : "edit");
-        std::string cap_line = caption + " podcast";
+        std::wstring caption = (modal_mode == ModalMode::Add ? L"add" : L"edit");
+        std::wstring cap_line = caption + L" podcast";
         draw_row_assembled_cols(win, 1, 0,
-                                {to_wstring(cap_line).append(inner_w - cap_line.size(), L' ')},
+                                {cap_line.append(inner_w - cap_line.size(), L' ')},
                                 cols, true);
 
         row = 3;
@@ -498,17 +498,16 @@ private:
         {
             auto const& [label, value] = fields[i];
             char cursor = (i == modal_field ? '>' : ' ');
-            std::string display_value;
+            std::wstring display_value;
             if (modal_editing && i == modal_field)
-                display_value = modal_edit_buffer + "_";
+                display_value = to_wstring(modal_edit_buffer) + L"_";
             else
                 display_value = value;
 
-            std::string line = std::string(1, cursor) + " " + label + ": " + display_value;
-            if (static_cast<int>(line.size()) > mw - 4)
-                line.resize(mw - 4);
+            std::wstring wline = std::wstring(1, cursor) + L" " + label + L": " + display_value;
+            if (static_cast<int>(wline.size()) > mw - 4)
+                wline.resize(mw - 4);
 
-            std::wstring wline = to_wstring(line);
             if (static_cast<int>(wline.size()) < inner_w)
                 wline.append(inner_w - wline.size(), L' ');
 
@@ -517,14 +516,12 @@ private:
         }
 
         ++row;
-        std::string help = "ENTER=edit/commit   S=save   ESC=cancel";
-        std::wstring whelp = to_wstring(help);
+        std::wstring whelp = L"ENTER=edit/commit   S=save   ESC=cancel";
         if (static_cast<int>(whelp.size()) < inner_w)
             whelp.append(inner_w - whelp.size(), L' ');
         draw_row_assembled_cols(win, row, 0, {whelp}, cols, true);
 
-        std::string footer = "[ OK ]   [ Cancel ]";
-        std::wstring wfooter = to_wstring(footer);
+        std::wstring wfooter = L"[ OK ]   [ Cancel ]";
         if (static_cast<int>(wfooter.size()) < inner_w)
             wfooter.append(inner_w - wfooter.size(), L' ');
         draw_row_assembled_cols(win, mh - 2, 0, {wfooter}, cols, true);

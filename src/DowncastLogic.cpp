@@ -508,8 +508,9 @@ std::basic_string<C> ext(std::basic_string<C> const& path,
   auto endPos = end == npos ? path.size() : end ;
   return (startPos == npos) ? defaultExt : path.substr(startPos, endPos-startPos);
 }
+}
 
-inline std::wstring utf8_to_wstring(const std::string& s)
+std::wstring utf8_to_wstring(const std::string& s)
 {
 #ifdef _WIN32
     int size_needed = MultiByteToWideChar(CP_UTF8, 0,
@@ -550,7 +551,8 @@ inline std::wstring utf8_to_wstring(const std::string& s)
 #endif
 }
 
-
+namespace
+{
 template <typename C = std::filesystem::path::value_type>
 std::filesystem::path toPath( std::string const& s )
 {
