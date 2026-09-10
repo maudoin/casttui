@@ -213,7 +213,7 @@ inline void draw_header_row(
         x += header.width;
     }
 
-    addstr_focus(win, row, col + 1 + x, build_right_border({ std::nullopt, std::nullopt }, 0), focused);
+    addstr_focus(win, row, col + x, build_right_border({ std::nullopt, std::nullopt }, 0), focused);
 }
 
 // --------------------------------------------------------------------
