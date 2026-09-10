@@ -286,7 +286,7 @@ class PodcastUI
 
         confirm_table.renderArray(win, lines, std::nullopt, true);
 
-        wrefresh(win);
+        wnoutrefresh(win);
         delwin(win);
     }
 
@@ -334,7 +334,7 @@ class PodcastUI
 
         info_table.renderArray(win, lines, title);
 
-        wrefresh(win);
+        wnoutrefresh(win);
         delwin(win);
     }
 
@@ -422,7 +422,7 @@ class PodcastUI
         draw_row_assembled_cols(win, mh - 2, 0, {{wfooter}}, cols, _addEditPodcastModalHotspots, true);
         draw_bottom_border_header(win, mh - 1, 0, cols, true);
 
-        wrefresh(win);
+        wnoutrefresh(win);
         delwin(win);
     }
     // --------------------------------------------------------------------
@@ -948,37 +948,66 @@ class PodcastUI
     }
     void render_layout(WINDOW* stdscr)
     {
-        if (modal_mode == ModalMode::Confirm)
-        {
-            render_confirm_modal(stdscr);
-            return;
-        }
-        else if (modal_mode == ModalMode::Info)
-        {
-            render_info_modal(stdscr);
-            return;
-        }
-        else if (modal_mode == ModalMode::Add || modal_mode == ModalMode::Edit)
-        {
-            render_add_edit_modal(stdscr);
-            return;
-        }
-
         render_podcast_list(win_left);
         render_status_filter_bar(win_status);
         render_shows_table(win_shows);
         render_actions_bar(win_actions);
         render_bottom_bar(win_bottom);
 
-        wrefresh(win_left);
-        wrefresh(win_status);
-        wrefresh(win_shows);
-        wrefresh(win_actions);
-        wrefresh(win_bottom);
+        wnoutrefresh(stdscr);
+        wnoutrefresh(win_left);
+        wnoutrefresh(win_status);
+        wnoutrefresh(win_shows);
+        wnoutrefresh(win_actions);
+        wnoutrefresh(win_bottom);
+
+        if (modal_mode == ModalMode::Confirm)
+        {
+            render_confirm_modal(stdscr);
+        }
+        else if (modal_mode == ModalMode::Info)
+        {
+            render_info_modal(stdscr);
+        }
+        else if (modal_mode == ModalMode::Add || modal_mode == ModalMode::Edit)
+        {
+            render_add_edit_modal(stdscr);
+        }
+
+        doupdate();
 
     }
 
 public:
+    void run()
+    {
+        while (running)
+        {
+            render_layout(stdscr);
+
+            int k = wgetch(stdscr);
+            if (k == KEY_RESIZE)
+            {
+                // Update curses internal structures
+                resize_term(0, 0);
+
+                // Recreate your windows with new sizes
+                delWindows();
+                buildWindows();
+
+                // Redraw everything
+                render_layout(stdscr);
+
+                // Refresh all windows
+                wnoutrefresh(stdscr);
+                doupdate();
+            }
+            else
+            {
+                handle_key(stdscr, k);
+            }
+        }
+    }
     ~PodcastUI()
     {
         delWindows();
@@ -1025,36 +1054,6 @@ public:
         init_pair(4, COLOR_BLUE, -1);           // active window
 
         buildWindows();
-    }
-    void run()
-    {
-        while (running)
-        {
-            render_layout(stdscr);
-            wrefresh(stdscr);
-
-            int k = wgetch(stdscr);
-            if (k == KEY_RESIZE)
-            {
-                // Update curses internal structures
-                resize_term(0, 0);
-
-                // Recreate your windows with new sizes
-                delWindows();
-                buildWindows();
-
-                // Redraw everything
-                render_layout(stdscr);
-
-                // Refresh all windows
-                wnoutrefresh(stdscr);
-                doupdate();
-            }
-            else
-            {
-                handle_key(stdscr, k);
-            }
-        }
     }
 
     enum class Focus { Podcasts, Status, Shows };
