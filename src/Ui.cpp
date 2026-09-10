@@ -9,6 +9,7 @@
 #include "DowncastLogic.h"
 #include "HtmlToText.h"
 
+#include <array>
 #include <string>
 #include <vector>
 #include <optional>

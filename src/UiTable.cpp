@@ -1,5 +1,4 @@
 #include "UiTable.h"
-#include "StackTrace.h"
 #include <algorithm>
 #include <ranges>
 
@@ -12,17 +11,15 @@ inline void safe_addstr(WINDOW* win, int row, int col, const std::wstring& ch, i
     int h, w;
     getmaxyx(win, h, w);
 
-    if (DEBUG_UI)
+#ifdef DEBUG_UI
+    if (row < 0 || row >= h || col < 0 || col >= w)
     {
-        if (row < 0 || row >= h || col < 0 || col >= w)
-        {
-            std::wcerr << "[OOB] row=" << row << " col=" << col
-                      << " char=" << ch << " win_w=" << w << " win_h=" << h << "\n";
-            std::wcerr << "=== CURSES ERROR TRACE ===\n";
-            StackTrace::print();
-            return;
-        }
+        std::wcerr << "[OOB] row=" << row << " col=" << col
+                    << " char=" << ch << " win_w=" << w << " win_h=" << h << "\n";
+        std::wcerr << "=== CURSES ERROR TRACE ===\n";
+        //StackTrace::print();
     }
+#endif
     wattron(win, attrs);
     mvwaddwstr(win, row, col, ch.c_str());
     wattroff(win, attrs);
@@ -516,6 +513,8 @@ void UiTable::render(
     // Data rows
     // ------------------------------------------------------------
     dynamicColMaxDataWidth = 0;
+    std::vector<Cell> cell_objs;
+    std::vector<Cell> cells;
 
     for (int i = 0; i < lastKnownViewHeight; ++i)
     {
@@ -526,21 +525,15 @@ void UiTable::render(
             continue;
         }
 
-        std::vector<Cell> cell_objs;
-        cell_objs.reserve(cols.size());
-
-        for (int col_index = 0; col_index < static_cast<int>(cols.size()); ++col_index)
-            cell_objs.push_back(cell_cb(data_row, col_index));
-
-        std::vector<Cell> cells;
+        cells.clear();
         cells.reserve(cols.size());
 
         for (int col_index = 0; col_index < static_cast<int>(cols.size()); ++col_index)
         {
-            std::wstring s = cell_objs[col_index].text;
-            if ((int)s.size() < cols[col_index])
-                s.append(cols[col_index] - s.size(), ' ');
-            cells.emplace_back(s);
+            Cell cell = cell_cb(data_row, col_index);
+            if ((int)cell.text.size() < cols[col_index])
+                cell.text.append(cols[col_index] - cell.text.size(), ' ');
+            cells.emplace_back(cell);
         }
 
         if (dynamic_index >= 0)

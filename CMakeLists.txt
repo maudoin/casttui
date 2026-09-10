@@ -213,19 +213,18 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE USE_WIDEC_SUPPORT=1)
 
 if (WIN32)
 
-    target_link_libraries(${PROJECT_NAME} PRIVATE
-        C:/msys64/ucrt64/lib/libdbghelp.a
-    )
-    target_compile_options(${PROJECT_NAME} PRIVATE
-    $<$<CONFIG:Debug>:-g -gdwarf-4>
-    )
-
-    target_link_options(${PROJECT_NAME} PRIVATE
-        $<$<CONFIG:Debug>:-g>
-    )
-    target_compile_options(${PROJECT_NAME} PRIVATE
-        $<$<CONFIG:Debug>:-g -gcodeview>
-    )
+    # target_link_libraries(${PROJECT_NAME} PRIVATE
+    #     C:/msys64/ucrt64/lib/libdbghelp.a
+    # )
+    # target_compile_options(${PROJECT_NAME} PRIVATE
+    #     $<$<CONFIG:Debug>:-g -gdwarf-4>
+    # )
+    # target_link_options(${PROJECT_NAME} PRIVATE
+    #     $<$<CONFIG:Debug>:-g>
+    # )
+    # target_compile_options(${PROJECT_NAME} PRIVATE
+    #     $<$<CONFIG:Debug>:-g -gcodeview>
+    # )
     # If using DLL OpenSSL:
     # target_link_libraries(${PROJECT_NAME} PRIVATE
     #     ${OPENSSL_ROOT}/lib/libssl.dll.a
