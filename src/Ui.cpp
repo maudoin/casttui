@@ -202,7 +202,7 @@ private:
         getmaxyx(win, h, w);
         int inner_w = w - 2;
 
-        _statusHotspots.clear();
+        _statusHotspots.setWin(win);
 
         draw_top_border(win, 0, 0, inner_w, focused);
 
@@ -472,7 +472,7 @@ private:
         WINDOW* win = newwin(mh, mw, y, x);
         werase(win);
 
-        _addEditPodcastModalHotspots.clear();
+        _addEditPodcastModalHotspots.setWin(win);
 
         int inner_w = mw - 2;
         std::vector<HeaderColumn> cols{

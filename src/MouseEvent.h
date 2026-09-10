@@ -25,6 +25,16 @@ struct MouseEvent
     bool shift;
     bool alt;
     mmask_t raw_bstate;
+
+    MouseEvent toLocal(WINDOW* win, MouseEvent const& ev)
+    {
+        int beginRow, beginCol;
+        getbegyx(win, beginRow, beginCol);
+        MouseEvent locaEv = *this;
+        locaEv.x -= beginCol;
+        locaEv.y -= beginRow;
+        return locaEv;
+    }
 };
 
 inline std::optional<MouseEvent> getMouseEvent()

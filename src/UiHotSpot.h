@@ -21,8 +21,8 @@ struct UiHotspot
     std::function<void()> callback;
     bool handleMouseEvent(MouseEvent const& ev)const
     {
-        if ((ev.y >= beginCol && ev.y < endCol) &&
-            (ev.x >= beginRow && ev.x < endRow))
+        if ((ev.x >= beginCol && ev.x < endCol) &&
+            (ev.y >= beginRow && ev.y < endRow))
         {
             callback();
             return true;
@@ -34,7 +34,7 @@ struct UiHotspot
         getbegyx(win, beginRow, beginCol);
         getmaxyx(win, endRow, endCol);
         endRow += beginRow;
-        endCol += endCol;
+        endCol += beginCol;
     }
 
 };
@@ -49,8 +49,8 @@ public:
         if (UiHotspot::handleMouseEvent(ev))
         {
             MouseEvent locaEv = ev;
-            locaEv.x -= beginRow;
-            locaEv.y -= endRow;
+            //locaEv.x -= beginCol;
+            //locaEv.y -= beginRow;
             for (auto const i:_items)
             {
                 if (i.handleMouseEvent(locaEv))
@@ -61,6 +61,11 @@ public:
             return true;
         }
         return false;
+    }
+    void setWin(WINDOW* win)
+    {
+        UiHotspot::setWin(win);
+        clear();
     }
 
     void clear()
