@@ -2,8 +2,8 @@
   "version": 5,
   "configurePresets": [
     {
-      "name": "windows",
-      "displayName": "Windows Build",
+      "name": "windows clang",
+      "displayName": "Windows clang Build",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build-windows",
       "cacheVariables": {
@@ -17,12 +17,42 @@
       }
     },
     {
-      "name": "windows Debug",
-      "displayName": "Windows Debug Build",
+      "name": "windows clang Debug",
+      "displayName": "Windows clang Debug Build",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build-windows-debug",
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchain-clang-win.cmake",
+        "CMAKE_BUILD_TYPE": "Debug"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "$env{OS}",
+        "rhs": "Windows_NT"
+      }
+    },
+    {
+      "name": "windows gcc",
+      "displayName": "Windows gcc Build",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-gcc-windows",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchain-gcc-win.cmake",
+        "CMAKE_BUILD_TYPE": "Release"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "$env{OS}",
+        "rhs": "Windows_NT"
+      }
+    },
+    {
+      "name": "windows gcc Debug",
+      "displayName": "Windows gcc Debug Build",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-windows-gcc-debug",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchain-gcc-win.cmake",
         "CMAKE_BUILD_TYPE": "Debug"
       },
       "condition": {
@@ -90,8 +120,8 @@
   ],
   "buildPresets": [
     {
-      "name": "windows-build",
-      "configurePreset": "windows"
+      "name": "windows-build-clang",
+      "configurePreset": "windows clang"
     },
     {
       "name": "linux-build",

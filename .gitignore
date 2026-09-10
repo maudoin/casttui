@@ -1,7 +1,15 @@
 build-windows
+build-windows-clang
+build-windows-gcc
 build-linux
 build-wsl
 build-windows-debug
+build-windows-clang-debug
+build-windows-gcc-debug
+build-linux-debug
+build-wsl-debug
+build-linux
+build-wsl
 build-linux-debug
 build-wsl-debug
 castapod.db3

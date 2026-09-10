@@ -1,4 +1,5 @@
 #include "UiTable.h"
+#include "StackTrace.h"
 #include <algorithm>
 #include <ranges>
 
@@ -18,9 +19,7 @@ inline void safe_addstr(WINDOW* win, int row, int col, const std::wstring& ch, i
             std::wcerr << "[OOB] row=" << row << " col=" << col
                       << " char=" << ch << " win_w=" << w << " win_h=" << h << "\n";
             std::wcerr << "=== CURSES ERROR TRACE ===\n";
-            std::wcerr << "[ADDSTR ERR] row=" << row << " col=" << col
-                      << " char=" << ch << " win_w=" << w << " win_h=" << h << "\n";
-            std::wcerr << "==========================\n";
+            StackTrace::print();
             return;
         }
     }
@@ -398,6 +397,7 @@ void UiTable::render(
     const std::function<Cell(int, int)>& cell_cb,
     bool focused)
 {
+    _hotspotGroup.setWin(win);
     data_row_count = dataRowCount;
 
     int h, w;
@@ -585,6 +585,7 @@ void UiTable::renderArray(
     const std::optional<std::wstring>& title,
     bool focused)
 {
+    _hotspotGroup.setWin(win);
     auto cell_cb = [&array](int row, int) -> Cell {
         return Cell{ array[row], A_NORMAL };
     };
