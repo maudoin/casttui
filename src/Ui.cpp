@@ -524,13 +524,17 @@ private:
             draw_row_assembled_cols(win, row, 0, {{wline}}, cols, _addEditPodcastModalHotspots, true);
             ++row;
         }
-
+        draw_empty_border(win, row, 0, mw-1, true);
         ++row;
         std::wstring whelp = L"ENTER=edit/commit   S=save   ESC=cancel";
         if (static_cast<int>(whelp.size()) < inner_w)
             whelp.append(inner_w - whelp.size(), L' ');
         draw_row_assembled_cols(win, row, 0, {{whelp}}, cols, _addEditPodcastModalHotspots, true);
 
+        for (;row<mh-2; ++row)
+        {
+            draw_empty_border(win, row, 0, mw-1, true);
+        }
         std::wstring wfooter = L"[ OK ]   [ Cancel ]";
         if (static_cast<int>(wfooter.size()) < inner_w)
             wfooter.append(inner_w - wfooter.size(), L' ');

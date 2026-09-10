@@ -112,9 +112,9 @@ void draw_top_border_header(
     int row,
     int col,
     const std::vector<HeaderColumn>& cols,
-    bool focused = false)
+    bool focused)
 {
-    box(win, 0, 0);
+    //box(win, 0, 0);
     draw_border_columns(win, row, col, cols, L"╭", L"┬", L"╮", focused);
 }
 
@@ -123,7 +123,7 @@ void draw_mid_border_header(
     int row,
     int col,
     const std::vector<HeaderColumn>& cols,
-    bool focused = false)
+    bool focused)
 {
     draw_border_columns(win, row, col, cols, L"├", L"┼", L"┤", focused);
 }
@@ -133,9 +133,9 @@ void draw_bottom_border_header(
     int row,
     int col,
     const std::vector<HeaderColumn>& cols,
-    bool focused = false)
+    bool focused)
 {
-    draw_border_columns(win, row, col, cols, L"╰", L"┴", L"", focused);
+    draw_border_columns(win, row, col, cols, L"╰", L"┴", L"╯", focused);
 }
 
 void draw_top_border(
@@ -143,7 +143,7 @@ void draw_top_border(
     int row,
     int col,
     int inner_width,
-    bool focused = false)
+    bool focused)
 {
     draw_top_border_header(win, row, col, { HeaderColumn{ inner_width } }, focused);
 }
@@ -153,7 +153,7 @@ void draw_bottom_border(
     int row,
     int col,
     int inner_width,
-    bool focused = false)
+    bool focused)
 {
     draw_bottom_border_header(win, row, col, { HeaderColumn{ inner_width } }, focused);
 }
@@ -214,6 +214,21 @@ inline void draw_header_row(
     }
 
     addstr_focus(win, row, col + x, build_right_border({ std::nullopt, std::nullopt }, 0), focused);
+}
+
+// ------------------------------------------------------------
+// draw_row_assembled_cols()
+// ------------------------------------------------------------
+void draw_empty_border(
+    WINDOW* win,
+    int row,
+    int col,
+    int width,
+    bool focused,
+    std::pair<std::optional<int>, std::optional<int>> vparams)
+{
+    addstr_focus(win, row, col, build_left_border(), focused);
+    addstr_focus(win, row, col + width, build_right_border(vparams, row), focused);
 }
 
 // --------------------------------------------------------------------
@@ -506,7 +521,10 @@ void UiTable::render(
     {
         int data_row = _firstVisibleDataRow + i;
         if (data_row >= dataRowCount)
-            break;
+        {
+            draw_empty_border(win, first_data_row + i, 0, w-1, focused, vparams);
+            continue;
+        }
 
         std::vector<Cell> cell_objs;
         cell_objs.reserve(cols.size());

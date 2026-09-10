@@ -101,18 +101,19 @@ private:
 };
 
 // free functions
-void draw_top_border(WINDOW* win, int row, int col, int width, bool focused);
-void draw_bottom_border(WINDOW* win, int row, int col, int width, bool focused);
+void draw_top_border(WINDOW* win, int row, int col, int width, bool focused = false);
+void draw_bottom_border(WINDOW* win, int row, int col, int width, bool focused = false);
 void draw_top_border_header(WINDOW* win, int row, int col,
-                            const std::vector<HeaderColumn>& cols, bool focused);
+                            const std::vector<HeaderColumn>& cols, bool focused = false);
 void draw_mid_border_header(WINDOW* win, int row, int col,
-                            const std::vector<HeaderColumn>& cols, bool focused);
+                            const std::vector<HeaderColumn>& cols, bool focused = false);
 void draw_bottom_border_header(WINDOW* win, int row, int col,
-                               const std::vector<HeaderColumn>& cols, bool focused);
+                               const std::vector<HeaderColumn>& cols, bool focused = false);
 void draw_row_assembled_cols(WINDOW* win, int row, int col,
                              const std::vector<Cell>& cells,
                              const std::vector<HeaderColumn>& cols_def,
                              UiHotspotGoup& hostHotspotGroup,
-                             bool focused,
+                             bool focused = false,
                              int textOffset=0,
                              std::pair<std::optional<int>, std::optional<int>> vparam = {std::nullopt, std::nullopt});
+void draw_empty_border(WINDOW* win, int row, int col, int width, bool focused = false, std::pair<std::optional<int>, std::optional<int>> vparams = {std::nullopt, std::nullopt});
