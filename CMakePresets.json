@@ -17,6 +17,21 @@
       }
     },
     {
+      "name": "windows Debug",
+      "displayName": "Windows Debug Build",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-windows-debug",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchain-clang-win.cmake",
+        "CMAKE_BUILD_TYPE": "Debug"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "$env{OS}",
+        "rhs": "Windows_NT"
+      }
+    },
+    {
       "name": "linux",
       "displayName": "Linux Build",
       "generator": "Ninja",
@@ -31,12 +46,40 @@
       }
     },
     {
+      "name": "linux Debug",
+      "displayName": "Linux Debug Build",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-linux-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "$hostSystemName",
+        "rhs": "Linux"
+      }
+    },
+    {
       "name": "wsl",
       "displayName": "WSL Build",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build-wsl",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "$env{WSL_DISTRO_NAME}",
+        "rhs": "Ubuntu"
+      }
+    },
+    {
+      "name": "wsl Debug",
+      "displayName": "WSL Debug Build",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-wsl-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
       },
       "condition": {
         "type": "equals",

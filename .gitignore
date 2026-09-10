@@ -1,4 +1,7 @@
 build-windows
 build-linux
 build-wsl
+build-windows-debug
+build-linux-debug
+build-wsl-debug
 castapod.db3
