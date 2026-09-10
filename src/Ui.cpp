@@ -68,7 +68,10 @@ class PodcastUI
             else
                 style = A_NORMAL;
 
-            return Cell{title, style};
+            return Cell{title, style, [this, row]{
+                this->podcast_table.scrollTo(row);
+                this->pickPodcast();
+            }};
         };
 
         podcast_table.render(win, count, cols, cell_cb, focused);
@@ -623,31 +626,38 @@ class PodcastUI
         // ENTER behavior
         if (k == 10 || k == 13)
         {
-            if (podcast_table.cursor() == 0)
+            if (pickPodcast())
             {
-                modal_delete_id.reset();
-                modal_mode = ModalMode::Add;
-                return true;
-            }
-            else if (podcast_table.cursor() == 1)
-            {
-                logic.setCurrentPodcastRowIndex(std::optional<std::optional<int>>{std::nullopt}, std::nullopt);
-                //TODO podcast_table.firstVisibleDataRow() = 0;
-                //TODO shows_table.cursor() = 0;
-                return true;
-            }
-            else
-            {
-                logic.setCurrentPodcastRowIndex(podcast_table.cursor() - 2, std::nullopt);
-                //TODO podcast_table.firstVisibleDataRow() = 0;
-                //TODO shows_table.cursor() = 0;
                 return true;
             }
         }
 
         return false;
     }
-
+    bool pickPodcast()
+    {
+        if (podcast_table.cursor() == 0)
+        {
+            modal_delete_id.reset();
+            modal_mode = ModalMode::Add;
+            return true;
+        }
+        else if (podcast_table.cursor() == 1)
+        {
+            logic.setCurrentPodcastRowIndex(std::optional<std::optional<int>>{std::nullopt}, std::nullopt);
+            //TODO podcast_table.firstVisibleDataRow() = 0;
+            //TODO shows_table.cursor() = 0;
+            return true;
+        }
+        else
+        {
+            logic.setCurrentPodcastRowIndex(podcast_table.cursor() - 2, std::nullopt);
+            //TODO podcast_table.firstVisibleDataRow() = 0;
+            //TODO shows_table.cursor() = 0;
+            return true;
+        }
+        return false;
+    }
     bool handle_status_key(int k)
     {
         auto move_status_cursor = [&](int delta)

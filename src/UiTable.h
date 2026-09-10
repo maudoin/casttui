@@ -62,6 +62,7 @@ public:
             int firstVisibleDataRow = 0,
             int dynamicColCurrentOffsetX = 0);
 
+    void scrollTo(int newCursor);
     void scrollVertical(int amount);
     void scrollHorizontal(int amount);
 

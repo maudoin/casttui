@@ -300,7 +300,7 @@ void draw_row_assembled_cols(
 
         if (cell.callback)
         {
-            hostHotspotGroup.addLocalSpot(row, col + x, (int)text.size(), 1, *(cell.callback));
+            hostHotspotGroup.addLocalSpot(row, col + x, row+1, col + x + (int)text.size(), *(cell.callback));
         }
 
         x += (int)text.size();
@@ -331,11 +331,11 @@ UiTable::UiTable(Mode mode,
 // ------------------------------------------------------------
 // Vertical scrolling
 // ------------------------------------------------------------
-void UiTable::scrollVertical(int amount)
+void UiTable::scrollTo(int newCursor)
 {
     if (mode == Mode::CURSOR)
     {
-        _cursor = std::clamp(_cursor + amount, 0, data_row_count - 1);
+        _cursor = std::clamp(newCursor, 0, data_row_count - 1);
         int visible = lastKnownViewHeight;
 
         if (_cursor < _firstVisibleDataRow)
@@ -346,7 +346,22 @@ void UiTable::scrollVertical(int amount)
     else
     {
         _firstVisibleDataRow =
-            std::clamp(_firstVisibleDataRow + amount, 0, data_row_count - 1);
+            std::clamp(newCursor, 0, data_row_count - 1);
+    }
+}
+
+// ------------------------------------------------------------
+// Vertical scrolling
+// ------------------------------------------------------------
+void UiTable::scrollVertical(int amount)
+{
+    if (mode == Mode::CURSOR)
+    {
+        scrollTo(_cursor + amount);
+    }
+    else
+    {
+        scrollTo(_firstVisibleDataRow + amount);
     }
 }
 
