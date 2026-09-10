@@ -4,7 +4,7 @@
 
 #include <string>
 
-inline void html_to_text(rapidxml::xml_node<>* node, std::string& out, int listLevel = 0)
+inline void html_to_text(rapidxml::xml_node<wchar_t>* node, std::wstring& out, int listLevel = 0)
 {
   using namespace rapidxml;
   if (!node) return;
@@ -17,43 +17,43 @@ inline void html_to_text(rapidxml::xml_node<>* node, std::string& out, int listL
 
     case node_type::node_element:
     {
-      std::string name = node->name();
+      std::wstring name = node->name();
 
-      if (name == "p")
+      if (name == L"p")
       {
-          out += "\n\n";  // paragraph break
+          out += L"\n\n";  // paragraph break
       }
-      else if (name == "br")
+      else if (name == L"br")
       {
-          out += "\n";
+          out += L"\n";
       }
-      else if (name == "li")
+      else if (name == L"li")
       {
-          out += std::string(listLevel * 2, ' ') + "- ";
+          out += std::wstring(listLevel * 2, ' ') + L"- ";
       }
-      else if (name == "ul" || name == "ol")
+      else if (name == L"ul" || name == L"ol")
       {
           listLevel++;
       }
-      else if (name == "h1" || name == "h2" || name == "h3")
+      else if (name == L"h1" || name == L"h2" || name == L"h3")
       {
-          out += "\n";
+          out += L"\n";
       }
-      else if (name == "script" || name == "style")
+      else if (name == L"script" || name == L"style")
       {
           return; // ignore
       }
 
       // Recurse into children
-      for (xml_node<>* child = node->first_node(); child; child = child->next_sibling())
+      for (xml_node<wchar_t>* child = node->first_node(); child; child = child->next_sibling())
       {
           html_to_text(child, out, listLevel);
       }
 
       // After closing certain tags
-      if (name == "p" || name == "h1" || name == "h2" || name == "h3")
+      if (name == L"p" || name == L"h1" || name == L"h2" || name == L"h3")
       {
-          out += "\n";
+          out += L"\n";
       }
 
       return;
@@ -63,14 +63,20 @@ inline void html_to_text(rapidxml::xml_node<>* node, std::string& out, int listL
   }
 }
 
-inline std::string html_to_text(std::string const& data)
+inline std::wstring html_to_text(std::wstring const& data)
 {
   using namespace rapidxml;
-  xml_document<> doc;    // character type defaults to char
-  char* text = const_cast<char*>(data.data());
-  doc.parse<parse_non_destructive>(text);    // 0 means default parse flags
+  xml_document<wchar_t> doc;    // character type defaults to char
+  wchar_t* text = const_cast<wchar_t*>(data.data());
+  try
+  {
+    doc.parse<parse_non_destructive>(text);    // 0 means default parse flags
+  }
+  catch(std::exception const&)
+  {
+  }
 
-  std::string out;
+  std::wstring out;
   html_to_text(doc.first_node(), out);
   return out;
 }

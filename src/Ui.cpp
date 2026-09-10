@@ -426,7 +426,7 @@ private:
 
         auto const& shows = logic.showsInRankRange(shows_table.cursor(), 1);
 
-        std::string text = shows.empty() ? "No show selected." : html_to_text(shows[0].summary);
+        std::wstring text = shows.empty() ? L"No show selected." : html_to_text(to_wstring(shows[0].summary));
         std::vector<std::wstring> lines;
 
         int max_lines = mh - 2;

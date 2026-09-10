@@ -11,7 +11,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/build-windows-debug/casttui.exe",
             "args": [],
-            "stopAtEntry": true,
+            "stopAtEntry": false,
             "cwd": "${workspaceFolder}/",
             "environment": [],
             "externalConsole": true, // gdb cannot handle pdcurses console context
@@ -31,7 +31,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/build-wsl-debug/casttui",
             "args": [],
-            "stopAtEntry": true,
+            "stopAtEntry": false,
             "cwd": "${workspaceFolder}/",
             "environment": [],
             "externalConsole": false,
