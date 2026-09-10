@@ -30,126 +30,6 @@ inline std::wstring to_wstring(const std::string& s)
 // --------------------------------------------------------------------
 class PodcastUI
 {
-public:
-    explicit PodcastUI(const std::string& db_path)
-        : logic(db_path)
-        , focus(Focus::Podcasts)
-        , podcast_table(UiTable::Mode::CURSOR, [&]{focus = Focus::Podcasts;})
-        , shows_table(UiTable::Mode::CURSOR, [&]{focus = Focus::Shows;})
-        , info_table(UiTable::Mode::SCROLL, [&]{})
-        , _statusHotspots([&]{focus = Focus::Status;})
-        , _confirmModalHotspots([]{})
-        , _addEditPodcastModalHotspots([]{})
-        , cursor_status(0)
-    {
-        using MediaStatus = DowncastLogic::MediaStatus;
-        status_labels = {
-            {L"New",    MediaStatus::New},
-            {L"Queue",  MediaStatus::Queued},
-            {L"Skipped",MediaStatus::Skipped},
-            {L"Done",   MediaStatus::Done},
-            {L"All",    std::nullopt}
-        };
-    }
-
-    void render_layout(WINDOW* stdscr)
-    {
-        if (modal_mode == ModalMode::Confirm)
-        {
-            render_confirm_modal(stdscr);
-            return;
-        }
-        else if (modal_mode == ModalMode::Info)
-        {
-            render_info_modal(stdscr);
-            return;
-        }
-        else if (modal_mode == ModalMode::Add || modal_mode == ModalMode::Edit)
-        {
-            render_add_edit_modal(stdscr);
-            return;
-        }
-
-        int h, w;
-        getmaxyx(stdscr, h, w);
-
-        int left_w = std::max(20, w / 4);
-        int right_w = w - left_w;
-
-        int min_shows_h = 3;
-        int status_h = 3;
-        int actions_h = 4;
-        int bottom_h = 3;
-
-        status_h = std::max(min_shows_h, status_h);
-        actions_h = std::max(min_shows_h, actions_h);
-        bottom_h = std::max(min_shows_h, bottom_h);
-
-        int shows_h = std::max(min_shows_h, h - status_h - actions_h - bottom_h);
-
-        WINDOW* win_left   = newwin(h,        left_w, 0,                 0);
-        WINDOW* win_status = newwin(status_h, right_w, 0,                 left_w);
-        WINDOW* win_shows  = newwin(shows_h,  right_w, status_h,          left_w);
-        WINDOW* win_actions= newwin(actions_h,right_w, status_h + shows_h,left_w);
-        WINDOW* win_bottom = newwin(bottom_h, right_w, status_h + shows_h + actions_h, left_w);
-
-        render_podcast_list(win_left);
-        render_status_filter_bar(win_status);
-        render_shows_table(win_shows);
-        render_actions_bar(win_actions);
-        render_bottom_bar(win_bottom);
-
-        wrefresh(win_left);
-        wrefresh(win_status);
-        wrefresh(win_shows);
-        wrefresh(win_actions);
-        wrefresh(win_bottom);
-
-        delwin(win_left);
-        delwin(win_status);
-        delwin(win_shows);
-        delwin(win_actions);
-        delwin(win_bottom);
-    }
-
-private:
-    enum class Focus { Podcasts, Status, Shows };
-    enum class ModalMode { None, Add, Edit, Info, Confirm };
-
-    struct StatusLabel
-    {
-        std::wstring label;
-        std::optional<DowncastLogic::MediaStatus> status;
-    };
-
-    DowncastLogic logic;
-
-    Focus focus;
-    UiTable podcast_table;
-    UiTable shows_table;
-    UiTable info_table;
-    UiHotspotGoup _statusHotspots;
-    UiHotspotGoup _confirmModalHotspots;
-    UiHotspotGoup _addEditPodcastModalHotspots;
-    int cursor_status;
-
-    std::vector<StatusLabel> status_labels;
-
-    ModalMode modal_mode = ModalMode::None;
-    int modal_field = 0;
-    std::string modal_url;
-    std::string modal_title;
-    std::string modal_target = ".";
-    std::string modal_pattern = "{date}-{title}";
-    bool modal_editing = false;
-    std::string modal_edit_buffer;
-    std::string modal_preview_description;
-    std::vector<std::string> modal_preview_shows;
-    std::optional<int> modal_delete_id;
-    std::optional<int> modal_edit_id;
-
-    bool running = true;
-
     // ----------------------------------------------------------------
     // Rendering
     // ----------------------------------------------------------------
@@ -1033,9 +913,96 @@ private:
 
         return false;
     }
-public:
-    void run()
+    void delWindows()
     {
+        delwin(win_left);
+        delwin(win_status);
+        delwin(win_shows);
+        delwin(win_actions);
+        delwin(win_bottom);
+    }
+    void buildWindows()
+    {
+        int h, w;
+        getmaxyx(stdscr, h, w);
+
+        int left_w = std::max(20, w / 4);
+        int right_w = w - left_w;
+
+        int min_shows_h = 3;
+        int status_h = 3;
+        int actions_h = 4;
+        int bottom_h = 3;
+
+        status_h = std::max(min_shows_h, status_h);
+        actions_h = std::max(min_shows_h, actions_h);
+        bottom_h = std::max(min_shows_h, bottom_h);
+
+        int shows_h = std::max(min_shows_h, h - status_h - actions_h - bottom_h);
+
+        win_left   = newwin(h,        left_w, 0,                 0);
+        win_status = newwin(status_h, right_w, 0,                 left_w);
+        win_shows  = newwin(shows_h,  right_w, status_h,          left_w);
+        win_actions= newwin(actions_h,right_w, status_h + shows_h,left_w);
+        win_bottom = newwin(bottom_h, right_w, status_h + shows_h + actions_h, left_w);
+    }
+    void render_layout(WINDOW* stdscr)
+    {
+        if (modal_mode == ModalMode::Confirm)
+        {
+            render_confirm_modal(stdscr);
+            return;
+        }
+        else if (modal_mode == ModalMode::Info)
+        {
+            render_info_modal(stdscr);
+            return;
+        }
+        else if (modal_mode == ModalMode::Add || modal_mode == ModalMode::Edit)
+        {
+            render_add_edit_modal(stdscr);
+            return;
+        }
+
+        render_podcast_list(win_left);
+        render_status_filter_bar(win_status);
+        render_shows_table(win_shows);
+        render_actions_bar(win_actions);
+        render_bottom_bar(win_bottom);
+
+        wrefresh(win_left);
+        wrefresh(win_status);
+        wrefresh(win_shows);
+        wrefresh(win_actions);
+        wrefresh(win_bottom);
+
+    }
+
+public:
+    ~PodcastUI()
+    {
+        delWindows();
+        endwin();
+    }
+    explicit PodcastUI(const std::string& db_path)
+        : logic(db_path)
+        , focus(Focus::Podcasts)
+        , podcast_table(UiTable::Mode::CURSOR, [&]{focus = Focus::Podcasts;})
+        , shows_table(UiTable::Mode::CURSOR, [&]{focus = Focus::Shows;})
+        , info_table(UiTable::Mode::SCROLL, [&]{})
+        , _statusHotspots([&]{focus = Focus::Status;})
+        , _confirmModalHotspots([]{})
+        , _addEditPodcastModalHotspots([]{})
+        , cursor_status(0)
+    {
+        using MediaStatus = DowncastLogic::MediaStatus;
+        status_labels = {
+            {L"New",    MediaStatus::New},
+            {L"Queue",  MediaStatus::Queued},
+            {L"Skipped",MediaStatus::Skipped},
+            {L"Done",   MediaStatus::Done},
+            {L"All",    std::nullopt}
+        };
         initscr();
 
         cbreak();
@@ -1057,17 +1024,81 @@ public:
         init_pair(3, COLOR_BLUE, COLOR_WHITE);  // cursor + active
         init_pair(4, COLOR_BLUE, -1);           // active window
 
+        buildWindows();
+    }
+    void run()
+    {
         while (running)
         {
             render_layout(stdscr);
             wrefresh(stdscr);
 
             int k = wgetch(stdscr);
-            handle_key(stdscr, k);
+            if (k == KEY_RESIZE)
+            {
+                // Update curses internal structures
+                resize_term(0, 0);
+
+                // Recreate your windows with new sizes
+                delWindows();
+                buildWindows();
+
+                // Redraw everything
+                render_layout(stdscr);
+
+                // Refresh all windows
+                wnoutrefresh(stdscr);
+                doupdate();
+            }
+            else
+            {
+                handle_key(stdscr, k);
+            }
         }
-        endwin();
     }
 
+    enum class Focus { Podcasts, Status, Shows };
+    enum class ModalMode { None, Add, Edit, Info, Confirm };
+
+    struct StatusLabel
+    {
+        std::wstring label;
+        std::optional<DowncastLogic::MediaStatus> status;
+    };
+
+    DowncastLogic logic;
+
+    Focus focus;
+    UiTable podcast_table;
+    UiTable shows_table;
+    UiTable info_table;
+    UiHotspotGoup _statusHotspots;
+    UiHotspotGoup _confirmModalHotspots;
+    UiHotspotGoup _addEditPodcastModalHotspots;
+    int cursor_status;
+
+    std::vector<StatusLabel> status_labels;
+
+    ModalMode modal_mode = ModalMode::None;
+    int modal_field = 0;
+    std::string modal_url;
+    std::string modal_title;
+    std::string modal_target = ".";
+    std::string modal_pattern = "{date}-{title}";
+    bool modal_editing = false;
+    std::string modal_edit_buffer;
+    std::string modal_preview_description;
+    std::vector<std::string> modal_preview_shows;
+    std::optional<int> modal_delete_id;
+    std::optional<int> modal_edit_id;
+
+    bool running = true;
+
+    WINDOW* win_left   = nullptr;
+    WINDOW* win_status = nullptr;
+    WINDOW* win_shows  = nullptr;
+    WINDOW* win_actions= nullptr;
+    WINDOW* win_bottom = nullptr;
 };
 
 #ifndef _WIN32
