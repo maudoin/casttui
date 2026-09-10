@@ -248,11 +248,11 @@ void draw_row_assembled_cols(
     WINDOW* win,
     int row,
     int col,
-    const std::vector<std::wstring>& cells,
+    const std::vector<Cell>& cells,
     const std::vector<HeaderColumn>& cols_def,
+    UiHotspotGoup& hostHotspotGroup,
     bool focused,
     int textOffset,
-    int style,
     std::pair<std::optional<int>, std::optional<int>> vparams)
 {
     std::wstring left = build_left_border();
@@ -273,21 +273,26 @@ void draw_row_assembled_cols(
         int col_text_offset = cols_def[i].dynamic ? textOffset : 0;
         int width = cols_def[i].width;
 
-        std::wstring cell = cells[i];
+        auto const& cell = cells[i];
 
-        if (col_text_offset > 0 && col_text_offset < (int)cell.size())
-            cell = cell.substr(col_text_offset);
+        std::wstring text = cell.text;
 
-        if ((int)cell.size() < width)
-            cell.append(width - cell.size(), ' ');
-        else if ((int)cell.size() > width)
-            cell = cell.substr(0, width);
+        if (col_text_offset > 0 && col_text_offset < (int)text.size())
+            text = text.substr(col_text_offset);
 
-        wattron(win, style);
-        addstr_run(win, row, col + x, cell, style);
-        wattroff(win, style);
+        if ((int)text.size() < width)
+            text.append(width - text.size(), ' ');
+        else if ((int)text.size() > width)
+            text = text.substr(0, width);
 
-        x += (int)cell.size();
+        addstr_run(win, row, col + x, text, cell.style);
+
+        if (cell.callback)
+        {
+            hostHotspotGroup.addLocalSpot(row, col + x, (int)text.size(), 1, *(cell.callback));
+        }
+
+        x += (int)text.size();
     }
 
     addstr_focus(win, row, col + x, right, focused);
@@ -296,17 +301,19 @@ void draw_row_assembled_cols(
 // Constructor
 // ------------------------------------------------------------
 UiTable::UiTable(Mode mode,
+                 std::function<void()> const& callback,
                  int firstVisibleDataRow,
                  int dynamicColCurrentOffsetX)
-    : _cursor(firstVisibleDataRow),
-      mode(mode),
-      _firstVisibleDataRow(firstVisibleDataRow),
-      _dynamicColCurrentOffsetX(dynamicColCurrentOffsetX),
-      dynamicColViewWidth(0),
-      dynamicColMaxDataWidth(0),
-      data_row_count(0),
-      lastKnownViewHeight(0),
-      first_data_row(0)
+    : _cursor(firstVisibleDataRow)
+    , mode(mode)
+    , _firstVisibleDataRow(firstVisibleDataRow)
+    , _dynamicColCurrentOffsetX(dynamicColCurrentOffsetX)
+    , dynamicColViewWidth(0)
+    , dynamicColMaxDataWidth(0)
+    , data_row_count(0)
+    , lastKnownViewHeight(0)
+    , first_data_row(0)
+    , _hotspotGroup(callback)
 {
 }
 
@@ -507,7 +514,7 @@ void UiTable::render(
         for (int col_index = 0; col_index < static_cast<int>(cols.size()); ++col_index)
             cell_objs.push_back(cell_cb(data_row, col_index));
 
-        std::vector<std::wstring> cells;
+        std::vector<Cell> cells;
         cells.reserve(cols.size());
 
         for (int col_index = 0; col_index < static_cast<int>(cols.size()); ++col_index)
@@ -515,15 +522,13 @@ void UiTable::render(
             std::wstring s = cell_objs[col_index].text;
             if ((int)s.size() < cols[col_index])
                 s.append(cols[col_index] - s.size(), ' ');
-            cells.push_back(s);
+            cells.emplace_back(s);
         }
 
         if (dynamic_index >= 0)
             dynamicColMaxDataWidth =
                 std::max(dynamicColMaxDataWidth,
-                         static_cast<int>(cells[dynamic_index].size()));
-
-        int row_style = cell_objs[0].style;
+                         static_cast<int>(cells[dynamic_index].text.size()));
 
         draw_row_assembled_cols(
             win,
@@ -531,9 +536,9 @@ void UiTable::render(
             0,
             cells,
             resolved_header_cols,
+            _hotspotGroup,
             focused,
             _dynamicColCurrentOffsetX,
-            row_style,
             vparams);
     }
 

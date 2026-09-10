@@ -31,12 +31,15 @@ class PodcastUI
 {
 public:
     explicit PodcastUI(const std::string& db_path)
-        : logic(db_path),
-          focus(Focus::Podcasts),
-          podcast_table(UiTable::Mode::CURSOR),
-          shows_table(UiTable::Mode::CURSOR),
-          info_table(UiTable::Mode::SCROLL),
-          cursor_status(0)
+        : logic(db_path)
+        , focus(Focus::Podcasts)
+        , podcast_table(UiTable::Mode::CURSOR, [&]{focus = Focus::Podcasts;})
+        , shows_table(UiTable::Mode::CURSOR, [&]{focus = Focus::Shows;})
+        , info_table(UiTable::Mode::SCROLL, [&]{})
+        , _statusHotspots([&]{focus = Focus::Status;})
+        , _confirmModalHotspots([]{})
+        , _addEditPodcastModalHotspots([]{})
+        , cursor_status(0)
     {
         using MediaStatus = DowncastLogic::MediaStatus;
         status_labels = {
@@ -124,6 +127,9 @@ private:
     UiTable podcast_table;
     UiTable shows_table;
     UiTable info_table;
+    UiHotspotGoup _statusHotspots;
+    UiHotspotGoup _confirmModalHotspots;
+    UiHotspotGoup _addEditPodcastModalHotspots;
     int cursor_status;
 
     std::vector<StatusLabel> status_labels;
@@ -196,12 +202,14 @@ private:
         getmaxyx(win, h, w);
         int inner_w = w - 2;
 
+        _statusHotspots.clear();
+
         draw_top_border(win, 0, 0, inner_w, focused);
 
-        std::vector<std::wstring> cells{L"Status: "};
+        std::vector<Cell> cells{{L"Status: "}};
         std::vector<HeaderColumn> cols{HeaderColumn{.width = inner_w, .name = std::nullopt, .sort = SortDir::NONE, .dynamic = false}};
-        draw_row_assembled_cols(win, 1, 0, cells, cols, focused);
-        int x = static_cast<int>(cells[0].size());
+        draw_row_assembled_cols(win, 1, 0, cells, cols, _statusHotspots, focused);
+        int x = static_cast<int>(cells[0].text.size());
 
         for (int i = 0; i < static_cast<int>(status_labels.size()); ++i)
         {
@@ -223,11 +231,11 @@ private:
             if (x + static_cast<int>(text.size()) >= inner_w)
                 break;
 
-            std::vector<std::wstring> cell{ text };
+            std::vector<Cell> cells{ {text, style} };
             std::vector<HeaderColumn> col_def{
                 HeaderColumn{.width = static_cast<int>(text.size()), .name = std::nullopt, .sort = SortDir::NONE, .dynamic = false}
             };
-            draw_row_assembled_cols(win, 1, x, cell, col_def, focused, 0, style);
+            draw_row_assembled_cols(win, 1, x, cells, col_def, _statusHotspots, focused);
             x += static_cast<int>(text.size());
         }
 
@@ -464,6 +472,8 @@ private:
         WINDOW* win = newwin(mh, mw, y, x);
         werase(win);
 
+        _addEditPodcastModalHotspots.clear();
+
         int inner_w = mw - 2;
         std::vector<HeaderColumn> cols{
             HeaderColumn{.width = inner_w, .name = std::nullopt, .sort = SortDir::NONE, .dynamic = false}
@@ -474,8 +484,8 @@ private:
         std::wstring mode_str = (modal_mode == ModalMode::Add ? L"ADD" : L"EDIT");
         std::vector<std::wstring> header_line{mode_str};
         draw_row_assembled_cols(win, 1, 0,
-                                {mode_str + std::wstring(inner_w - mode_str.size(), L' ')},
-                                cols, true);
+                                {{mode_str + std::wstring(inner_w - mode_str.size(), L' ')}},
+                                cols, _addEditPodcastModalHotspots, true);
 
         draw_mid_border_header(win, 2, 0, cols, true);
 
@@ -490,8 +500,8 @@ private:
         std::wstring caption = (modal_mode == ModalMode::Add ? L"add" : L"edit");
         std::wstring cap_line = caption + L" podcast";
         draw_row_assembled_cols(win, 1, 0,
-                                {cap_line.append(inner_w - cap_line.size(), L' ')},
-                                cols, true);
+                                {{cap_line.append(inner_w - cap_line.size(), L' ')}},
+                                cols, _addEditPodcastModalHotspots, true);
 
         row = 3;
         for (int i = 0; i < static_cast<int>(fields.size()); ++i)
@@ -511,7 +521,7 @@ private:
             if (static_cast<int>(wline.size()) < inner_w)
                 wline.append(inner_w - wline.size(), L' ');
 
-            draw_row_assembled_cols(win, row, 0, {wline}, cols, true);
+            draw_row_assembled_cols(win, row, 0, {{wline}}, cols, _addEditPodcastModalHotspots, true);
             ++row;
         }
 
@@ -519,12 +529,12 @@ private:
         std::wstring whelp = L"ENTER=edit/commit   S=save   ESC=cancel";
         if (static_cast<int>(whelp.size()) < inner_w)
             whelp.append(inner_w - whelp.size(), L' ');
-        draw_row_assembled_cols(win, row, 0, {whelp}, cols, true);
+        draw_row_assembled_cols(win, row, 0, {{whelp}}, cols, _addEditPodcastModalHotspots, true);
 
         std::wstring wfooter = L"[ OK ]   [ Cancel ]";
         if (static_cast<int>(wfooter.size()) < inner_w)
             wfooter.append(inner_w - wfooter.size(), L' ');
-        draw_row_assembled_cols(win, mh - 2, 0, {wfooter}, cols, true);
+        draw_row_assembled_cols(win, mh - 2, 0, {{wfooter}}, cols, _addEditPodcastModalHotspots, true);
         draw_bottom_border_header(win, mh - 1, 0, cols, true);
 
         wrefresh(win);
@@ -867,8 +877,46 @@ private:
         return false;
     }
 
-    bool handle_key(int k)
+    bool handle_mouse(MouseEvent const& ev)
     {
+        // always active
+        if (podcast_table.hotspots().handleMouseEvent(ev))
+            return true;
+        if (shows_table.hotspots().handleMouseEvent(ev))
+            return true;
+        if (_statusHotspots.handleMouseEvent(ev))
+            return true;
+
+        // Modal active only when visible
+        if (modal_mode == ModalMode::Confirm)
+            return _confirmModalHotspots.handleMouseEvent(ev);
+
+        if (modal_mode == ModalMode::Info)
+            return info_table.hotspots().handleMouseEvent(ev);
+
+        if (modal_mode == ModalMode::Add ||
+            modal_mode == ModalMode::Edit)
+            return _addEditPodcastModalHotspots.handleMouseEvent(ev);
+        return false;
+    }
+
+    bool handle_key(WINDOW* stdscr, int k)
+    {
+        if (k == KEY_RESIZE)
+        {
+            render_layout(stdscr);
+            return true;
+        }
+        if (k == KEY_MOUSE)
+        {
+            if (auto event = getMouseEvent())
+            {
+                if (handle_mouse(*event))
+                {
+                    return true;
+                }
+            }
+        }
         // ESC closes app only when no modal is open
         if (k == 27)
         {
@@ -981,8 +1029,16 @@ private:
         return false;
     }
 public:
-    void run(WINDOW* stdscr)
+    void run()
     {
+        initscr();
+
+        cbreak();
+        noecho();
+
+        mousemask(ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION, NULL);
+        mouseinterval(0);//CLICKED will not work but gives fast mouse event response
+        // set_escdelay(0); // wgetch(win) -> wgetch_escdelay(win, delay)
         curs_set(0);
         nodelay(stdscr, FALSE);
         keypad(stdscr, TRUE);
@@ -1002,8 +1058,9 @@ public:
             wrefresh(stdscr);
 
             int k = wgetch(stdscr);
-            handle_key(k);
+            handle_key(stdscr, k);
         }
+        endwin();
     }
 
 };
@@ -1017,11 +1074,9 @@ int main()
     #ifndef _WIN32
         setlocale(LC_ALL, "");
     #endif
-    initscr();
 
     PodcastUI ui("castapod.db3");
-    ui.run(stdscr);
+    ui.run();
 
-    endwin();
     return 0;
 }

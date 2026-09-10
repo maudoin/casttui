@@ -13,7 +13,7 @@ void run_table(int width, bool header, bool focus = false)
 
     WINDOW* win = newwin(height, width, starty, startx);
 
-    UiTable table(UiTable::Mode::SCROLL, 5, 0);
+    UiTable table(UiTable::Mode::SCROLL, []{}, 5, 0);
 
     while (true)
     {

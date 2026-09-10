@@ -1,5 +1,7 @@
 #pragma once
 
+#include "UiHotSpot.h"
+
 #if defined(_WIN32)
 #include <curses.h>
 #else
@@ -40,6 +42,7 @@ struct Cell
 {
     std::wstring text;
     int style = A_NORMAL;
+    std::optional<std::function<void()>> callback;
 };
 
 // --------------------------------------------------------------------
@@ -55,6 +58,7 @@ public:
     };
 
     UiTable(Mode mode = Mode::SCROLL,
+            std::function<void()> const& callback = []{},
             int firstVisibleDataRow = 0,
             int dynamicColCurrentOffsetX = 0);
 
@@ -80,6 +84,7 @@ public:
     int firstVisibleDataRow() const {return _firstVisibleDataRow;}
     int dynamicColCurrentOffsetX() const {return _dynamicColCurrentOffsetX;}
 
+    UiHotspotGoup const& hotspots() {return _hotspotGroup;}
 private:
     int _cursor;
     Mode mode;
@@ -92,6 +97,7 @@ private:
     int data_row_count;
     int lastKnownViewHeight;
     int first_data_row;
+    UiHotspotGoup _hotspotGroup;
 };
 
 // free functions
@@ -104,9 +110,9 @@ void draw_mid_border_header(WINDOW* win, int row, int col,
 void draw_bottom_border_header(WINDOW* win, int row, int col,
                                const std::vector<HeaderColumn>& cols, bool focused);
 void draw_row_assembled_cols(WINDOW* win, int row, int col,
-                             const std::vector<std::wstring>& cells,
+                             const std::vector<Cell>& cells,
                              const std::vector<HeaderColumn>& cols_def,
+                             UiHotspotGoup& hostHotspotGroup,
                              bool focused,
                              int textOffset=0,
-                             int style = A_NORMAL,
                              std::pair<std::optional<int>, std::optional<int>> vparam = {std::nullopt, std::nullopt});
