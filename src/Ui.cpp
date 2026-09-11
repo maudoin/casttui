@@ -115,7 +115,15 @@ class PodcastUI
             if (x + static_cast<int>(text.size()) >= inner_w)
                 break;
 
-            std::vector<Cell> cells{ {text, style} };
+            std::vector<Cell> cells{ {text, style,  [this, i]{
+                cursor_status = i;
+                auto const& [_, status] = this->status_labels[i];
+                this->logic.setCurrentPodcastRowIndex(
+                    std::nullopt,
+                    status,
+                    DowncastLogic::SetPodcastOption::FORCE_REFRESH
+                );
+            }} };
             std::vector<HeaderColumn> col_def{
                 HeaderColumn{.width = static_cast<int>(text.size()), .name = std::nullopt, .sort = SortDir::NONE, .dynamic = false}
             };
@@ -176,7 +184,10 @@ class PodcastUI
             else
                 style = A_NORMAL;
 
-            return Cell{text, style};
+            return Cell{text, style, [this, row]{
+                this->shows_table.scrollTo(row);
+                this->logic.showSelection(row, true, false);
+            }};
         };
 
         shows_table.render(win, logic.showCount(), cols, cell_cb, focused);

@@ -49,8 +49,8 @@ public:
         if (UiHotspot::handleMouseEvent(ev))
         {
             MouseEvent locaEv = ev;
-            //locaEv.x -= beginCol;
-            //locaEv.y -= beginRow;
+            locaEv.x -= beginCol;
+            locaEv.y -= beginRow;
             for (auto const i:_items)
             {
                 if (i.handleMouseEvent(locaEv))
