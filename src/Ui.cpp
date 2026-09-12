@@ -80,26 +80,47 @@ class PodcastUI
     void render_status_filter_bar(WINDOW* win)
     {
         bool focused = (focus == Focus::Status);
-        werase(win);
 
-        int h, w;
-        getmaxyx(win, h, w);
-        int inner_w = w - 2;
-
-        _statusHotspots.setWin(win);
-
-        draw_top_border(win, 0, 0, inner_w, focused);
-
-        std::vector<Cell> cells{{L"Status: "}};
-        std::vector<HeaderColumn> cols{HeaderColumn{.width = inner_w, .name = std::nullopt, .sort = SortDir::NONE, .dynamic = false}};
-        draw_row_assembled_cols(win, 1, 0, cells, cols, _statusHotspots, focused);
-        int x = static_cast<int>(cells[0].text.size());
-
+        std::wstring title = L"Status: ";
+        std::wstring quitLabel = L" X ";
+        std::vector<HeaderColumn> cols;
+        cols.reserve(status_labels.size()+3);//+title+spacer+quit
+        // title
+        cols.push_back(HeaderColumn{.width = static_cast<int>(title.size())});
+        // statuses
         for (int i = 0; i < static_cast<int>(status_labels.size()); ++i)
         {
             auto const& [label, status] = status_labels[i];
+            cols.push_back(HeaderColumn{.width = static_cast<int>(label.size())});
+        };
+        // spacer
+        cols.push_back(HeaderColumn{.dynamic = true});
+        // quit
+        cols.push_back(HeaderColumn{.width =  static_cast<int>(quitLabel.size())});
+
+        auto cell_cb = [&](int row, int col) -> Cell
+        {
+            if (col == 0)
+            {
+                // Title
+                return Cell{title, A_NORMAL};
+            }
+            if (col == cols.size()-1)
+            {
+                // Quit
+                return Cell{quitLabel, A_NORMAL, [this]{
+                    this->running = false;
+                }};
+            }
+            int statusIndex = col-1;
+            if (statusIndex >= status_labels.size())
+            {
+                // Spacer
+                return Cell{L"", A_NORMAL};
+            }
+            auto const& [label, status] = status_labels[statusIndex];
             bool isSelected = logic.isStatusActive(status);
-            bool isCursor   = (i == cursor_status && focused);
+            bool isCursor   = (statusIndex == cursor_status && focused);
 
             int style;
             if (isCursor && isSelected)
@@ -111,28 +132,19 @@ class PodcastUI
             else
                 style = A_NORMAL;
 
-            std::wstring text = label + L"  ";
-            if (x + static_cast<int>(text.size()) >= inner_w)
-                break;
-
-            std::vector<Cell> cells{ {text, style,  [this, i]{
-                cursor_status = i;
-                auto const& [_, status] = this->status_labels[i];
+            return Cell{label, style,  [this, statusIndex]{
+                cursor_status = statusIndex;
+                auto const& [_, status] = this->status_labels[statusIndex];
                 this->logic.setCurrentPodcastRowIndex(
                     std::nullopt,
                     status,
                     DowncastLogic::SetPodcastOption::FORCE_REFRESH
                 );
-            }} };
-            std::vector<HeaderColumn> col_def{
-                HeaderColumn{.width = static_cast<int>(text.size()), .name = std::nullopt, .sort = SortDir::NONE, .dynamic = false}
-            };
-            draw_row_assembled_cols(win, 1, x, cells, col_def, _statusHotspots, focused);
-            x += static_cast<int>(text.size());
-        }
+            }};
+        };
 
-        draw_bottom_border(win, 2, 0, inner_w, focused);
-        wrefresh(win);
+        status_table.render(win, 1, cols, cell_cb, focused);
+        return;
     }
 
     void render_shows_table(WINDOW* win)
@@ -790,7 +802,7 @@ class PodcastUI
             return true;
         if (shows_table.hotspots().handleMouseEvent(ev))
             return true;
-        if (_statusHotspots.handleMouseEvent(ev))
+        if (status_table.hotspots().handleMouseEvent(ev))
             return true;
 
         // Modal active only when visible
@@ -1040,7 +1052,7 @@ public:
         , podcast_table(UiTable::Mode::CURSOR, [&]{focus = Focus::Podcasts;})
         , shows_table(UiTable::Mode::CURSOR, [&]{focus = Focus::Shows;})
         , info_table(UiTable::Mode::SCROLL, [&]{})
-        , _statusHotspots([&]{focus = Focus::Status;})
+        , status_table(UiTable::Mode::CURSOR, [&]{focus = Focus::Status;})
         , _confirmModalHotspots([]{})
         , _addEditPodcastModalHotspots([]{})
         , cursor_status(0)
@@ -1092,7 +1104,7 @@ public:
     UiTable podcast_table;
     UiTable shows_table;
     UiTable info_table;
-    UiHotspotGoup _statusHotspots;
+    UiTable status_table;
     UiHotspotGoup _confirmModalHotspots;
     UiHotspotGoup _addEditPodcastModalHotspots;
     int cursor_status;
