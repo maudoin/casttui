@@ -427,16 +427,22 @@ void DowncastLogic::refreshPodcastAtIndex(int index)
 
 }
 //-----------------------------------------------------------------------------------
+void DowncastLogic::deletePodcast(int id)
+{
+  writeStorage([this, id]()
+  {
+    auto storage(m_storage.lock());
+    storage->deletePodcast(id);
+  });
+
+}
+//-----------------------------------------------------------------------------------
 void DowncastLogic::deletePodcastAtIndex(int index)
 {
-  writeStorage([this, index]()
+  if(index>=0 && index<m_podcasts.size())
   {
-    if(index>=0 && index<m_podcasts.size())
-    {
-      auto storage(m_storage.lock());
-      storage->deletePodcast(m_podcasts[index].id);
-    }
-  });
+    deletePodcast(m_podcasts[index].id);
+  }
 
 }
 //-----------------------------------------------------------------------------------

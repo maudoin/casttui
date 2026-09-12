@@ -51,6 +51,7 @@ public:
   void refreshCurrentPodcast();
   void refreshPodcastAtIndex(int index);
 
+  void deletePodcast(int id);
   void deletePodcastAtIndex(int index);
 
   bool isBusy()const;
