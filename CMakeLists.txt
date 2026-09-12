@@ -8,30 +8,6 @@ project(casttui LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Static linking only on Windows
-if (WIN32)
-    set(CMAKE_EXE_LINKER_FLAGS "-static -static-libgcc -static-libstdc++")
-    # # Detect Clang
-    # if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    #     message(STATUS "Detected Clang toolchain (MSYS2 clang64)")
-    #     set(MSYS_ENV "clang64")
-
-    #     # Clang64 uses LLVM runtime, not GCC
-    #     set(CMAKE_EXE_LINKER_FLAGS "-static")
-    #     # DO NOT use -static-libgcc or -static-libstdc++
-
-    # # Detect GCC
-    # elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    #     message(STATUS "Detected GCC toolchain (MSYS2 ucrt64 or mingw64)")
-    #     set(MSYS_ENV "gcc-mingw")
-
-    #     # GCC runtime
-    #     set(CMAKE_EXE_LINKER_FLAGS "-static -static-libgcc -static-libstdc++")
-    # else()
-    #     message(WARNING "Unknown Windows compiler: ${CMAKE_CXX_COMPILER_ID}")
-    # endif()
-endif()
-
 include(FetchContent)
 
 # ------------------------------------------------------------
@@ -239,4 +215,28 @@ endif()
 # ------------------------------------------------------------
 if (WIN32)
     target_link_options(${PROJECT_NAME} PRIVATE -Wl,--subsystem,console)
+endif()
+
+# Static linking only on Windows
+if (WIN32)
+    target_link_options(${PROJECT_NAME} PRIVATE -static -static-libgcc -static-libstdc++)
+    # # Detect Clang
+    # if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    #     message(STATUS "Detected Clang toolchain (MSYS2 clang64)")
+    #     set(MSYS_ENV "clang64")
+
+    #     # Clang64 uses LLVM runtime, not GCC
+    #     target_link_options(${PROJECT_NAME} PRIVATE "-static")
+    #     # DO NOT use -static-libgcc or -static-libstdc++
+
+    # # Detect GCC
+    # elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    #     message(STATUS "Detected GCC toolchain (MSYS2 ucrt64 or mingw64)")
+    #     set(MSYS_ENV "gcc-mingw")
+
+    #     # GCC runtime
+    #     target_link_options(${PROJECT_NAME} PRIVATE "-static -static-libgcc -static-libstdc++")
+    # else()
+    #     message(WARNING "Unknown Windows compiler: ${CMAKE_CXX_COMPILER_ID}")
+    # endif()
 endif()
