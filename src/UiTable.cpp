@@ -424,6 +424,10 @@ void UiTable::render(
     const std::function<Cell(int, int)>& cell_cb,
     bool focused)
 {
+    if (!win) 
+    {
+        return;
+    }
     _hotspotGroup.setWin(win);
     data_row_count = dataRowCount;
 
@@ -566,6 +570,8 @@ void UiTable::render(
             focused,
             _dynamicColCurrentOffsetX,
             vparams);
+
+        wnoutrefresh(win);
     }
 
     // ------------------------------------------------------------

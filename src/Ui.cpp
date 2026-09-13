@@ -5,6 +5,7 @@
 #include <ncursesw/curses.h>
 #endif
 
+#include "UiPodcastTable.h"
 #include "UiTable.h"
 #include "DowncastLogic.h"
 #include "HtmlToText.h"
@@ -18,14 +19,6 @@
 #include <ranges>
 
 // --------------------------------------------------------------------
-// Helpers
-// --------------------------------------------------------------------
-inline std::wstring to_wstring(const std::string& s)
-{
-    return utf8_to_wstring(s);
-}
-
-// --------------------------------------------------------------------
 // PodcastUI
 // --------------------------------------------------------------------
 class PodcastUI
@@ -33,54 +26,9 @@ class PodcastUI
     // ----------------------------------------------------------------
     // Rendering
     // ----------------------------------------------------------------
-    void render_podcast_list()
+
+    void render_status_filter_bar(bool focused)
     {
-        bool focused = (focus == Focus::Podcasts);
-
-        int count = logic.podcastCount() + 2;
-
-        std::vector<std::wstring> titles;
-        titles.reserve(count);
-        titles.push_back(L"Add podcast...");
-        titles.push_back(L"All");
-        for (int i = 0; i < logic.podcastCount(); ++i)
-        {
-            titles.push_back(to_wstring(logic.podcastTitle(i)));
-        }
-
-        std::vector<HeaderColumn> cols{
-            HeaderColumn{.width = -1, .name = std::nullopt, .sort = SortDir::NONE, .dynamic = true}
-        };
-
-        auto cell_cb = [&](int row, int /*col*/) -> Cell
-        {
-            const std::wstring& title = titles[row];
-            bool isCursor   = (row == podcast_table.cursor() && focus == Focus::Podcasts);
-            bool isSelected = (row >= 2 && logic.isCurrentPodcast(row - 2));
-
-            int style;
-            if (isCursor && isSelected)
-                style = COLOR_PAIR(3);
-            else if (isSelected)
-                style = COLOR_PAIR(2);
-            else if (isCursor)
-                style = COLOR_PAIR(1);
-            else
-                style = A_NORMAL;
-
-            return Cell{title, style, [this, row]{
-                this->podcast_table.scrollTo(row);
-                this->pickPodcast();
-            }};
-        };
-
-        podcast_table.render(win_left, count, cols, cell_cb, focused);
-    }
-
-    void render_status_filter_bar()
-    {
-        bool focused = (focus == Focus::Status);
-
         std::wstring title = L"Status: ";
         std::wstring quitLabel = L" X ";
         std::vector<HeaderColumn> cols;
@@ -150,7 +98,7 @@ class PodcastUI
         return;
     }
 
-    void render_shows_table()
+    void render_shows_table(bool focused)
     {
         int h, w;
         getmaxyx(win_shows, h, w);
@@ -158,8 +106,6 @@ class PodcastUI
         int data_h  = inner_h - 2;
 
         auto const& shows = logic.showsInRankRange(shows_table.firstVisibleDataRow(), data_h);
-
-        bool focused = (focus == Focus::Shows);
 
         // We don't have direct access to current sort column; keep arrows neutral or infer externally.
         SortDir sort_direction = SortDir::NONE;
@@ -288,7 +234,7 @@ class PodcastUI
         table.renderArray(win_bottom, std::vector<std::wstring>{text});
     }
 
-    void render_confirm_modal(std::wstring const& title, auto const& action)
+    void render_confirm_modal()
     {
         werase(win_confirm);
 
@@ -302,13 +248,13 @@ class PodcastUI
             if (col == 0)
             {
                 return Cell{
-                    .text=title,
+                    .text=confirm_title,
                     .style=style,
-                    .callback=[this, action]{
+                    .callback=[this]{
+                        confirm_action();
                         this->modal_mode = ModalMode::None;
                         this->confirm_action = []{};
                         this->confirm_title = L"";
-                        action();
                     }
                 };
             }
@@ -617,90 +563,6 @@ class PodcastUI
         return false;
     }
 
-    bool handle_podcast_key(int k)
-    {
-        if (podcast_table.handleKeyCh(k))
-            return true;
-
-        if (k == KEY_LEFT)
-        {
-            shows_table.scrollHorizontal(-5);
-            return true;
-        }
-
-        // Only valid podcast rows (skip Add/All)
-        if (podcast_table.cursor() >= 2 &&
-            podcast_table.cursor() < logic.podcastCount() + 2)
-        {
-            auto const& p = logic.podcast(podcast_table.cursor() - 2);
-
-            if (k == 'r' || k == 'R')
-            {
-                logic.refreshPodcastAtIndex(podcast_table.cursor() - 2);
-                return true;
-            }
-            if (k == 'e' || k == 'E')
-            {
-                modal_url = p.link;
-                modal_title = p.title;
-                modal_target = p.target;
-                modal_pattern = p.pattern;
-                modal_preview_description = p.summary;
-                modal_field = 0;
-                modal_delete_id.reset();
-                modal_edit_id = p.id;
-                modal_mode = ModalMode::EditPodcast;
-                return true;
-            }
-            if (k == 'd' || k == 'D')
-            {
-                modal_mode = ModalMode::ConfirmDeletePodcast;
-                confirm_title =  L"Delete '" + to_wstring(p.title) + L"'?";
-                int delete_id = p.id;
-                confirm_action = [this, delete_id]{
-                    this->logic.deletePodcast(delete_id);
-                    podcast_table.scrollVertical(-1);
-                };
-                confirm_field = 1;//cancel
-                return true;
-            }
-        }
-
-        // ENTER behavior
-        if (k == 10 || k == 13)
-        {
-            if (pickPodcast())
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-    bool pickPodcast()
-    {
-        if (podcast_table.cursor() == 0)
-        {
-            modal_delete_id.reset();
-            modal_mode = ModalMode::AddPodcast;
-            return true;
-        }
-        else if (podcast_table.cursor() == 1)
-        {
-            logic.setCurrentPodcastRowIndex(std::optional<std::optional<int>>{std::nullopt}, std::nullopt);
-            //TODO podcast_table.firstVisibleDataRow() = 0;
-            //TODO shows_table.cursor() = 0;
-            return true;
-        }
-        else
-        {
-            logic.setCurrentPodcastRowIndex(podcast_table.cursor() - 2, std::nullopt);
-            //TODO podcast_table.firstVisibleDataRow() = 0;
-            //TODO shows_table.cursor() = 0;
-            return true;
-        }
-        return false;
-    }
     bool handle_status_key(int k)
     {
         auto move_status_cursor = [&](int delta)
@@ -820,7 +682,7 @@ class PodcastUI
         if (modal_mode == ModalMode::None)
         {
             // always active
-            if (podcast_table.hotspots().handleMouseEvent(ev))
+            if (_podcastUi.handleMouseEvent(ev))
                 return true;
             if (shows_table.hotspots().handleMouseEvent(ev))
                 return true;
@@ -918,7 +780,7 @@ class PodcastUI
         {
             if (focus == Focus::Podcasts)
             {
-                if (podcast_table.cursor() < 2)
+                if (_podcastUi.cursor() < 2)
                     focus = Focus::Status;
                 else
                     focus = Focus::Shows;
@@ -965,7 +827,7 @@ class PodcastUI
         switch (focus)
         {
             case Focus::Podcasts:
-                return handle_podcast_key(k);
+                return _podcastUi.handleKey(k);
             case Focus::Status:
                 return handle_status_key(k);
             case Focus::Shows:
@@ -976,7 +838,7 @@ class PodcastUI
     }
     void delWindows()
     {
-        delwin(win_left);
+        _podcastUi.delWindow();
         delwin(win_status);
         delwin(win_shows);
         delwin(win_actions);
@@ -1002,7 +864,7 @@ class PodcastUI
 
         int shows_h = std::max(min_shows_h, h - status_h - actions_h - bottom_h);
 
-        win_left   = newwin(h,        left_w, 0,                 0);
+        _podcastUi.buildWindow(h,        left_w, 0,                 0);
         win_status = newwin(status_h, right_w, 0,                 left_w);
         win_shows  = newwin(shows_h,  right_w, status_h,          left_w);
         win_actions= newwin(actions_h,right_w, status_h + shows_h,left_w);
@@ -1016,36 +878,30 @@ class PodcastUI
     }
     void render_layout(WINDOW* stdscr)
     {
-        render_podcast_list();
-        render_status_filter_bar();
-        render_shows_table();
+        wnoutrefresh(stdscr);
+
+        _podcastUi.render(focus == Focus::Podcasts);
+        render_status_filter_bar(focus == Focus::Status);
+        render_shows_table(focus == Focus::Shows);
         render_actions_bar();
         render_bottom_bar();
 
-        wnoutrefresh(stdscr);
-        wnoutrefresh(win_left);
         wnoutrefresh(win_status);
         wnoutrefresh(win_shows);
         wnoutrefresh(win_actions);
         wnoutrefresh(win_bottom);
 
-        if (modal_mode == ModalMode::ConfirmDeletePodcast && modal_delete_id)
+        if (modal_mode == ModalMode::ConfirmDeletePodcast ||
+            modal_mode == ModalMode::ConfirmExit)
         {
-            render_confirm_modal(
-                L"Delete '" + to_wstring(modal_title) + L"'?", [this]{
-                this->logic.deletePodcast(*(this->modal_delete_id));
-                podcast_table.scrollVertical(-1);
-            });
-        }
-        if (modal_mode == ModalMode::ConfirmExit)
-        {
-            render_confirm_modal(L"Quit", [this]{this->running = false;});
+            render_confirm_modal();
         }
         else if (modal_mode == ModalMode::Info)
         {
             render_info_modal(stdscr);
         }
-        else if (modal_mode == ModalMode::AddPodcast || modal_mode == ModalMode::EditPodcast)
+        else if (modal_mode == ModalMode::AddPodcast ||
+                 modal_mode == ModalMode::EditPodcast)
         {
             render_add_edit_modal(stdscr);
         }
@@ -1092,7 +948,33 @@ public:
     explicit PodcastUI(const std::string& db_path)
         : logic(db_path)
         , focus(Focus::Podcasts)
-        , podcast_table(UiTable::Mode::CURSOR, [&]{focus = Focus::Podcasts;})
+        , _podcastUi(logic, UiPodcastTable::Actions{
+            .winSelection=[&]{focus = Focus::Podcasts;},
+            .add=[&]()
+            {
+                modal_delete_id.reset();
+                modal_mode = ModalMode::AddPodcast;
+            },
+            .edit=[this](PodcastCols const&p)
+            {
+                this->modal_url = p.link;
+                this->modal_title = p.title;
+                this->modal_target = p.target;
+                this->modal_pattern = p.pattern;
+                this->modal_preview_description = p.summary;
+                this->modal_field = 0;
+                this->modal_delete_id.reset();
+                this->modal_edit_id = p.id;
+                this->modal_mode = ModalMode::EditPodcast;
+            },
+            .del=[&](std::wstring const& title, std::function<void()> const& del)
+            {
+                modal_mode = ModalMode::ConfirmDeletePodcast;
+                confirm_title = title;
+                confirm_action = del;
+                confirm_field = 1;//cancel
+            }
+        })
         , shows_table(UiTable::Mode::CURSOR, [&]{focus = Focus::Shows;})
         , info_table(UiTable::Mode::SCROLL, [&]{/*no focus action*/})
         , status_table(UiTable::Mode::CURSOR, [&]{focus = Focus::Status;})
@@ -1144,7 +1026,7 @@ public:
     DowncastLogic logic;
 
     Focus focus;
-    UiTable podcast_table;
+    UiPodcastTable _podcastUi;
     UiTable shows_table;
     UiTable info_table;
     UiTable status_table;
@@ -1172,7 +1054,6 @@ public:
 
     bool running = true;
 
-    WINDOW* win_left   = nullptr;
     WINDOW* win_status = nullptr;
     WINDOW* win_shows  = nullptr;
     WINDOW* win_actions= nullptr;

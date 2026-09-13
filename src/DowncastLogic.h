@@ -129,4 +129,4 @@ private:
   std::unique_ptr<std::thread> m_work;
 };
 
-std::wstring utf8_to_wstring(const std::string& s);
+std::wstring to_wstring(const std::string& s);

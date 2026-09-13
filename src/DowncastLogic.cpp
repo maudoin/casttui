@@ -1,7 +1,7 @@
 #include "DowncastLogic.h"
 
 #include "HttpEngine.h"
-#include "utf8_to_string.h"
+#include "to_wstring.h"
 
 #include <thread>
 #include <filesystem>
@@ -519,7 +519,7 @@ std::filesystem::path toPath( std::string const& s )
 {
   if constexpr(std::is_same_v<C, wchar_t>)
   {
-    return {utf8_to_wstring(s)};
+    return {to_wstring(s)};
   }
   else
   {

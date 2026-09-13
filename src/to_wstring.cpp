@@ -7,7 +7,7 @@
 #endif
   #include <string>
 
-std::wstring utf8_to_wstring(const std::string& s)
+std::wstring to_wstring(const std::string& s)
 {
 #ifdef _WIN32
     int size_needed = MultiByteToWideChar(CP_UTF8, 0,
