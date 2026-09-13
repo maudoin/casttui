@@ -27,9 +27,9 @@ class Ui : public UiApp
     enum class ModalMode { None, AddEditPodcast, Info, Confirm };
 public:
     explicit Ui(const std::string& db_path)
-        : logic(db_path)
+        : _logic(db_path)
         , _focusedPanel(Focus::Podcasts)
-        , _podcastUi(logic, UiPodcastTable::Actions{
+        , _podcastUi(_logic, UiPodcastTable::Actions{
             .winSelection=[&]{_focusedPanel = Focus::Podcasts;},
             .add=[&]()
             {
@@ -46,14 +46,14 @@ public:
                 this->_modalPopup = ModalMode::Confirm;
             }
         })
-        , _showsUi(logic, [&]{_focusedPanel = Focus::Shows;})
+        , _showsUi(_logic, [&]{_focusedPanel = Focus::Shows;})
         , _actionsUi(UiTable::Mode::SCROLL)
         , _bottomBarUi(UiTable::Mode::SCROLL)
-        , _statusUi(logic, [&]{_focusedPanel = Focus::Status;},[this]{
+        , _statusUi(_logic, [&]{_focusedPanel = Focus::Status;},[this]{
                 this->_confirmUi.set(L"Quit", [this]{this->_isRunning = false;});
                 this->_modalPopup = ModalMode::Confirm;
         })
-        , _addEditPodcastUi(logic, []{/*no _focusedPanel action*/})
+        , _addEditPodcastUi(_logic, []{/*no _focusedPanel action*/})
         , _confirmUi([&]{
             this->_confirmUi.set(L"", []{});
             this->_modalPopup=ModalMode::None;
@@ -68,9 +68,10 @@ public:
         delWindows();
     }
 
+    // --------------------------------------------------------------------
 private:
 
-    void render_actions_bar()
+    void renderActionsBar()
     {
         std::vector<std::wstring> lines(2, L"");
 
@@ -85,37 +86,37 @@ private:
 
         using MediaStatus = DowncastLogic::MediaStatus;
 
-        if (logic.isStatusActive(MediaStatus::New))
+        if (_logic.isStatusActive(MediaStatus::New))
         {
             lines[1] += L"Update (u)  ";
         }
 
-        if (logic.isStatusActive(MediaStatus::Queued))
+        if (_logic.isStatusActive(MediaStatus::Queued))
         {
-            if (logic.isDownloading())
+            if (_logic.isDownloading())
                 lines[1] += L"Downloading…   ";
             else
                 lines[1] += L"Start Download (d)  ";
         }
 
-        if (logic.anySelection())
+        if (_logic.anySelection())
         {
-            if (!logic.isStatusActive(MediaStatus::New))
+            if (!_logic.isStatusActive(MediaStatus::New))
                 lines[1] += L"Set New (n)  ";
-            if (!logic.isStatusActive(MediaStatus::Skipped))
+            if (!_logic.isStatusActive(MediaStatus::Skipped))
                 lines[1] += L"Skip (s)  ";
-            if (!logic.isStatusActive(MediaStatus::Queued))
+            if (!_logic.isStatusActive(MediaStatus::Queued))
                 lines[1] += L"Queue (q)  ";
         }
 
         _actionsUi.renderArray(lines);
     }
 
-    void render_bottom_bar()
+    void renderBottomBar()
     {
         std::wstring text;
 
-        if (logic.isBusy())
+        if (_logic.isBusy())
         {
             char spinner_chars[] = "|/-\\";
             auto now = std::chrono::system_clock::now();
@@ -123,9 +124,9 @@ private:
             int idx  = static_cast<int>((ms / 100) & 3);
             text = L"Updating " + std::wstring(1, spinner_chars[idx]);
         }
-        else if (logic.isDownloading())
+        else if (_logic.isDownloading())
         {
-            auto progress = logic.getCurrentDownloadProgress();
+            auto progress = _logic.getCurrentDownloadProgress();
             wchar_t spinner_chars[] = L"|/-\\";
             auto now = std::chrono::system_clock::now();
             auto ms  = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
@@ -136,7 +137,7 @@ private:
                 std::to_wstring(progress.totalFiles) + L": " +
                 to_wstring(progress.currentLabel) + L" " + spinner_chars[idx];
         }
-        else if (auto err = logic.lastError())
+        else if (auto err = _logic.lastError())
         {
             text = L"Error: " + to_wstring(*err);
         }
@@ -161,7 +162,7 @@ private:
         _infoUi.delWindow();
         _infoUi.buildWindow(mh, mw, y, x);
 
-        auto const& shows = logic.showsInRankRange(_showsUi.cursor(), 1);
+        auto const& shows = _logic.showsInRankRange(_showsUi.cursor(), 1);
 
         std::wstring text = shows.empty() ? L"No show selected." : html_to_text(to_wstring(shows[0].summary));
         std::vector<std::wstring> lines;
@@ -192,8 +193,6 @@ private:
 
     }
 
-    // --------------------------------------------------------------------
-    // Key handling
     // --------------------------------------------------------------------
 
     bool doHandleMouse(MouseEvent const& ev) override
@@ -355,6 +354,7 @@ private:
 
         return false;
     }
+    // --------------------------------------------------------------------
     void doDelWindows() override
     {
         _podcastUi.delWindow();
@@ -409,8 +409,8 @@ private:
         _podcastUi.render(_focusedPanel == Focus::Podcasts);
         _statusUi.render(_focusedPanel == Focus::Status);
         _showsUi.render(_focusedPanel == Focus::Shows);
-        render_actions_bar();
-        render_bottom_bar();
+        renderActionsBar();
+        renderBottomBar();
 
         if (_modalPopup == ModalMode::Confirm)
         {
@@ -426,8 +426,9 @@ private:
         }
 
     }
+    // --------------------------------------------------------------------
 
-    DowncastLogic logic;
+    DowncastLogic _logic;
 
     Focus _focusedPanel;
     UiPodcastTable _podcastUi;
@@ -443,6 +444,7 @@ private:
 
 };
 
+// --------------------------------------------------------------------
 int main()
 {
 
