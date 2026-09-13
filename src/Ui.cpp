@@ -5,6 +5,7 @@
 #include <ncursesw/curses.h>
 #endif
 
+#include "UiConfirm.h"
 #include "UiPodcastSetup.h"
 #include "UiPodcastTable.h"
 #include "UiShowsTable.h"
@@ -105,46 +106,6 @@ class PodcastUI
         _bottomBarUi.renderArray(std::vector<std::wstring>{text});
     }
 
-    void render_confirm_modal()
-    {
-        std::wstring cancel = L"Cancel";
-
-        auto cell_cb = [&](int, int col) -> Cell {
-            bool const isCursor = col==confirm_field;
-            int style = A_NORMAL;
-            if (isCursor)
-                style = COLOR_PAIR(1);
-            if (col == 0)
-            {
-                return Cell{
-                    .text=confirm_title,
-                    .style=style,
-                    .callback=[this]{
-                        confirm_action();
-                        this->modal_mode = ModalMode::None;
-                        this->confirm_action = []{};
-                        this->confirm_title = L"";
-                    }
-                };
-            }
-            return Cell{
-                .text=cancel,
-                .style=style,
-                .callback=[this]{
-                    this->modal_mode = ModalMode::None;
-                    this->confirm_action = []{};
-                    this->confirm_title = L"";
-                }
-            };
-        };
-
-        std::vector<HeaderColumn> cols{
-            HeaderColumn{ .width = 0, .dynamic=true },
-            HeaderColumn{ .width = static_cast<int>(cancel.size()) }
-        };
-
-        confirm_table.render(1, cols, cell_cb, true);
-    }
 
     void render_info_modal(WINDOW* stdscr)
     {
@@ -193,55 +154,6 @@ class PodcastUI
     // Key handling
     // --------------------------------------------------------------------
 
-    bool handle_confirm_modal_key(int k)
-    {
-        if (k == 27) // ESC
-        {
-            modal_mode = ModalMode::None;
-            confirm_action = []{};
-            confirm_title = L"";
-            return true;
-        }
-        // Auto switching windows
-        if (k == KEY_RIGHT)
-        {
-            confirm_field = std::max(1, confirm_field+1);
-            return true;
-        }
-        else if (k == KEY_LEFT)
-        {
-            confirm_field = std::min(0, confirm_field-1);
-            return true;
-        }
-        else if (k == 10 || k == 13) // ENTER commits edit
-        {
-            if (confirm_field == 1)
-            {
-                modal_mode = ModalMode::None;
-                confirm_action = []{};
-                confirm_title = L"";
-                return true;
-            }
-            else if (confirm_field == 0)
-            {
-                confirm_action();
-                return true;
-            }
-
-        }
-        return confirm_table.handleKeyCh(k);
-    }
-
-    bool handle_info_modal_key(int k)
-    {
-        if (k == 27) // ESC
-        {
-            modal_mode = ModalMode::None;
-        }
-        return info_table.handleKeyCh(k);
-    }
-
-
     bool handle_mouse(MouseEvent const& ev)
     {
         if (modal_mode == ModalMode::None)
@@ -256,14 +168,11 @@ class PodcastUI
         }
 
         // Modal active only when visible
-        if (modal_mode == ModalMode::ConfirmDeletePodcast ||
-            modal_mode == ModalMode::ConfirmExit)
-            return confirm_table.handleMouseEvent(ev);
-
-        if (modal_mode == ModalMode::Info)
+        if (modal_mode == ModalMode::Confirm)
+            return _confirmUi.handleMouseEvent(ev);
+        else if (modal_mode == ModalMode::Info)
             return info_table.handleMouseEvent(ev);
-
-        if (modal_mode == ModalMode::AddEditPodcast)
+        else if (modal_mode == ModalMode::AddEditPodcast)
             return _addEditPodcastUi.handleMouseEvent(ev);
         return false;
     }
@@ -290,10 +199,8 @@ class PodcastUI
         {
             if (modal_mode == ModalMode::None)
             {
-                modal_mode=ModalMode::ConfirmExit;
-                confirm_title = L"Quit";
-                confirm_action = [this]{this->running = false;};
-                confirm_field=1;//cancel
+                _confirmUi.set(L"Quit", [this]{this->running = false;});
+                modal_mode=ModalMode::Confirm;
                 return true;
             }
         }
@@ -308,12 +215,8 @@ class PodcastUI
         }
 
         // Modal dispatch
-        if (modal_mode == ModalMode::ConfirmDeletePodcast ||
-            modal_mode == ModalMode::ConfirmExit)
-            return handle_confirm_modal_key(k);
-
-        if (modal_mode == ModalMode::Info)
-            return handle_info_modal_key(k);
+        if (modal_mode == ModalMode::Confirm)
+            return _confirmUi.handleKey(k);
 
         if (modal_mode == ModalMode::AddEditPodcast)
         {
@@ -433,7 +336,7 @@ class PodcastUI
         _bottomBarUi.delWindow();
         _statusUi.delWindow();
         info_table.delWindow();
-        confirm_table.delWindow();
+        _confirmUi.delWindow();
     }
     void buildWindows()
     {
@@ -466,7 +369,7 @@ class PodcastUI
             int mw = std::min(w - 4, 70);
             int y  = (h - mh) / 2;
             int x  = (w - mw) / 2;
-            confirm_table.buildWindow(mh, mw, y, x);
+            _confirmUi.buildWindow(mh, mw, y, x);
         }
 
         {
@@ -489,10 +392,9 @@ class PodcastUI
         render_actions_bar();
         render_bottom_bar();
 
-        if (modal_mode == ModalMode::ConfirmDeletePodcast ||
-            modal_mode == ModalMode::ConfirmExit)
+        if (modal_mode == ModalMode::Confirm)
         {
-            render_confirm_modal();
+            _confirmUi.render();
         }
         else if (modal_mode == ModalMode::Info)
         {
@@ -559,24 +461,23 @@ public:
             },
             .del=[&](std::wstring const& title, std::function<void()> const& del)
             {
-                modal_mode = ModalMode::ConfirmDeletePodcast;
-                confirm_title = title;
-                confirm_action = del;
-                confirm_field = 1;//cancel
+                this->_confirmUi.set(title, del);
+                this->modal_mode = ModalMode::Confirm;
             }
         })
         , _showsUi(logic, [&]{focus = Focus::Shows;})
         , _actionsUi(UiTable::Mode::SCROLL)
         , _bottomBarUi(UiTable::Mode::SCROLL)
         , _statusUi(logic, [&]{focus = Focus::Status;},[this]{
-                    this->confirm_field=1;//cancel
-                    this->confirm_title = L"Quit";
-                    this->confirm_action = [this]{this->running = false;};
-                    this->modal_mode = ModalMode::ConfirmExit;
+                this->_confirmUi.set(L"Quit", [this]{this->running = false;});
+                this->modal_mode = ModalMode::Confirm;
         })
         , _addEditPodcastUi(logic, []{/*no focus action*/})
+        , _confirmUi([&]{
+            _confirmUi.set(L"", []{});
+            modal_mode=ModalMode::None;
+        })
         , info_table(UiTable::Mode::SCROLL, [&]{/*no focus action*/})
-        , confirm_table(UiTable::Mode::CURSOR, [&]{/*no focus action*/})
     {
         initscr();
 
@@ -603,7 +504,7 @@ public:
     }
 
     enum class Focus { Podcasts, Status, Shows };
-    enum class ModalMode { None, AddEditPodcast, Info, ConfirmDeletePodcast, ConfirmExit };
+    enum class ModalMode { None, AddEditPodcast, Info, Confirm };
 
 
     DowncastLogic logic;
@@ -615,15 +516,11 @@ public:
     UiTable _bottomBarUi;
     UiStatusTable _statusUi;
     UiPodcastSetup _addEditPodcastUi;
+    UiConfirm _confirmUi;
     UiTable info_table;
-    UiTable confirm_table;
 
     ModalMode modal_mode = ModalMode::None;
     std::optional<int> modal_delete_id;
-
-    std::wstring confirm_title;
-    std::function<void()> confirm_action;
-    int confirm_field = 1;//accept,cancel
 
     bool running = true;
 };
