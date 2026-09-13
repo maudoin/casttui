@@ -60,6 +60,10 @@ Crossplatform TUI Podcast show manager/downloader with full mouse support
 ╰─▄▄▄▄▄▄▄▄▄─────────╯╰───────────────────────────────────────────────────────────────╯
 ```
 
+Within VSCode console (WSL/Ubuntu)
+
+![https://github.com/maudoin/casttui/blob/main/src/resources/screenshot.png?raw=true](https://github.com/maudoin/casttui/blob/main/src/resources/screenshot.png?raw=true)
+
 Windows
 ==
 

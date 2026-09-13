@@ -153,13 +153,21 @@ bool UiShowsTable::handleKey(int k)
     return true;
   }
 
+#ifdef PDCURSES_WIN32
   if (k == PADMINUS)
+#else
+  if (k == '-')
+#endif
   {
     _logic.selectShowRange(0, cursor(), true);
     return true;
   }
 
+#ifdef PDCURSES_WIN32
   if (k == PADPLUS)
+#else
+  if (k == '+')
+#endif
   {
     _logic.selectShowRange(cursor(), this->_logic.showCount()-1, true);
     return true;
