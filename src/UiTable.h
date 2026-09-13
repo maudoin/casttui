@@ -48,7 +48,7 @@ struct Cell
 // --------------------------------------------------------------------
 // UiTable
 // --------------------------------------------------------------------
-class UiTable
+class UiTable : public UiHotspotGroup
 {
 public:
     enum class Mode
@@ -85,17 +85,13 @@ public:
     int firstVisibleDataRow() const {return _firstVisibleDataRow;}
     int dynamicColCurrentOffsetX() const {return _dynamicColCurrentOffsetX;}
 
-    UiHotspotGoup const& hotspots() {return _hotspotGroup;}
-    bool handleMouseEvent(MouseEvent const& ev)
-    {
-        return _hotspotGroup.handleMouseEvent(ev);
-    }
     int getHeight()const
     {
         return getmaxy(_win);
     }
-private:
+protected:
     WINDOW* _win = nullptr;
+private:
     int _cursor;
     Mode mode;
     int _firstVisibleDataRow;
@@ -107,7 +103,6 @@ private:
     int data_row_count;
     int lastKnownViewHeight;
     int first_data_row;
-    UiHotspotGoup _hotspotGroup;
 };
 
 // free functions
@@ -122,7 +117,7 @@ void draw_bottom_border_header(WINDOW* win, int row, int col,
 void draw_row_assembled_cols(WINDOW* win, int row, int col,
                              const std::vector<Cell>& cells,
                              const std::vector<HeaderColumn>& cols_def,
-                             UiHotspotGoup& hostHotspotGroup,
+                             UiHotspotGroup& hostHotspotGroup,
                              bool focused = false,
                              int textOffset=0,
                              std::pair<std::optional<int>, std::optional<int>> vparam = {std::nullopt, std::nullopt});

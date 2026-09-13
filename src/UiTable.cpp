@@ -261,7 +261,7 @@ void draw_row_assembled_cols(
     int col,
     const std::vector<Cell>& cells,
     const std::vector<HeaderColumn>& cols_def,
-    UiHotspotGoup& hostHotspotGroup,
+    UiHotspotGroup& hostHotspotGroup,
     bool focused,
     int textOffset,
     std::pair<std::optional<int>, std::optional<int>> vparams)
@@ -315,7 +315,8 @@ UiTable::UiTable(Mode mode,
                  std::function<void()> const& callback,
                  int firstVisibleDataRow,
                  int dynamicColCurrentOffsetX)
-    : _cursor(firstVisibleDataRow)
+    : UiHotspotGroup(callback)
+    , _cursor(firstVisibleDataRow)
     , mode(mode)
     , _firstVisibleDataRow(firstVisibleDataRow)
     , _dynamicColCurrentOffsetX(dynamicColCurrentOffsetX)
@@ -324,7 +325,6 @@ UiTable::UiTable(Mode mode,
     , data_row_count(0)
     , lastKnownViewHeight(0)
     , first_data_row(0)
-    , _hotspotGroup(callback)
 {
 }
 
@@ -437,7 +437,7 @@ void UiTable::render(
     {
         return;
     }
-    _hotspotGroup.setWin(_win);
+    setWin(_win);
     data_row_count = dataRowCount;
 
     int h, w;
@@ -575,7 +575,7 @@ void UiTable::render(
             0,
             cells,
             resolved_header_cols,
-            _hotspotGroup,
+            *this,
             focused,
             _dynamicColCurrentOffsetX,
             vparams);
@@ -625,7 +625,7 @@ void UiTable::renderArray(
     const std::optional<std::wstring>& title,
     bool focused)
 {
-    _hotspotGroup.setWin(_win);
+    setWin(_win);
     auto cell_cb = [&array](int row, int) -> Cell {
         return Cell{ array[row], A_NORMAL };
     };

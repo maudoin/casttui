@@ -38,10 +38,10 @@ struct UiHotspot
     }
 
 };
-class UiHotspotGoup : public UiHotspot
+class UiHotspotGroup : public UiHotspot
 {
 public:
-    UiHotspotGoup(std::function<void()> const& callback)
+    UiHotspotGroup(std::function<void()> const& callback)
     : UiHotspot{0, 0, 0, 0, callback}
     {}
     bool handleMouseEvent(MouseEvent const& ev)const
