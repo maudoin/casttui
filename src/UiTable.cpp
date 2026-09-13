@@ -6,10 +6,10 @@
 // --------------------------------------------------------------------
 // Safe write helpers
 // --------------------------------------------------------------------
-inline void safe_addstr(WINDOW* win, int row, int col, const std::wstring& ch, int attrs)
+inline void safe_addstr(WINDOW* _win, int row, int col, const std::wstring& ch, int attrs)
 {
     int h, w;
-    getmaxyx(win, h, w);
+    getmaxyx(_win, h, w);
 
 #ifdef DEBUG_UI
     if (row < 0 || row >= h || col < 0 || col >= w)
@@ -20,16 +20,16 @@ inline void safe_addstr(WINDOW* win, int row, int col, const std::wstring& ch, i
         //StackTrace::print();
     }
 #endif
-    wattron(win, attrs);
-    mvwaddwstr(win, row, col, ch.c_str());
-    wattroff(win, attrs);
+    wattron(_win, attrs);
+    mvwaddwstr(_win, row, col, ch.c_str());
+    wattroff(_win, attrs);
 }
 
-inline void addstr_run(WINDOW* win, int row, int col, const std::wstring& chars, int attrs)
+inline void addstr_run(WINDOW* _win, int row, int col, const std::wstring& chars, int attrs)
 {
     for (std::size_t i = 0; i < chars.size(); ++i)
     {
-        safe_addstr(win, row, col + static_cast<int>(i),
+        safe_addstr(_win, row, col + static_cast<int>(i),
                     std::wstring(1, chars[i]), attrs);
     }
 }
@@ -40,16 +40,16 @@ inline int attr_from_focus(bool focused)
     return focused ? COLOR_PAIR(4) : A_NORMAL;
 }
 
-inline void addstr_focus(WINDOW* win, int row, int col, const std::wstring& chars, bool focused)
+inline void addstr_focus(WINDOW* _win, int row, int col, const std::wstring& chars, bool focused)
 {
-    addstr_run(win, row, col, chars, attr_from_focus(focused));
+    addstr_run(_win, row, col, chars, attr_from_focus(focused));
 }
 
 // --------------------------------------------------------------------
 // Border builders
 // --------------------------------------------------------------------
 inline void draw_bottom_scroll_border(
-    WINDOW* win,
+    WINDOW* _win,
     int row,
     int col,
     int inner_width,
@@ -68,11 +68,11 @@ inline void draw_bottom_scroll_border(
             chars.append(L"─");   // FIXED
     }
 
-    addstr_focus(win, row, col, std::wstring(L"╰") + chars, focused);
+    addstr_focus(_win, row, col, std::wstring(L"╰") + chars, focused);
 }
 
 inline void draw_border_columns(
-    WINDOW* win,
+    WINDOW* _win,
     int row,
     int col,
     const std::vector<HeaderColumn>& cols,
@@ -81,7 +81,7 @@ inline void draw_border_columns(
     const std::wstring& end,
     bool focused = false)
 {
-    addstr_focus(win, row, col, start, focused);
+    addstr_focus(_win, row, col, start, focused);
 
     int x = 1;
     for (std::size_t i = 0; i < cols.size(); ++i)
@@ -92,67 +92,67 @@ inline void draw_border_columns(
             for (int k = 0; k < cols[i].width; ++k)
             hrun.append(L"─");
         }
-        addstr_focus(win, row, col + x, hrun, focused);
+        addstr_focus(_win, row, col + x, hrun, focused);
         x += cols[i].width;
         if (i < cols.size() - 1)
         {
-            addstr_focus(win, row, col + x, mid, focused);
+            addstr_focus(_win, row, col + x, mid, focused);
             x += 1;
         }
     }
 
-    addstr_focus(win, row, col + x, end, focused);
+    addstr_focus(_win, row, col + x, end, focused);
 }
 
 void draw_top_border_header(
-    WINDOW* win,
+    WINDOW* _win,
     int row,
     int col,
     const std::vector<HeaderColumn>& cols,
     bool focused)
 {
-    //box(win, 0, 0);
-    draw_border_columns(win, row, col, cols, L"╭", L"┬", L"╮", focused);
+    //box(_win, 0, 0);
+    draw_border_columns(_win, row, col, cols, L"╭", L"┬", L"╮", focused);
 }
 
 void draw_mid_border_header(
-    WINDOW* win,
+    WINDOW* _win,
     int row,
     int col,
     const std::vector<HeaderColumn>& cols,
     bool focused)
 {
-    draw_border_columns(win, row, col, cols, L"├", L"┼", L"┤", focused);
+    draw_border_columns(_win, row, col, cols, L"├", L"┼", L"┤", focused);
 }
 
 void draw_bottom_border_header(
-    WINDOW* win,
+    WINDOW* _win,
     int row,
     int col,
     const std::vector<HeaderColumn>& cols,
     bool focused)
 {
-    draw_border_columns(win, row, col, cols, L"╰", L"┴", L"╯", focused);
+    draw_border_columns(_win, row, col, cols, L"╰", L"┴", L"╯", focused);
 }
 
 void draw_top_border(
-    WINDOW* win,
+    WINDOW* _win,
     int row,
     int col,
     int inner_width,
     bool focused)
 {
-    draw_top_border_header(win, row, col, { HeaderColumn{ inner_width } }, focused);
+    draw_top_border_header(_win, row, col, { HeaderColumn{ inner_width } }, focused);
 }
 
 void draw_bottom_border(
-    WINDOW* win,
+    WINDOW* _win,
     int row,
     int col,
     int inner_width,
     bool focused)
 {
-    draw_bottom_border_header(win, row, col, { HeaderColumn{ inner_width } }, focused);
+    draw_bottom_border_header(_win, row, col, { HeaderColumn{ inner_width } }, focused);
 }
 
 inline std::wstring build_left_border()
@@ -172,13 +172,13 @@ inline std::wstring build_right_border(
 
 
 inline void draw_header_row(
-    WINDOW* win,
+    WINDOW* _win,
     int row,
     int col,
     const std::vector<HeaderColumn>& cols,
     bool focused = false)
 {
-    addstr_focus(win, row, col, build_left_border(), focused);
+    addstr_focus(_win, row, col, build_left_border(), focused);
     int x = 1;
 
     for (std::size_t i = 0; i < cols.size(); ++i)
@@ -197,7 +197,7 @@ inline void draw_header_row(
 
         if (i > 0)
         {
-            addstr_focus(win, row, col + x, L"│", focused);
+            addstr_focus(_win, row, col + x, L"│", focused);
             x += 1;
         }
 
@@ -206,26 +206,26 @@ inline void draw_header_row(
         else if (static_cast<int>(cell.size()) > header.width)
             cell = cell.substr(0, header.width);
 
-        addstr_focus(win, row, col + x, cell, focused);
+        addstr_focus(_win, row, col + x, cell, focused);
         x += header.width;
     }
 
-    addstr_focus(win, row, col + x, build_right_border({ std::nullopt, std::nullopt }, 0), focused);
+    addstr_focus(_win, row, col + x, build_right_border({ std::nullopt, std::nullopt }, 0), focused);
 }
 
 // ------------------------------------------------------------
 // draw_row_assembled_cols()
 // ------------------------------------------------------------
 void draw_empty_border(
-    WINDOW* win,
+    WINDOW* _win,
     int row,
     int col,
     int width,
     bool focused,
     std::pair<std::optional<int>, std::optional<int>> vparams)
 {
-    addstr_focus(win, row, col, build_left_border(), focused);
-    addstr_focus(win, row, col + width, build_right_border(vparams, row), focused);
+    addstr_focus(_win, row, col, build_left_border(), focused);
+    addstr_focus(_win, row, col + width, build_right_border(vparams, row), focused);
 }
 
 // --------------------------------------------------------------------
@@ -256,7 +256,7 @@ inline std::pair<std::optional<int>, std::optional<int>> scrollbar_thumb(
 // draw_row_assembled_cols()
 // ------------------------------------------------------------
 void draw_row_assembled_cols(
-    WINDOW* win,
+    WINDOW* _win,
     int row,
     int col,
     const std::vector<Cell>& cells,
@@ -270,14 +270,14 @@ void draw_row_assembled_cols(
     std::wstring right = build_right_border(vparams, row);
 
     int x = 0;
-    addstr_focus(win, row, col + x, left, focused);
+    addstr_focus(_win, row, col + x, left, focused);
     x += 1;
 
     for (std::size_t i = 0; i < cells.size(); ++i)
     {
         if (i > 0)
         {
-            addstr_focus(win, row, col + x, L"│", focused);
+            addstr_focus(_win, row, col + x, L"│", focused);
             x += 1;
         }
 
@@ -296,7 +296,7 @@ void draw_row_assembled_cols(
         else if ((int)text.size() > width)
             text = text.substr(0, width);
 
-        addstr_run(win, row, col + x, text, cell.style);
+        addstr_run(_win, row, col + x, text, cell.style);
 
         if (cell.callback)
         {
@@ -306,7 +306,7 @@ void draw_row_assembled_cols(
         x += (int)text.size();
     }
 
-    addstr_focus(win, row, col + x, right, focused);
+    addstr_focus(_win, row, col + x, right, focused);
 }
 // ------------------------------------------------------------
 // Constructor
@@ -414,27 +414,36 @@ bool UiTable::handleKeyCh(int key)
     return false;
 }
 
+
+void UiTable::delWindow()
+{
+    delwin(_win);
+    _win = nullptr;
+}
+void UiTable::buildWindow(int nlines, int ncols, int begy, int begx)
+{
+    _win = newwin(nlines, ncols, begy, begx);
+}
 // ------------------------------------------------------------
 // Main render()
 // ------------------------------------------------------------
 void UiTable::render(
-    WINDOW* win,
     int dataRowCount,
     const std::vector<HeaderColumn>& header_cols,
     const std::function<Cell(int, int)>& cell_cb,
     bool focused)
 {
-    if (!win) 
+    if (!_win)
     {
         return;
     }
-    _hotspotGroup.setWin(win);
+    _hotspotGroup.setWin(_win);
     data_row_count = dataRowCount;
 
     int h, w;
-    getmaxyx(win, h, w);
-    werase(win);
-    keypad(win, TRUE);
+    getmaxyx(_win, h, w);
+    werase(_win);
+    keypad(_win, TRUE);
 
     // ------------------------------------------------------------
     // Resolve column widths
@@ -520,12 +529,12 @@ void UiTable::render(
     // ------------------------------------------------------------
     // Draw header + mid border
     // ------------------------------------------------------------
-    draw_top_border_header(win, 0, 0, resolved_header_cols, focused);
+    draw_top_border_header(_win, 0, 0, resolved_header_cols, focused);
 
     if (has_header)
     {
-        draw_header_row(win, 1, 0, resolved_header_cols, focused);
-        draw_mid_border_header(win, 2, 0, resolved_header_cols, focused);
+        draw_header_row(_win, 1, 0, resolved_header_cols, focused);
+        draw_mid_border_header(_win, 2, 0, resolved_header_cols, focused);
     }
 
     // ------------------------------------------------------------
@@ -540,7 +549,7 @@ void UiTable::render(
         int data_row = _firstVisibleDataRow + i;
         if (data_row >= dataRowCount)
         {
-            draw_empty_border(win, first_data_row + i, 0, w-1, focused, vparams);
+            draw_empty_border(_win, first_data_row + i, 0, w-1, focused, vparams);
             continue;
         }
 
@@ -561,7 +570,7 @@ void UiTable::render(
                          static_cast<int>(cells[dynamic_index].text.size()));
 
         draw_row_assembled_cols(
-            win,
+            _win,
             first_data_row + i,
             0,
             cells,
@@ -571,7 +580,7 @@ void UiTable::render(
             _dynamicColCurrentOffsetX,
             vparams);
 
-        wnoutrefresh(win);
+        wnoutrefresh(_win);
     }
 
     // ------------------------------------------------------------
@@ -588,7 +597,7 @@ void UiTable::render(
         (*hparams.first == 1 && *hparams.second == inner_width - 2))
     {
         draw_bottom_border_header(
-            win,
+            _win,
             first_data_row + lastKnownViewHeight,
             0,
             resolved_header_cols,
@@ -597,7 +606,7 @@ void UiTable::render(
     else
     {
         draw_bottom_scroll_border(
-            win,
+            _win,
             first_data_row + lastKnownViewHeight,
             0,
             inner_width,
@@ -605,19 +614,18 @@ void UiTable::render(
             focused);
     }
 
-    wrefresh(win);
+    wrefresh(_win);
 }
 
 // ------------------------------------------------------------
 // renderArray()
 // ------------------------------------------------------------
 void UiTable::renderArray(
-    WINDOW* win,
     const std::vector<std::wstring>& array,
     const std::optional<std::wstring>& title,
     bool focused)
 {
-    _hotspotGroup.setWin(win);
+    _hotspotGroup.setWin(_win);
     auto cell_cb = [&array](int row, int) -> Cell {
         return Cell{ array[row], A_NORMAL };
     };
@@ -626,6 +634,6 @@ void UiTable::renderArray(
         HeaderColumn{ 0, title, SortDir::NONE, true }
     };
 
-    render(win, static_cast<int>(array.size()), cols, cell_cb, focused);
+    render(static_cast<int>(array.size()), cols, cell_cb, focused);
 }
 

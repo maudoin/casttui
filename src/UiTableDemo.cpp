@@ -10,52 +10,50 @@ void run_table(int width, bool header, bool focus = false)
     int height = 14;
     int starty = 1;
     int startx = 3;
-
-    WINDOW* win = newwin(height, width, starty, startx);
-
-    UiTable table(UiTable::Mode::SCROLL, []{}, 5, 0);
-
-    while (true)
     {
-        std::vector<HeaderColumn> cols;
-        if (header)
+        UiTable table(UiTable::Mode::SCROLL, []{}, 5, 0);
+        table.buildWindow(height, width, starty, startx);
+
+        while (true)
         {
-            cols = {
-                HeaderColumn{ 3, std::wstring(L"A"), SortDir::UP, false },
-                HeaderColumn{ 0, std::wstring(L"B (fill) "), SortDir::NONE, true },
-                HeaderColumn{ 4, std::wstring(L"C"), SortDir::NONE, false }
+            std::vector<HeaderColumn> cols;
+            if (header)
+            {
+                cols = {
+                    HeaderColumn{ 3, std::wstring(L"A"), SortDir::UP, false },
+                    HeaderColumn{ 0, std::wstring(L"B (fill) "), SortDir::NONE, true },
+                    HeaderColumn{ 4, std::wstring(L"C"), SortDir::NONE, false }
+                };
+            }
+            else
+            {
+                cols = {
+                    HeaderColumn{ 10, std::nullopt, SortDir::NONE, false },
+                    HeaderColumn{ 0, std::nullopt, SortDir::NONE, true },
+                    HeaderColumn{ 20, std::nullopt, SortDir::NONE, false }
+                };
+            }
+
+            int rowCount = 20;
+
+            auto cell_cb = [&cols](int row, int col) -> Cell {
+                std::wstring base = cols[col].name.value_or(L"");
+                std::wstring text = base + std::to_wstring(row);
+                int style = (row % 2 == 0) ? A_BOLD : A_DIM;
+                return Cell{ text, style };
             };
-        }
-        else
-        {
-            cols = {
-                HeaderColumn{ 10, std::nullopt, SortDir::NONE, false },
-                HeaderColumn{ 0, std::nullopt, SortDir::NONE, true },
-                HeaderColumn{ 20, std::nullopt, SortDir::NONE, false }
-            };
-        }
 
-        int rowCount = 20;
+            table.render(rowCount, cols, cell_cb, focus);
 
-        auto cell_cb = [&cols](int row, int col) -> Cell {
-            std::wstring base = cols[col].name.value_or(L"");
-            std::wstring text = base + std::to_wstring(row);
-            int style = (row % 2 == 0) ? A_BOLD : A_DIM;
-            return Cell{ text, style };
-        };
+            int key = wgetch(stdscr);
 
-        table.render(win, rowCount, cols, cell_cb, focus);
-
-        int key = wgetch(win);
-
-        if (!table.handleKeyCh(key))
-        {
-            if (key == 10 || key == 13 || key == 32 || key == 27)
-                break;
+            if (!table.handleKeyCh(key))
+            {
+                if (key == 10 || key == 13 || key == 32 || key == 27)
+                    break;
+            }
         }
     }
-
-    delwin(win);
     endwin();
 }
 #ifndef _WIN32

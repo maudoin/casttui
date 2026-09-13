@@ -6,6 +6,7 @@
 #endif
 
 #include "UiPodcastTable.h"
+#include "UiShowsTable.h"
 #include "UiTable.h"
 #include "DowncastLogic.h"
 #include "HtmlToText.h"
@@ -94,64 +95,8 @@ class PodcastUI
             }};
         };
 
-        status_table.render(win_status, 1, cols, cell_cb, focused);
+        status_table.render(1, cols, cell_cb, focused);
         return;
-    }
-
-    void render_shows_table(bool focused)
-    {
-        int h, w;
-        getmaxyx(win_shows, h, w);
-        int inner_h = h - 2;
-        int data_h  = inner_h - 2;
-
-        auto const& shows = logic.showsInRankRange(shows_table.firstVisibleDataRow(), data_h);
-
-        // We don't have direct access to current sort column; keep arrows neutral or infer externally.
-        SortDir sort_direction = SortDir::NONE;
-
-        std::vector<HeaderColumn> cols{
-            HeaderColumn{.width = -1, .name = std::make_optional<std::wstring>(L"Title"),   .sort = SortDir::NONE, .dynamic = true},
-            HeaderColumn{.width = 12, .name = std::make_optional<std::wstring>(L"Date"),    .sort = sort_direction, .dynamic = false},
-            HeaderColumn{.width = 10, .name = std::make_optional<std::wstring>(L"Duration"),.sort = sort_direction, .dynamic = false},
-        };
-
-        auto cell_cb = [&](int row, int col) -> Cell
-        {
-            int idx = row - shows_table.firstVisibleDataRow();
-            if (idx < 0 || idx >= static_cast<int>(shows.size()))
-                return Cell{L"", A_NORMAL};
-
-            auto const& s = shows[idx];
-
-            std::wstring text;
-            if (col == 0)
-                text = to_wstring(s.title);
-            else if (col == 1)
-                text = to_wstring(s.dateStr());
-            else
-                text = to_wstring(s.durationStr());
-
-            bool isSelected = (row >= 2 && logic.isShowRankSelected(row));
-            bool isCursor   = (row == shows_table.cursor() && focused);
-
-            int style;
-            if (isCursor && isSelected)
-                style = COLOR_PAIR(3);
-            else if (isSelected)
-                style = COLOR_PAIR(2);
-            else if (isCursor)
-                style = COLOR_PAIR(1);
-            else
-                style = A_NORMAL;
-
-            return Cell{text, style, [this, row]{
-                this->shows_table.scrollTo(row);
-                this->logic.showSelection(row, true, false);
-            }};
-        };
-
-        shows_table.render(win_shows, logic.showCount(), cols, cell_cb, focused);
     }
 
     void render_actions_bar()
@@ -192,8 +137,7 @@ class PodcastUI
                 lines[1] += L"Queue (q)  ";
         }
 
-        UiTable action_table(UiTable::Mode::SCROLL, 0, 0);
-        action_table.renderArray(win_actions, lines);
+        _actionsUi.renderArray(lines);
     }
 
     void render_bottom_bar()
@@ -230,14 +174,11 @@ class PodcastUI
             text = L"Ready";
         }
 
-        UiTable table(UiTable::Mode::SCROLL, 0, 0);
-        table.renderArray(win_bottom, std::vector<std::wstring>{text});
+        _bottomBarUi.renderArray(std::vector<std::wstring>{text});
     }
 
     void render_confirm_modal()
     {
-        werase(win_confirm);
-
         std::wstring cancel = L"Cancel";
 
         auto cell_cb = [&](int, int col) -> Cell {
@@ -274,7 +215,7 @@ class PodcastUI
             HeaderColumn{ .width = static_cast<int>(cancel.size()) }
         };
 
-        confirm_table.render(win_confirm, 1, cols, cell_cb, true);
+        confirm_table.render(1, cols, cell_cb, true);
     }
 
     void render_info_modal(WINDOW* stdscr)
@@ -286,10 +227,10 @@ class PodcastUI
         int y  = (h - mh) / 2;
         int x  = (w - mw) / 2;
 
-        WINDOW* win = newwin(mh, mw, y, x);
-        werase(win);
+        info_table.delWindow();
+        info_table.buildWindow(mh, mw, y, x);
 
-        auto const& shows = logic.showsInRankRange(shows_table.cursor(), 1);
+        auto const& shows = logic.showsInRankRange(_showsUi.cursor(), 1);
 
         std::wstring text = shows.empty() ? L"No show selected." : html_to_text(to_wstring(shows[0].summary));
         std::vector<std::wstring> lines;
@@ -316,10 +257,8 @@ class PodcastUI
         std::optional<std::wstring> title =
             shows.empty() ? std::nullopt : std::make_optional(to_wstring(shows[0].title));
 
-        info_table.renderArray(win, lines, title);
+        info_table.renderArray(lines, title);
 
-        wnoutrefresh(win);
-        delwin(win);
     }
 
     void render_add_edit_modal(WINDOW* stdscr)
@@ -600,83 +539,6 @@ class PodcastUI
         return false;
     }
 
-    bool handle_shows_key(int k)
-    {
-        if (shows_table.handleKeyCh(k))
-            return true;
-
-        using MediaStatus = DowncastLogic::MediaStatus;
-
-        if (k == 'i' || k == 'I')
-        {
-            modal_mode = ModalMode::Info;
-            return true;
-        }
-
-        if (k == 'u' || k == 'U')
-        {
-            if (logic.isStatusActive(MediaStatus::New))
-                logic.refreshCurrentPodcast();
-            return true;
-        }
-
-        if (logic.anySelection())
-        {
-            if (k == 'q' || k == 'Q')
-            {
-                logic.setSelectedShowsStatus(Status::QUEUED);
-                return true;
-            }
-            if (k == 's' || k == 'S')
-            {
-                logic.setSelectedShowsStatus(Status::SKIPPED);
-                return true;
-            }
-            if (k == 'n' || k == 'N')
-            {
-                logic.setSelectedShowsStatus(Status::NEW);
-                return true;
-            }
-        }
-
-        if (k == 'd' || k == 'D')
-        {
-            if (logic.isStatusActive(MediaStatus::Queued))
-                logic.startDownload();
-            return true;
-        }
-
-        if (k == 10 || k == 13) // ENTER
-        {
-            logic.showSelection(shows_table.cursor(), false, false);
-            return true;
-        }
-
-        if (k == ' ')
-        {
-            logic.showSelection(shows_table.cursor(), true, false);
-            return true;
-        }
-
-        // Time sort toggle
-        if (k == 't' || k == 'T')
-        {
-            logic.setShowSorting(&MediaViewCols::date,
-                                DowncastLogic::SortingOption::ASCENDING);
-            return true;
-        }
-
-        // Duration sort toggle
-        if (k == 'l' || k == 'L')
-        {
-            logic.setShowSorting(&MediaViewCols::duration,
-                                DowncastLogic::SortingOption::ASCENDING);
-            return true;
-        }
-
-        return false;
-    }
-
     bool handle_mouse(MouseEvent const& ev)
     {
         if (modal_mode == ModalMode::None)
@@ -684,7 +546,7 @@ class PodcastUI
             // always active
             if (_podcastUi.handleMouseEvent(ev))
                 return true;
-            if (shows_table.hotspots().handleMouseEvent(ev))
+            if (_showsUi.handleMouseEvent(ev))
                 return true;
             if (status_table.hotspots().handleMouseEvent(ev))
                 return true;
@@ -791,7 +653,7 @@ class PodcastUI
         if (k == KEY_LEFT)
         {
             if (focus == Focus::Shows &&
-                shows_table.dynamicColCurrentOffsetX() == 0)
+                _showsUi.dynamicColCurrentOffsetX() == 0)
             {
                 focus = Focus::Podcasts;
                 return true;
@@ -816,7 +678,7 @@ class PodcastUI
         if (k == KEY_UP)
         {
             if (focus == Focus::Shows &&
-                shows_table.cursor() == 0)
+                _showsUi.cursor() == 0)
             {
                 focus = Focus::Status;
                 return true;
@@ -831,7 +693,16 @@ class PodcastUI
             case Focus::Status:
                 return handle_status_key(k);
             case Focus::Shows:
-                return handle_shows_key(k);
+                if (_showsUi.handleKey(k))
+                {
+                    return true;
+                }
+                if (k == 'i' || k == 'I')
+                {
+                    modal_mode = ModalMode::Info;
+                    return true;
+                }
+                return false;
         }
 
         return false;
@@ -839,10 +710,12 @@ class PodcastUI
     void delWindows()
     {
         _podcastUi.delWindow();
-        delwin(win_status);
-        delwin(win_shows);
-        delwin(win_actions);
-        delwin(win_bottom);
+        _showsUi.delWindow();
+        _actionsUi.delWindow();
+        _bottomBarUi.delWindow();
+        info_table.delWindow();
+        status_table.delWindow();
+        confirm_table.delWindow();
     }
     void buildWindows()
     {
@@ -865,16 +738,16 @@ class PodcastUI
         int shows_h = std::max(min_shows_h, h - status_h - actions_h - bottom_h);
 
         _podcastUi.buildWindow(h,        left_w, 0,                 0);
-        win_status = newwin(status_h, right_w, 0,                 left_w);
-        win_shows  = newwin(shows_h,  right_w, status_h,          left_w);
-        win_actions= newwin(actions_h,right_w, status_h + shows_h,left_w);
-        win_bottom = newwin(bottom_h, right_w, status_h + shows_h + actions_h, left_w);
+        status_table.buildWindow(status_h, right_w, 0,                 left_w);
+        _showsUi.buildWindow(shows_h,  right_w, status_h,          left_w);
+        _actionsUi.buildWindow(actions_h,right_w, status_h + shows_h,left_w);
+        _bottomBarUi.buildWindow(bottom_h, right_w, status_h + shows_h + actions_h, left_w);
 
         int mh = 3;
         int mw = std::min(w - 4, 70);
         int y  = (h - mh) / 2;
         int x  = (w - mw) / 2;
-        win_confirm = newwin(mh, mw, y, x);
+        confirm_table.buildWindow(mh, mw, y, x);
     }
     void render_layout(WINDOW* stdscr)
     {
@@ -882,14 +755,9 @@ class PodcastUI
 
         _podcastUi.render(focus == Focus::Podcasts);
         render_status_filter_bar(focus == Focus::Status);
-        render_shows_table(focus == Focus::Shows);
+        _showsUi.render(focus == Focus::Shows);
         render_actions_bar();
         render_bottom_bar();
-
-        wnoutrefresh(win_status);
-        wnoutrefresh(win_shows);
-        wnoutrefresh(win_actions);
-        wnoutrefresh(win_bottom);
 
         if (modal_mode == ModalMode::ConfirmDeletePodcast ||
             modal_mode == ModalMode::ConfirmExit)
@@ -975,7 +843,9 @@ public:
                 confirm_field = 1;//cancel
             }
         })
-        , shows_table(UiTable::Mode::CURSOR, [&]{focus = Focus::Shows;})
+        , _showsUi(logic, [&]{focus = Focus::Shows;})
+        , _actionsUi(UiTable::Mode::SCROLL)
+        , _bottomBarUi(UiTable::Mode::SCROLL)
         , info_table(UiTable::Mode::SCROLL, [&]{/*no focus action*/})
         , status_table(UiTable::Mode::CURSOR, [&]{focus = Focus::Status;})
         , confirm_table(UiTable::Mode::CURSOR, [&]{/*no focus action*/})
@@ -1027,7 +897,9 @@ public:
 
     Focus focus;
     UiPodcastTable _podcastUi;
-    UiTable shows_table;
+    UiShowsTable _showsUi;
+    UiTable _actionsUi;
+    UiTable _bottomBarUi;
     UiTable info_table;
     UiTable status_table;
     UiTable confirm_table;
@@ -1053,12 +925,6 @@ public:
     int confirm_field = 1;//accept,cancel
 
     bool running = true;
-
-    WINDOW* win_status = nullptr;
-    WINDOW* win_shows  = nullptr;
-    WINDOW* win_actions= nullptr;
-    WINDOW* win_bottom = nullptr;
-    WINDOW* win_confirm = nullptr;
 };
 
 #ifndef _WIN32

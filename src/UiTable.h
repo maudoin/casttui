@@ -62,6 +62,8 @@ public:
             int firstVisibleDataRow = 0,
             int dynamicColCurrentOffsetX = 0);
 
+    void delWindow();
+    void buildWindow(int nlines, int ncols, int begy, int begx);
     void scrollTo(int newCursor);
     void scrollVertical(int amount);
     void scrollHorizontal(int amount);
@@ -69,14 +71,12 @@ public:
     bool handleKeyCh(int key);
 
     void render(
-        WINDOW* win,
         int dataRowCount,
         const std::vector<HeaderColumn>& header_cols,
         const std::function<Cell(int, int)>& cell_cb,
         bool focused = false);
 
     void renderArray(
-        WINDOW* win,
         const std::vector<std::wstring>& array,
         const std::optional<std::wstring>& title = std::nullopt,
         bool focused = false);
@@ -86,7 +86,16 @@ public:
     int dynamicColCurrentOffsetX() const {return _dynamicColCurrentOffsetX;}
 
     UiHotspotGoup const& hotspots() {return _hotspotGroup;}
+    bool handleMouseEvent(MouseEvent const& ev)
+    {
+        return _hotspotGroup.handleMouseEvent(ev);
+    }
+    int getHeight()const
+    {
+        return getmaxy(_win);
+    }
 private:
+    WINDOW* _win = nullptr;
     int _cursor;
     Mode mode;
     int _firstVisibleDataRow;

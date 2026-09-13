@@ -19,15 +19,10 @@
 #include <ranges>
 
 UiPodcastTable::UiPodcastTable(DowncastLogic& logic, Actions const& actions)
-    : _logic(logic)
-    , _actions(actions)
-    , _table(UiTable::Mode::CURSOR, actions.winSelection)
+: UiTable(UiTable::Mode::CURSOR, actions.winSelection)
+, _logic(logic)
+, _actions(actions)
 {
-}
-
-UiPodcastTable::~UiPodcastTable()
-{
-    delWindow();
 }
 
 void UiPodcastTable::render(bool focused)
@@ -50,7 +45,7 @@ void UiPodcastTable::render(bool focused)
     auto cell_cb = [&](int row, int /*col*/) -> Cell
     {
         const std::wstring& title = titles[row];
-        bool isCursor   = (row == _table.cursor() && focused);
+        bool isCursor   = (row == cursor() && focused);
         bool isSelected = (row >= 2 && _logic.isCurrentPodcast(row - 2));
 
         int style;
@@ -64,28 +59,28 @@ void UiPodcastTable::render(bool focused)
             style = A_NORMAL;
 
         return Cell{title, style, [this, row]{
-            this->_table.scrollTo(row);
+            this->scrollTo(row);
             this->pickPodcast();
         }};
     };
 
-    _table.render(_win, count, cols, cell_cb, focused);
+    UiTable::render(count, cols, cell_cb, focused);
 }
 
 bool UiPodcastTable::handleKey(int k)
 {
-    if (_table.handleKeyCh(k))
+    if (UiTable::handleKeyCh(k))
         return true;
 
     // Only valid podcast rows (skip Add/All)
-    if (_table.cursor() >= 2 &&
-        _table.cursor() < _logic.podcastCount() + 2)
+    if (cursor() >= 2 &&
+        cursor() < _logic.podcastCount() + 2)
     {
-        auto const& p = _logic.podcast(_table.cursor() - 2);
+        auto const& p = _logic.podcast(cursor() - 2);
 
         if (k == 'r' || k == 'R')
         {
-            _logic.refreshPodcastAtIndex(_table.cursor() - 2);
+            _logic.refreshPodcastAtIndex(cursor() - 2);
             return true;
         }
         if (k == 'e' || k == 'E')
@@ -98,7 +93,7 @@ bool UiPodcastTable::handleKey(int k)
             int delete_id = p.id;
             _actions.del(L"Delete '" + to_wstring(p.title) + L"'?", [this, delete_id]{
                 this->_logic.deletePodcast(delete_id);
-                this->_table.scrollVertical(-1);
+                this->scrollVertical(-1);
             });
             return true;
         }
@@ -118,42 +113,24 @@ bool UiPodcastTable::handleKey(int k)
 
 bool UiPodcastTable::pickPodcast()
 {
-    if (_table.cursor() == 0)
+    if (cursor() == 0)
     {
         _actions.add();
         return true;
     }
-    else if (_table.cursor() == 1)
+    else if (cursor() == 1)
     {
         _logic.setCurrentPodcastRowIndex(std::optional<std::optional<int>>{std::nullopt}, std::nullopt);
-        //TODO _table.firstVisibleDataRow() = 0;
+        //TODO firstVisibleDataRow() = 0;
         //TODO shows_table.cursor() = 0;
         return true;
     }
     else
     {
-        _logic.setCurrentPodcastRowIndex(_table.cursor() - 2, std::nullopt);
-        //TODO _table.firstVisibleDataRow() = 0;
+        _logic.setCurrentPodcastRowIndex(cursor() - 2, std::nullopt);
+        //TODO firstVisibleDataRow() = 0;
         //TODO shows_table.cursor() = 0;
         return true;
     }
     return false;
-}
-
-void UiPodcastTable::delWindow()
-{
-    delwin(_win);
-    _win = nullptr;
-}
-void UiPodcastTable::buildWindow(int nlines, int ncols, int begy, int begx)
-{
-    _win = newwin(nlines, ncols, begy, begx);
-}
-bool UiPodcastTable::handleMouseEvent(MouseEvent const& ev)
-{
-    return _table.hotspots().handleMouseEvent(ev);
-}
-int UiPodcastTable::cursor()
-{
-    return _table.cursor();
 }
