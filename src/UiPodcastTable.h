@@ -25,6 +25,7 @@ public:
     void render(bool focused);
     bool handleKey(int k);
     bool pickPodcast();
+    std::optional<int> getPodcastIndex()const;
 
 private:
     DowncastLogic& _logic;

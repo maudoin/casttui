@@ -67,20 +67,25 @@ void UiPodcastTable::render(bool focused)
     UiTable::render(count, cols, cell_cb, focused);
 }
 
+std::optional<int> UiPodcastTable::getPodcastIndex()const
+{
+    return (cursor() >= 2 &&
+        cursor() < _logic.podcastCount() + 2) ? std::make_optional(cursor() - 2) : std::nullopt;
+}
+
 bool UiPodcastTable::handleKey(int k)
 {
     if (UiTable::handleKeyCh(k))
         return true;
 
     // Only valid podcast rows (skip Add/All)
-    if (cursor() >= 2 &&
-        cursor() < _logic.podcastCount() + 2)
+    if (auto index = getPodcastIndex())
     {
-        auto const& p = _logic.podcast(cursor() - 2);
+        auto const& p = _logic.podcast(*index);
 
         if (k == 'r' || k == 'R')
         {
-            _logic.refreshPodcastAtIndex(cursor() - 2);
+            _logic.refreshPodcastAtIndex(*index);
             return true;
         }
         if (k == 'e' || k == 'E')

@@ -30,7 +30,7 @@ enum class SortDir
 struct HeaderColumn
 {
     int width;
-    std::optional<std::wstring> name;
+    std::optional<std::wstring> name = std::nullopt;
     SortDir sort = SortDir::NONE;
     bool dynamic = false;
     std::optional<std::function<void()>> callback;
@@ -78,8 +78,11 @@ public:
         bool focused = false);
 
     void renderArray(
-        const std::vector<std::wstring>& array,
+        const std::vector<Cell>& array,
         const std::optional<std::wstring>& title = std::nullopt,
+        bool focused = false);
+    void renderSingleLine(
+        const std::vector<Cell>& array,
         bool focused = false);
 
     int cursor() const {return _cursor;}

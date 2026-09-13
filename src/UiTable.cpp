@@ -86,14 +86,15 @@ inline void draw_border_columns(
     int x = 1;
     for (std::size_t i = 0; i < cols.size(); ++i)
     {
+        int w = std::max(0, cols[i].width);
         std::wstring hrun;
         {
-            hrun.reserve(cols[i].width * 3); // box chars are multi-byte
-            for (int k = 0; k < cols[i].width; ++k)
+            hrun.reserve(w * 3); // box chars are multi-byte
+            for (int k = 0; k < w; ++k)
             hrun.append(L"─");
         }
         addstr_focus(_win, row, col + x, hrun, focused);
-        x += cols[i].width;
+        x += w;
         if (i < cols.size() - 1)
         {
             addstr_focus(_win, row, col + x, mid, focused);
@@ -620,16 +621,14 @@ void UiTable::render(
 }
 
 // ------------------------------------------------------------
-// renderArray()
-// ------------------------------------------------------------
 void UiTable::renderArray(
-    const std::vector<std::wstring>& array,
+    const std::vector<Cell>& array,
     const std::optional<std::wstring>& title,
     bool focused)
 {
     setWin(_win);
     auto cell_cb = [&array](int row, int) -> Cell {
-        return Cell{ array[row], A_NORMAL };
+        return array[row];
     };
 
     std::vector<HeaderColumn> cols{
@@ -637,5 +636,26 @@ void UiTable::renderArray(
     };
 
     render(static_cast<int>(array.size()), cols, cell_cb, focused);
+}
+
+
+// ------------------------------------------------------------
+void UiTable::renderSingleLine(
+    const std::vector<Cell>& array,
+    bool focused)
+{
+    setWin(_win);
+    auto cell_cb = [&array](int, int col) -> Cell {
+        return array[col];
+    };
+    auto colsView = array
+        | std::views::transform([](const Cell& c) {
+            return HeaderColumn{
+                .width    = static_cast<int>(c.text.size()),
+            };
+        });
+    std::vector<HeaderColumn> cols(colsView.begin(), colsView.end());
+    if (!cols.empty())cols.back().width = -1;
+    render(1, cols, cell_cb, focused);
 }
 

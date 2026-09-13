@@ -153,6 +153,18 @@ bool UiShowsTable::handleKey(int k)
         return true;
     }
 
+    if (k == PADMINUS)
+    {
+        _logic.selectShowRange(0, cursor(), true);
+        return true;
+    }
+
+    if (k == PADPLUS)
+    {
+        _logic.selectShowRange(cursor(), this->_logic.showCount()-1, true);
+        return true;
+    }
+
     // Name sort toggle
     if (k == 'n' || k == 'N')
     {

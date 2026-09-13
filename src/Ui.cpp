@@ -68,48 +68,86 @@ public:
         delWindows();
     }
 
-    // --------------------------------------------------------------------
 private:
 
     void renderActionsBar()
     {
-        std::vector<std::wstring> lines(2, L"");
+        std::vector<Cell> items;
 
         if (_focusedPanel == Focus::Shows)
         {
-            lines[0] = L"Info (i)   Time sort (t)   Length sort (l)   Select Above (+)   Select Below (-)";
+            auto sortCallback = [&](auto const& col)->std::function<void()>{
+                return [=, this]{
+                    this->_logic.setShowSorting(col, DowncastLogic::cycle(_logic.getShowSorting(col)));
+                };
+            };
+            items.push_back({ .text = L"Info (i)",          .callback = [this]{this->_modalPopup = ModalMode::Info;} });
+            items.push_back({ .text = L"Name sort (n)",     .callback = sortCallback(&MediaViewCols::title)});
+            items.push_back({ .text = L"Time sort (t)",     .callback = sortCallback(&MediaViewCols::date)});
+            items.push_back({ .text = L"Length sort (l)",   .callback = sortCallback(&MediaViewCols::duration)});
+            items.push_back({ .text = L"Select Above (-)",  .callback = [this]{
+                this->_logic.selectShowRange(0, this->_showsUi.cursor(), true);}});
+            items.push_back({ .text = L"Select Below (+)",  .callback = [this]{
+                this->_logic.selectShowRange(this->_showsUi.cursor(), this->_logic.showCount()-1, true);}});
         }
-        if (_focusedPanel == Focus::Podcasts)
+
+        auto podcastIndexOpt = _podcastUi.getPodcastIndex();
+        if (_focusedPanel == Focus::Podcasts && podcastIndexOpt)
         {
-            lines[0] = L"Refresh (r)  Edit (e)  Delete (d)";
+            int podcastIndex = *podcastIndexOpt;
+            items.push_back({ .text = L"Refresh (r)", .callback = [this, podcastIndex]{
+                if (podcastIndex<_logic.podcastCount())
+                {
+                    this->_logic.refreshPodcastAtIndex(podcastIndex);}
+                }
+            });
+            items.push_back({ .text = L"Edit (e)",    .callback = [this, podcastIndex]{
+                if (podcastIndex<_logic.podcastCount())
+                {
+                    this->_addEditPodcastUi.setEdit(_logic.podcast(podcastIndex));
+                    this->_modalPopup = ModalMode::AddEditPodcast;
+                }
+            } });
+            items.push_back({ .text = L"Delete (d)",  .callback = [this, podcastIndex]{
+                this->_modalPopup = ModalMode::Confirm;
+                this->_confirmUi.set(L"Delete '" + to_wstring(_logic.podcast(podcastIndex).title) + L"'?", [this, podcastIndex]{
+                    if (podcastIndex<_logic.podcastCount())
+                    {
+                        auto const& podcast = _logic.podcast(podcastIndex);
+                        this->_logic.deletePodcast(podcast.id);
+                        this->_podcastUi.scrollVertical(-1);
+                    }
+                });
+            } });
         }
-
         using MediaStatus = DowncastLogic::MediaStatus;
-
         if (_logic.isStatusActive(MediaStatus::New))
         {
-            lines[1] += L"Update (u)  ";
+            items.push_back({ .text = L"Update (u)", .callback = [this]{this->_logic.refreshCurrentPodcast();} });
         }
 
         if (_logic.isStatusActive(MediaStatus::Queued))
         {
             if (_logic.isDownloading())
-                lines[1] += L"Downloading…   ";
+                items.push_back({ .text = L"Downloading…", .callback = [this]{this->_logic.startDownload();} });
             else
-                lines[1] += L"Start Download (d)  ";
+                items.push_back({ .text = L"Start Download (d)", .callback = []{} });
         }
 
         if (_logic.anySelection())
         {
             if (!_logic.isStatusActive(MediaStatus::New))
-                lines[1] += L"Set New (n)  ";
+                items.push_back({ .text = L"Set New (n)", .callback = [this]{this->_logic.setSelectedShowsStatus(Status::NEW);} });
+
             if (!_logic.isStatusActive(MediaStatus::Skipped))
-                lines[1] += L"Skip (s)  ";
+                items.push_back({ .text = L"Skip (s)", .callback = [this]{this->_logic.setSelectedShowsStatus(Status::SKIPPED);} });
+
             if (!_logic.isStatusActive(MediaStatus::Queued))
-                lines[1] += L"Queue (q)  ";
+                items.push_back({ .text = L"Queue (q)", .callback = [this]{this->_logic.setSelectedShowsStatus(Status::QUEUED);} });
         }
 
-        _actionsUi.renderArray(lines);
+        items.emplace_back(L"");
+        _actionsUi.renderSingleLine(items);
     }
 
     void renderBottomBar()
@@ -146,7 +184,7 @@ private:
             text = L"Ready";
         }
 
-        _bottomBarUi.renderArray(std::vector<std::wstring>{text});
+        _bottomBarUi.renderArray(std::vector<Cell>{Cell{text}});
     }
 
 
@@ -165,7 +203,7 @@ private:
         auto const& shows = _logic.showsInRankRange(_showsUi.cursor(), 1);
 
         std::wstring text = shows.empty() ? L"No show selected." : html_to_text(to_wstring(shows[0].summary));
-        std::vector<std::wstring> lines;
+        std::vector<Cell> lines;
 
         int max_lines = mh - 2;
         int count = 0;
@@ -174,7 +212,7 @@ private:
         {
             if (c == '\n')
             {
-                lines.push_back(to_wstring(current));
+                lines.emplace_back(to_wstring(current));
                 current.clear();
                 if (++count >= max_lines) break;
             }
@@ -184,7 +222,7 @@ private:
             }
         }
         if (!current.empty() && count < max_lines)
-            lines.push_back(to_wstring(current));
+            lines.emplace_back(to_wstring(current));
 
         std::optional<std::wstring> title =
             shows.empty() ? std::nullopt : std::make_optional(to_wstring(shows[0].title));
@@ -215,6 +253,8 @@ private:
             return _infoUi.handleMouseEvent(ev);
         else if (_modalPopup == ModalMode::AddEditPodcast)
             return _addEditPodcastUi.handleMouseEvent(ev);
+
+        _actionsUi.handleMouseEvent(ev);
         return false;
     }
 
@@ -372,7 +412,7 @@ private:
 
         int min_shows_h = 3;
         int status_h = 3;
-        int actions_h = 4;
+        int actions_h = 3;
         int bottom_h = 3;
 
 
