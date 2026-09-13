@@ -7,6 +7,7 @@
 
 #include "UiPodcastTable.h"
 #include "UiShowsTable.h"
+#include "UiStatusTable.h"
 #include "UiTable.h"
 #include "DowncastLogic.h"
 #include "HtmlToText.h"
@@ -27,77 +28,6 @@ class PodcastUI
     // ----------------------------------------------------------------
     // Rendering
     // ----------------------------------------------------------------
-
-    void render_status_filter_bar(bool focused)
-    {
-        std::wstring title = L"Status: ";
-        std::wstring quitLabel = L" X ";
-        std::vector<HeaderColumn> cols;
-        cols.reserve(status_labels.size()+3);//+title+spacer+quit
-        // title
-        cols.push_back(HeaderColumn{.width = static_cast<int>(title.size())});
-        // statuses
-        for (int i = 0; i < static_cast<int>(status_labels.size()); ++i)
-        {
-            auto const& [label, status] = status_labels[i];
-            cols.push_back(HeaderColumn{.width = static_cast<int>(label.size())});
-        };
-        // spacer
-        cols.push_back(HeaderColumn{.dynamic = true});
-        // quit
-        cols.push_back(HeaderColumn{.width =  static_cast<int>(quitLabel.size())});
-
-        auto cell_cb = [&](int row, int col) -> Cell
-        {
-            if (col == 0)
-            {
-                // Title
-                return Cell{title, A_NORMAL};
-            }
-            if (col == cols.size()-1)
-            {
-                // Quit
-                return Cell{quitLabel, A_NORMAL, [this]{
-                    this->confirm_field=1;//cancel
-                    this->confirm_title = L"Quit";
-                    this->confirm_action = [this]{this->running = false;};
-                    this->modal_mode = ModalMode::ConfirmExit;
-                }};
-            }
-            int statusIndex = col-1;
-            if (statusIndex >= status_labels.size())
-            {
-                // Spacer
-                return Cell{L"", A_NORMAL};
-            }
-            auto const& [label, status] = status_labels[statusIndex];
-            bool isSelected = logic.isStatusActive(status);
-            bool isCursor   = (statusIndex == cursor_status && focused);
-
-            int style;
-            if (isCursor && isSelected)
-                style = COLOR_PAIR(3);
-            else if (isSelected)
-                style = COLOR_PAIR(2);
-            else if (isCursor)
-                style = COLOR_PAIR(1);
-            else
-                style = A_NORMAL;
-
-            return Cell{label, style,  [this, statusIndex]{
-                cursor_status = statusIndex;
-                auto const& [_, status] = this->status_labels[statusIndex];
-                this->logic.setCurrentPodcastRowIndex(
-                    std::nullopt,
-                    status,
-                    DowncastLogic::SetPodcastOption::FORCE_REFRESH
-                );
-            }};
-        };
-
-        status_table.render(1, cols, cell_cb, focused);
-        return;
-    }
 
     void render_actions_bar()
     {
@@ -502,42 +432,6 @@ class PodcastUI
         return false;
     }
 
-    bool handle_status_key(int k)
-    {
-        auto move_status_cursor = [&](int delta)
-        {
-            cursor_status = std::max(
-                0,
-                std::min(static_cast<int>(status_labels.size()) - 1,
-                        cursor_status + delta)
-            );
-        };
-
-        if (k == KEY_LEFT)
-        {
-            move_status_cursor(-1);
-            return true;
-        }
-        if (k == KEY_RIGHT)
-        {
-            move_status_cursor(1);
-            return true;
-        }
-
-        // ENTER selects status
-        if (k == 10 || k == 13)
-        {
-            auto const& [_, status] = status_labels[cursor_status];
-            logic.setCurrentPodcastRowIndex(
-                std::nullopt,
-                status,
-                DowncastLogic::SetPodcastOption::FORCE_REFRESH
-            );
-            return true;
-        }
-
-        return false;
-    }
 
     bool handle_mouse(MouseEvent const& ev)
     {
@@ -548,7 +442,7 @@ class PodcastUI
                 return true;
             if (_showsUi.handleMouseEvent(ev))
                 return true;
-            if (status_table.hotspots().handleMouseEvent(ev))
+            if (_statusUi.handleMouseEvent(ev))
                 return true;
         }
 
@@ -659,7 +553,7 @@ class PodcastUI
                 return true;
             }
             if (focus == Focus::Status &&
-                cursor_status == 0)
+                _statusUi.leftMostStatus())
             {
                 focus = Focus::Podcasts;
                 return true;
@@ -691,7 +585,7 @@ class PodcastUI
             case Focus::Podcasts:
                 return _podcastUi.handleKey(k);
             case Focus::Status:
-                return handle_status_key(k);
+                return _statusUi.handleKey(k);
             case Focus::Shows:
                 if (_showsUi.handleKey(k))
                 {
@@ -713,8 +607,8 @@ class PodcastUI
         _showsUi.delWindow();
         _actionsUi.delWindow();
         _bottomBarUi.delWindow();
+        _statusUi.delWindow();
         info_table.delWindow();
-        status_table.delWindow();
         confirm_table.delWindow();
     }
     void buildWindows()
@@ -738,7 +632,7 @@ class PodcastUI
         int shows_h = std::max(min_shows_h, h - status_h - actions_h - bottom_h);
 
         _podcastUi.buildWindow(h,        left_w, 0,                 0);
-        status_table.buildWindow(status_h, right_w, 0,                 left_w);
+        _statusUi.buildWindow(status_h, right_w, 0,                 left_w);
         _showsUi.buildWindow(shows_h,  right_w, status_h,          left_w);
         _actionsUi.buildWindow(actions_h,right_w, status_h + shows_h,left_w);
         _bottomBarUi.buildWindow(bottom_h, right_w, status_h + shows_h + actions_h, left_w);
@@ -754,7 +648,7 @@ class PodcastUI
         wnoutrefresh(stdscr);
 
         _podcastUi.render(focus == Focus::Podcasts);
-        render_status_filter_bar(focus == Focus::Status);
+        _statusUi.render(focus == Focus::Status);
         _showsUi.render(focus == Focus::Shows);
         render_actions_bar();
         render_bottom_bar();
@@ -846,20 +740,16 @@ public:
         , _showsUi(logic, [&]{focus = Focus::Shows;})
         , _actionsUi(UiTable::Mode::SCROLL)
         , _bottomBarUi(UiTable::Mode::SCROLL)
+        , _statusUi(logic, [&]{focus = Focus::Status;},[this]{
+                    this->confirm_field=1;//cancel
+                    this->confirm_title = L"Quit";
+                    this->confirm_action = [this]{this->running = false;};
+                    this->modal_mode = ModalMode::ConfirmExit;
+        })
         , info_table(UiTable::Mode::SCROLL, [&]{/*no focus action*/})
-        , status_table(UiTable::Mode::CURSOR, [&]{focus = Focus::Status;})
         , confirm_table(UiTable::Mode::CURSOR, [&]{/*no focus action*/})
         , _addEditPodcastModalHotspots([]{/*no focus action*/})
-        , cursor_status(0)
     {
-        using MediaStatus = DowncastLogic::MediaStatus;
-        status_labels = {
-            {L"New",    MediaStatus::New},
-            {L"Queue",  MediaStatus::Queued},
-            {L"Skipped",MediaStatus::Skipped},
-            {L"Done",   MediaStatus::Done},
-            {L"All",    std::nullopt}
-        };
         initscr();
 
         cbreak();
@@ -887,11 +777,6 @@ public:
     enum class Focus { Podcasts, Status, Shows };
     enum class ModalMode { None, AddPodcast, EditPodcast, Info, ConfirmDeletePodcast, ConfirmExit };
 
-    struct StatusLabel
-    {
-        std::wstring label;
-        std::optional<DowncastLogic::MediaStatus> status;
-    };
 
     DowncastLogic logic;
 
@@ -900,13 +785,10 @@ public:
     UiShowsTable _showsUi;
     UiTable _actionsUi;
     UiTable _bottomBarUi;
+    UiStatusTable _statusUi;
     UiTable info_table;
-    UiTable status_table;
     UiTable confirm_table;
     UiHotspotGoup _addEditPodcastModalHotspots;
-    int cursor_status;
-
-    std::vector<StatusLabel> status_labels;
 
     ModalMode modal_mode = ModalMode::None;
     int modal_field = 0;
