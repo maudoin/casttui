@@ -136,14 +136,14 @@ endif()
 # ------------------------------------------------------------
 # OpenSSL (optional)
 # ------------------------------------------------------------
-if (WIN32)
-    # Prebuilt MinGW OpenSSL
-    set(OPENSSL_ROOT "deps/openssl-1.1.1k-win64-mingw")
-    include_directories(${OPENSSL_ROOT}/include)
-else()
-    # Linux/WSL: use system OpenSSL
+# if (WIN32)
+#     # Prebuilt MinGW OpenSSL
+#     set(OPENSSL_ROOT "deps/openssl-1.1.1k-win64-mingw")
+#     include_directories(${OPENSSL_ROOT}/include)
+# else()
+#     # Linux/WSL: use system OpenSSL
     find_package(OpenSSL REQUIRED)
-endif()
+# endif()
 
 # ------------------------------------------------------------
 # cpp-httplib v0.54.1 (single header)
@@ -185,30 +185,49 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     httplib
 )
 
+target_compile_definitions(${PROJECT_NAME} PRIVATE CPPHTTPLIB_OPENSSL_SUPPORT)
 target_compile_definitions(${PROJECT_NAME} PRIVATE USE_WIDEC_SUPPORT=1)
 
 if (WIN32)
-
-    # target_link_libraries(${PROJECT_NAME} PRIVATE
-    #     C:/msys64/ucrt64/lib/libdbghelp.a
-    # )
-    # target_compile_options(${PROJECT_NAME} PRIVATE
-    #     $<$<CONFIG:Debug>:-g -gdwarf-4>
-    # )
-    # target_link_options(${PROJECT_NAME} PRIVATE
-    #     $<$<CONFIG:Debug>:-g>
-    # )
-    # target_compile_options(${PROJECT_NAME} PRIVATE
-    #     $<$<CONFIG:Debug>:-g -gcodeview>
-    # )
-    # If using DLL OpenSSL:
-    # target_link_libraries(${PROJECT_NAME} PRIVATE
-    #     ${OPENSSL_ROOT}/lib/libssl.dll.a
-    #     ${OPENSSL_ROOT}/lib/libcrypto.dll.a
-    # )
-else()
-    target_link_libraries(${PROJECT_NAME} PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+    # Windows CryptoAPI + SChannel + sockets
+    target_link_libraries(casttui PRIVATE
+        crypt32
+        secur32
+        ws2_32
+        iphlpapi
+        winmm
+        kernel32
+        user32
+        gdi32
+        advapi32
+        shell32
+        ole32
+        oleaut32
+        uuid
+        comdlg32
+    )
 endif()
+# if (WIN32)
+#     target_link_libraries(${PROJECT_NAME} PRIVATE
+#         C:/msys64/ucrt64/lib/libdbghelp.a
+#     )
+#     target_compile_options(${PROJECT_NAME} PRIVATE
+#         $<$<CONFIG:Debug>:-g -gdwarf-4>
+#     )
+#     target_link_options(${PROJECT_NAME} PRIVATE
+#         $<$<CONFIG:Debug>:-g>
+#     )
+#     target_compile_options(${PROJECT_NAME} PRIVATE
+#         $<$<CONFIG:Debug>:-g -gcodeview>
+#     )
+#     If using DLL OpenSSL:
+#     target_link_libraries(${PROJECT_NAME} PRIVATE
+#         ${OPENSSL_ROOT}/lib/libssl.dll.a
+#         ${OPENSSL_ROOT}/lib/libcrypto.dll.a
+#     )
+# else()
+    target_link_libraries(${PROJECT_NAME} PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+# endif()
 
 # ------------------------------------------------------------
 # Console subsystem (Windows only)
