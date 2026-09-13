@@ -6,25 +6,25 @@ class UiApp
 {
 
 public:
-    explicit UiApp();
+  explicit UiApp();
 
-    ~UiApp();
+  ~UiApp();
 
-    void run();
-protected:
+  void run();
+  protected:
 
-    virtual bool doHandleMouse(MouseEvent const& ev) = 0;
-    virtual bool doHandleKey(int k) = 0;
-    virtual void doDelWindows() = 0;
-    virtual void doBuildWindows(int h, int w) = 0;
-    virtual void doRenderLayout() = 0;
+  virtual bool doHandleMouse(MouseEvent const& ev) = 0;
+  virtual bool doHandleKey(int k) = 0;
+  virtual void doDelWindows() = 0;
+  virtual void doBuildWindows(int h, int w) = 0;
+  virtual void doRenderLayout() = 0;
 
-    void buildWindows();
-    void delWindows();
+  void buildWindows();
+  void delWindows();
 private:
 
-    bool handleKey(int k);
-    void renderLayout();
+  bool handleKey(int k);
+  void renderLayout();
 protected:
-    bool _isRunning = true;
+  bool _isRunning = true;
 };

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "UiHotSpot.h"
+#include "UiHotspot.h"
 
 #if defined(_WIN32)
 #include <curses.h>
@@ -22,18 +22,18 @@ inline bool DEBUG_UI = true;
 // --------------------------------------------------------------------
 enum class SortDir
 {
-    NONE,
-    UP,
-    DOWN
+  NONE,
+  UP,
+  DOWN
 };
 
 struct HeaderColumn
 {
-    int width;
-    std::optional<std::wstring> name = std::nullopt;
-    SortDir sort = SortDir::NONE;
-    bool dynamic = false;
-    std::optional<std::function<void()>> callback;
+  int width;
+  std::optional<std::wstring> name = std::nullopt;
+  SortDir sort = SortDir::NONE;
+  bool dynamic = false;
+  std::optional<std::function<void()>> callback;
 };
 
 // --------------------------------------------------------------------
@@ -41,9 +41,9 @@ struct HeaderColumn
 // --------------------------------------------------------------------
 struct Cell
 {
-    std::wstring text;
-    int style = A_NORMAL;
-    std::optional<std::function<void()>> callback;
+  std::wstring text;
+  int style = A_NORMAL;
+  std::optional<std::function<void()>> callback;
 };
 
 // --------------------------------------------------------------------
@@ -52,77 +52,58 @@ struct Cell
 class UiTable : public UiHotspotGroup
 {
 public:
-    enum class Mode
-    {
-        SCROLL,
-        CURSOR
-    };
+  enum class Mode
+  {
+    SCROLL,
+    CURSOR
+  };
 
-    UiTable(Mode mode = Mode::SCROLL,
-            std::function<void()> const& callback = []{},
-            int firstVisibleDataRow = 0,
-            int dynamicColCurrentOffsetX = 0);
+  UiTable(Mode mode = Mode::SCROLL, std::function<void()> const &callback = [] {}, int firstVisibleDataRow = 0, int dynamicColCurrentOffsetX = 0);
 
-    void delWindow();
-    void buildWindow(int nlines, int ncols, int begy, int begx);
-    void scrollTo(int newCursor);
-    void scrollVertical(int amount);
-    void scrollHorizontal(int amount);
+  void delWindow();
+  void buildWindow(int nlines, int ncols, int begy, int begx);
+  void scrollTo(int newCursor);
+  void scrollVertical(int amount);
+  void scrollHorizontal(int amount);
 
-    bool handleKeyCh(int key);
+  bool handleKeyCh(int key);
 
-    void render(
-        int dataRowCount,
-        const std::vector<HeaderColumn>& header_cols,
-        const std::function<Cell(int, int)>& cell_cb,
-        bool focused = false);
+  void render(
+      int dataRowCount,
+      const std::vector<HeaderColumn> &header_cols,
+      const std::function<Cell(int, int)> &cell_cb,
+      bool focused = false);
 
-    void renderArray(
-        const std::vector<Cell>& array,
-        const std::optional<std::wstring>& title = std::nullopt,
-        bool focused = false);
-    void renderSingleLine(
-        const std::vector<Cell>& array,
-        bool focused = false);
+  void renderArray(
+      const std::vector<Cell> &array,
+      const std::optional<std::wstring> &title = std::nullopt,
+      bool focused = false);
+  void renderSingleLine(
+      const std::vector<Cell> &array,
+      bool focused = false);
 
-    int cursor() const {return _cursor;}
-    int firstVisibleDataRow() const {return _firstVisibleDataRow;}
-    int dynamicColCurrentOffsetX() const {return _dynamicColCurrentOffsetX;}
+  int cursor() const { return _cursor; }
+  int firstVisibleDataRow() const { return _firstVisibleDataRow; }
+  int dynamicColCurrentOffsetX() const { return _dynamicColCurrentOffsetX; }
 
-    int getHeight()const
-    {
-        return getmaxy(_win);
-    }
+  int getHeight() const
+  {
+    return getmaxy(_win);
+  }
+
 protected:
-    WINDOW* _win = nullptr;
+  WINDOW *_win = nullptr;
+
 private:
-    int _cursor;
-    Mode mode;
-    int _firstVisibleDataRow;
-    int _dynamicColCurrentOffsetX;
+  int _cursor;
+  Mode mode;
+  int _firstVisibleDataRow;
+  int _dynamicColCurrentOffsetX;
 
-    int dynamicColViewWidth;
-    int dynamicColMaxDataWidth;
+  int dynamicColViewWidth;
+  int dynamicColMaxDataWidth;
 
-    int data_row_count;
-    int lastKnownViewHeight;
-    int first_data_row;
+  int data_row_count;
+  int lastKnownViewHeight;
+  int first_data_row;
 };
-
-// free functions
-void draw_top_border(WINDOW* win, int row, int col, int width, bool focused = false);
-void draw_bottom_border(WINDOW* win, int row, int col, int width, bool focused = false);
-void draw_top_border_header(WINDOW* win, int row, int col,
-                            const std::vector<HeaderColumn>& cols, bool focused = false);
-void draw_mid_border_header(WINDOW* win, int row, int col,
-                            const std::vector<HeaderColumn>& cols, bool focused = false);
-void draw_bottom_border_header(WINDOW* win, int row, int col,
-                               const std::vector<HeaderColumn>& cols, bool focused = false);
-void draw_row_assembled_cols(WINDOW* win, int row, int col,
-                             const std::vector<Cell>& cells,
-                             const std::vector<HeaderColumn>& cols_def,
-                             UiHotspotGroup& hostHotspotGroup,
-                             bool focused = false,
-                             int textOffset=0,
-                             std::pair<std::optional<int>, std::optional<int>> vparam = {std::nullopt, std::nullopt});
-void draw_empty_border(WINDOW* win, int row, int col, int width, bool focused = false, std::pair<std::optional<int>, std::optional<int>> vparams = {std::nullopt, std::nullopt});

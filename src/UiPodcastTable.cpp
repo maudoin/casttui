@@ -27,115 +27,115 @@ UiPodcastTable::UiPodcastTable(DowncastLogic& logic, Actions const& actions)
 
 void UiPodcastTable::render(bool focused)
 {
-    int count = _logic.podcastCount() + 2;
+  int count = _logic.podcastCount() + 2;
 
-    std::vector<std::wstring> titles;
-    titles.reserve(count);
-    titles.push_back(L"Add podcast...");
-    titles.push_back(L"All");
-    for (int i = 0; i < _logic.podcastCount(); ++i)
-    {
-        titles.push_back(to_wstring(_logic.podcastTitle(i)));
-    }
+  std::vector<std::wstring> titles;
+  titles.reserve(count);
+  titles.push_back(L"Add podcast...");
+  titles.push_back(L"All");
+  for (int i = 0; i < _logic.podcastCount(); ++i)
+  {
+    titles.push_back(to_wstring(_logic.podcastTitle(i)));
+  }
 
-    std::vector<HeaderColumn> cols{
-        HeaderColumn{.width = -1, .name = std::nullopt, .sort = SortDir::NONE, .dynamic = true}
-    };
+  std::vector<HeaderColumn> cols{
+    HeaderColumn{.width = -1, .name = std::nullopt, .sort = SortDir::NONE, .dynamic = true}
+  };
 
-    auto cell_cb = [&](int row, int /*col*/) -> Cell
-    {
-        const std::wstring& title = titles[row];
-        bool isCursor   = (row == cursor() && focused);
-        bool isSelected = (row >= 2 && _logic.isCurrentPodcast(row - 2));
+  auto cell_cb = [&](int row, int /*col*/) -> Cell
+  {
+    const std::wstring& title = titles[row];
+    bool isCursor   = (row == cursor() && focused);
+    bool isSelected = (row >= 2 && _logic.isCurrentPodcast(row - 2));
 
-        int style;
-        if (isCursor && isSelected)
-            style = COLOR_PAIR(3);
-        else if (isSelected)
-            style = COLOR_PAIR(2);
-        else if (isCursor)
-            style = COLOR_PAIR(1);
-        else
-            style = A_NORMAL;
+    int style;
+    if (isCursor && isSelected)
+    style = COLOR_PAIR(3);
+    else if (isSelected)
+    style = COLOR_PAIR(2);
+    else if (isCursor)
+    style = COLOR_PAIR(1);
+    else
+    style = A_NORMAL;
 
-        return Cell{title, style, [this, row]{
-            this->scrollTo(row);
-            this->pickPodcast();
-        }};
-    };
+    return Cell{title, style, [this, row]{
+      this->scrollTo(row);
+      this->pickPodcast();
+    }};
+  };
 
-    UiTable::render(count, cols, cell_cb, focused);
+  UiTable::render(count, cols, cell_cb, focused);
 }
 
 std::optional<int> UiPodcastTable::getPodcastIndex()const
 {
-    return (cursor() >= 2 &&
-        cursor() < _logic.podcastCount() + 2) ? std::make_optional(cursor() - 2) : std::nullopt;
+  return (cursor() >= 2 &&
+  cursor() < _logic.podcastCount() + 2) ? std::make_optional(cursor() - 2) : std::nullopt;
 }
 
 bool UiPodcastTable::handleKey(int k)
 {
-    if (UiTable::handleKeyCh(k))
-        return true;
+  if (UiTable::handleKeyCh(k))
+  return true;
 
-    // Only valid podcast rows (skip Add/All)
-    if (auto index = getPodcastIndex())
+  // Only valid podcast rows (skip Add/All)
+  if (auto index = getPodcastIndex())
+  {
+    auto const& p = _logic.podcast(*index);
+
+    if (k == 'r' || k == 'R')
     {
-        auto const& p = _logic.podcast(*index);
-
-        if (k == 'r' || k == 'R')
-        {
-            _logic.refreshPodcastAtIndex(*index);
-            return true;
-        }
-        if (k == 'e' || k == 'E')
-        {
-            _actions.edit(p);
-            return true;
-        }
-        if (k == 'd' || k == 'D')
-        {
-            int delete_id = p.id;
-            _actions.del(L"Delete '" + to_wstring(p.title) + L"'?", [this, delete_id]{
-                this->_logic.deletePodcast(delete_id);
-                this->scrollVertical(-1);
-            });
-            return true;
-        }
+      _logic.refreshPodcastAtIndex(*index);
+      return true;
     }
-
-    // ENTER behavior
-    if (k == 10 || k == 13)
+    if (k == 'e' || k == 'E')
     {
-        if (pickPodcast())
-        {
-            return true;
-        }
+      _actions.edit(p);
+      return true;
     }
+    if (k == 'd' || k == 'D')
+    {
+      int delete_id = p.id;
+      _actions.del(L"Delete '" + to_wstring(p.title) + L"'?", [this, delete_id]{
+        this->_logic.deletePodcast(delete_id);
+        this->scrollVertical(-1);
+      });
+      return true;
+    }
+  }
 
-    return false;
+  // ENTER behavior
+  if (k == 10 || k == 13)
+  {
+    if (pickPodcast())
+    {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 bool UiPodcastTable::pickPodcast()
 {
-    if (cursor() == 0)
-    {
-        _actions.add();
-        return true;
-    }
-    else if (cursor() == 1)
-    {
-        _logic.setCurrentPodcastRowIndex(std::optional<std::optional<int>>{std::nullopt}, std::nullopt);
-        //TODO firstVisibleDataRow() = 0;
-        //TODO shows_table.cursor() = 0;
-        return true;
-    }
-    else
-    {
-        _logic.setCurrentPodcastRowIndex(cursor() - 2, std::nullopt);
-        //TODO firstVisibleDataRow() = 0;
-        //TODO shows_table.cursor() = 0;
-        return true;
-    }
-    return false;
+  if (cursor() == 0)
+  {
+    _actions.add();
+    return true;
+  }
+  else if (cursor() == 1)
+  {
+    _logic.setCurrentPodcastRowIndex(std::optional<std::optional<int>>{std::nullopt}, std::nullopt);
+    //TODO firstVisibleDataRow() = 0;
+    //TODO shows_table.cursor() = 0;
+    return true;
+  }
+  else
+  {
+    _logic.setCurrentPodcastRowIndex(cursor() - 2, std::nullopt);
+    //TODO firstVisibleDataRow() = 0;
+    //TODO shows_table.cursor() = 0;
+    return true;
+  }
+  return false;
 }
