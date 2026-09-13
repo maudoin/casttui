@@ -33,6 +33,7 @@ struct HeaderColumn
     std::optional<std::wstring> name;
     SortDir sort = SortDir::NONE;
     bool dynamic = false;
+    std::optional<std::function<void()>> callback;
 };
 
 // --------------------------------------------------------------------

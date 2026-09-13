@@ -24,6 +24,20 @@ UiShowsTable::UiShowsTable(DowncastLogic& logic, std::function<void()> const& wi
 , _logic(logic)
 {}
 
+namespace{
+SortDir toSortDir(std::optional<DowncastLogic::SortingOption> const& s)
+{
+    if (s)
+    {
+        return (*s == DowncastLogic::SortingOption::ASCENDING) ? SortDir::DOWN : SortDir::UP;
+    }
+    else
+    {
+        return SortDir::NONE;
+    }
+}
+}
+
 void UiShowsTable::render(bool focused)
 {
     int h = getHeight();
@@ -33,12 +47,19 @@ void UiShowsTable::render(bool focused)
     auto const& shows = _logic.showsInRankRange(firstVisibleDataRow(), data_h);
 
     // We don't have direct access to current sort column; keep arrows neutral or infer externally.
-    SortDir sort_direction = SortDir::NONE;
+    auto const titleSort = _logic.getShowSorting(&MediaViewCols::title);
+    auto const dateSort = _logic.getShowSorting(&MediaViewCols::date);
+    auto const durationSort = _logic.getShowSorting(&MediaViewCols::duration);
+    auto makeCallback = [&](auto const& col, auto const& sort)->std::function<void()>{
+        return [=, this]{
+            this->_logic.setShowSorting(col, DowncastLogic::cycle(sort));
+        };
+    };
 
     std::vector<HeaderColumn> cols{
-        HeaderColumn{.width = -1, .name = std::make_optional<std::wstring>(L"Title"),   .sort = SortDir::NONE, .dynamic = true},
-        HeaderColumn{.width = 12, .name = std::make_optional<std::wstring>(L"Date"),    .sort = sort_direction, .dynamic = false},
-        HeaderColumn{.width = 10, .name = std::make_optional<std::wstring>(L"Duration"),.sort = sort_direction, .dynamic = false},
+        HeaderColumn{.width = -1, .name = L"Title",   .sort = toSortDir(titleSort),   .dynamic = true,   .callback=makeCallback(&MediaViewCols::title, titleSort)},
+        HeaderColumn{.width = 12, .name = L"Date",    .sort = toSortDir(dateSort),     .dynamic = false, .callback=makeCallback(&MediaViewCols::date, dateSort)},
+        HeaderColumn{.width = 10, .name = L"Duration",.sort = toSortDir(durationSort), .dynamic = false, .callback=makeCallback(&MediaViewCols::duration, durationSort)},
     };
 
     auto cell_cb = [&](int row, int col) -> Cell
@@ -132,19 +153,25 @@ bool UiShowsTable::handleKey(int k)
         return true;
     }
 
+    // Name sort toggle
+    if (k == 'n' || k == 'N')
+    {
+        auto const sort = _logic.getShowSorting(&MediaViewCols::title);
+        _logic.setShowSorting(&MediaViewCols::title, DowncastLogic::cycle(sort));
+    }
     // Time sort toggle
     if (k == 't' || k == 'T')
     {
-        _logic.setShowSorting(&MediaViewCols::date,
-                            DowncastLogic::SortingOption::ASCENDING);
+        auto const sort = _logic.getShowSorting(&MediaViewCols::date);
+        _logic.setShowSorting(&MediaViewCols::date, DowncastLogic::cycle(sort));
         return true;
     }
 
-    // Duration sort toggle
+    // Length sort toggle
     if (k == 'l' || k == 'L')
     {
-        _logic.setShowSorting(&MediaViewCols::duration,
-                            DowncastLogic::SortingOption::ASCENDING);
+        auto const sort = _logic.getShowSorting(&MediaViewCols::duration);
+        _logic.setShowSorting(&MediaViewCols::duration, DowncastLogic::cycle(sort));
         return true;
     }
 

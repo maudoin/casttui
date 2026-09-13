@@ -176,6 +176,7 @@ inline void draw_header_row(
     int row,
     int col,
     const std::vector<HeaderColumn>& cols,
+    UiHotspotGroup& hostHotspotGroup,
     bool focused = false)
 {
     addstr_focus(_win, row, col, build_left_border(), focused);
@@ -190,9 +191,9 @@ inline void draw_header_row(
         {
             cell = *header.name;
             if (header.sort == SortDir::UP)
-                cell += L" ^";
+                cell += L" ↑";
             else if (header.sort == SortDir::DOWN)
-                cell += L" v";
+                cell += L" ↓";
         }
 
         if (i > 0)
@@ -207,6 +208,10 @@ inline void draw_header_row(
             cell = cell.substr(0, header.width);
 
         addstr_focus(_win, row, col + x, cell, focused);
+        if (header.callback)
+        {
+            hostHotspotGroup.addLocalSpot(row, col + x, row+1, col + x + header.width, *(header.callback));
+        }
         x += header.width;
     }
 
@@ -479,12 +484,9 @@ void UiTable::render(
 
     for (auto const& hc : header_cols)
     {
-        HeaderColumn r{
-            hc.width > 0 ? hc.width : fill_width,
-            hc.name,
-            hc.sort,
-            hc.width == 0
-        };
+        HeaderColumn r = hc;
+        r.width = hc.width > 0 ? hc.width : fill_width;
+        r.dynamic = hc.width == 0;
         resolved_header_cols.push_back(r);
     }
 
@@ -533,7 +535,7 @@ void UiTable::render(
 
     if (has_header)
     {
-        draw_header_row(_win, 1, 0, resolved_header_cols, focused);
+        draw_header_row(_win, 1, 0, resolved_header_cols, *this, focused);
         draw_mid_border_header(_win, 2, 0, resolved_header_cols, focused);
     }
 

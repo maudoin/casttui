@@ -206,21 +206,33 @@ std::vector<DownCastStorage::Filter> DownCastStorage::filters(std::optional<int>
 }
 //-----------------------------------------------------------------------------------
 template <typename V>
-void DownCastStorage::setSortingColumn(V MediaViewCols::*structPointer, SortingOption sorting)
+void DownCastStorage::setSortingColumn(V MediaViewCols::*structPointer, std::optional<SortingOption> sorting)
 {
-  m_engine.setSortingColumn<MediaViewCols>(structPointer, sorting);
+  if (sorting)
+  {
+    m_engine.setSortingColumn<MediaViewCols>(structPointer, *sorting);
+  }
+  else
+  {
+    m_engine.resetSorting();
+  }
 }
-template void DownCastStorage::setSortingColumn(int MediaViewCols::*structPointer, SortingOption sorting);
-template void DownCastStorage::setSortingColumn(std::string MediaViewCols::*structPointer, SortingOption sorting);
+template void DownCastStorage::setSortingColumn(int MediaViewCols::*structPointer, std::optional<SortingOption> sorting);
+template void DownCastStorage::setSortingColumn(std::string MediaViewCols::*structPointer, std::optional<SortingOption> sorting);
+//-----------------------------------------------------------------------------------
+void DownCastStorage::resetSortingColumn()
+{
+  m_engine.resetSorting();
+}
 //-----------------------------------------------------------------------------------
 template <typename V>
 std::optional<DownCastStorage::SortingOption>
-DownCastStorage::isSortingColumn(V MediaViewCols::*structPointer)
+DownCastStorage::getShowSorting(V MediaViewCols::*structPointer) const
 {
   return m_engine.isSortingColumn(structPointer);
 }
-template std::optional<DownCastStorage::SortingOption> DownCastStorage::isSortingColumn(int MediaViewCols::*structPointer);
-template std::optional<DownCastStorage::SortingOption> DownCastStorage::isSortingColumn(std::string MediaViewCols::*structPointer);
+template std::optional<DownCastStorage::SortingOption> DownCastStorage::getShowSorting(int MediaViewCols::*structPointer) const;
+template std::optional<DownCastStorage::SortingOption> DownCastStorage::getShowSorting(std::string MediaViewCols::*structPointer) const;
 //-----------------------------------------------------------------------------------
 int DownCastStorage::queryEmissionCount(std::optional<int> podcastId)
 {

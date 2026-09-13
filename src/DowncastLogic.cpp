@@ -135,7 +135,7 @@ bool DowncastLogic::isCurrentPodcast(int i) const
 }
 //-----------------------------------------------------------------------------------
 template <typename V>
-void DowncastLogic::setShowSorting(V MediaViewCols::*structPointer, SortingOption sorting)
+void DowncastLogic::setShowSorting(V MediaViewCols::*structPointer, std::optional<SortingOption> sorting)
 {
   {
     auto storage = m_storage.lock();
@@ -146,8 +146,31 @@ void DowncastLogic::setShowSorting(V MediaViewCols::*structPointer, SortingOptio
   m_lastSelectionRank = 0;
   std::fill(m_selectedShowRanks.begin(), m_selectedShowRanks.end(), false);
 }
-template void  DowncastLogic::setShowSorting(int MediaViewCols::*structPointer, SortingOption sorting);
-template void  DowncastLogic::setShowSorting(std::string MediaViewCols::*structPointer, SortingOption sorting);
+template void DowncastLogic::setShowSorting(int MediaViewCols::*structPointer, std::optional<SortingOption> sorting);
+template void DowncastLogic::setShowSorting(std::string MediaViewCols::*structPointer, std::optional<SortingOption> sorting);
+
+//-----------------------------------------------------------------------------------
+template <typename V>
+std::optional<DowncastLogic::SortingOption> DowncastLogic::getShowSorting(V MediaViewCols::*structPointer) const
+{
+  auto storage = m_storage.lock();
+  return storage->getShowSorting(structPointer);
+}
+template std::optional<DowncastLogic::SortingOption> DowncastLogic::getShowSorting(int MediaViewCols::*structPointer) const;
+template std::optional<DowncastLogic::SortingOption> DowncastLogic::getShowSorting(std::string MediaViewCols::*structPointer) const;
+//-----------------------------------------------------------------------------------
+std::optional<DowncastLogic::SortingOption> DowncastLogic::cycle(std::optional<SortingOption> const&s)
+{
+  if (s)
+  {
+    return (*s == SortingOption::ASCENDING) ? std::make_optional(SortingOption::DESCENDING) : std::nullopt;
+  }
+  else
+  {
+    return SortingOption::ASCENDING;
+  }
+}
+
 //-----------------------------------------------------------------------------------
 std::vector<MediaViewCols>const& DowncastLogic::showsIn0to1RankRange()
 {

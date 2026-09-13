@@ -203,7 +203,7 @@ void SQLiteStorageViewEngine::setSortingColumn(V T::*structPointer, SortingOptio
 //-----------------------------------------------------------------------------------
 template <typename T, typename V>
 std::optional<SQLiteStorageViewEngine::SortingOption>
-SQLiteStorageViewEngine::isSortingColumn(V T::*structPointer)
+SQLiteStorageViewEngine::isSortingColumn(V T::*structPointer) const
 {
   if(std::optional<int> newIndex = columnIndexOf(structPointer))
   {

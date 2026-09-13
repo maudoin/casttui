@@ -36,7 +36,10 @@ public:
 
   using SortingOption = DownCastStorage::SortingOption;
   template <typename V = int>
-  void setShowSorting(V MediaViewCols::*structPointer, SortingOption sorting=SortingOption::ASCENDING);
+  void setShowSorting(V MediaViewCols::*structPointer, std::optional<SortingOption> sorting=SortingOption::ASCENDING);
+  template <typename V = int>
+  std::optional<SortingOption> getShowSorting(V MediaViewCols::*structPointer) const;
+  static std::optional<SortingOption> cycle(std::optional<SortingOption> const&);
 
   std::vector<MediaViewCols>const& showsInRankRange(int iStart, int count);
   std::vector<MediaViewCols>const& showsIn0to1RankRange();

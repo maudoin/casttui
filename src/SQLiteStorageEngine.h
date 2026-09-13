@@ -123,7 +123,8 @@ public:
   void setSortingColumn(V T::*structPointer, SortingOption sorting);
   template <typename T, typename V>
   std::optional<SQLiteStorageViewEngine::SortingOption>
-  isSortingColumn(V T::*structPointer);
+  isSortingColumn(V T::*structPointer) const;
+  void resetSorting(){m_sorting.reset();}
 
   std::optional<Sorting> const& sorting()const{return m_sorting;}
 

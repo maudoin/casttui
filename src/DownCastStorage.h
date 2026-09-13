@@ -67,10 +67,11 @@ public:
   std::optional<MediaStatus> getCurrentStatusFilter()const;
 
   template <typename V>
-  void setSortingColumn(V MediaViewCols::*structPointer, SortingOption sorting);
+  void setSortingColumn(V MediaViewCols::*structPointer, std::optional<SortingOption> sorting);
+  void resetSortingColumn();
 
   template <typename V>
-  std::optional<SortingOption> isSortingColumn(V MediaViewCols::*structPointer);
+  std::optional<SortingOption> getShowSorting(V MediaViewCols::*structPointer) const;
 
   int queryEmissionCount(std::optional<int> podcastId);
   std::vector<MediaViewCols> emissions(std::optional<int> podcastId, int iStart, int count);
