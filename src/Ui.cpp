@@ -1,10 +1,4 @@
-
-#if defined(_WIN32)
-#include <curses.h>
-#else
-#include <ncursesw/curses.h>
-#endif
-
+#include "UiApp.h"
 #include "UiConfirm.h"
 #include "UiPodcastSetup.h"
 #include "UiPodcastTable.h"
@@ -22,21 +16,69 @@
 #include <ctime>
 #include <ranges>
 
-class PodcastUI
+#ifndef _WIN32
+#include <locale.h>
+#endif
+
+class Ui : public UiApp
 {
-    // ----------------------------------------------------------------
-    // Rendering
-    // ----------------------------------------------------------------
+
+    enum class Focus { Podcasts, Status, Shows };
+    enum class ModalMode { None, AddEditPodcast, Info, Confirm };
+public:
+    explicit Ui(const std::string& db_path)
+        : logic(db_path)
+        , _focusedPanel(Focus::Podcasts)
+        , _podcastUi(logic, UiPodcastTable::Actions{
+            .winSelection=[&]{_focusedPanel = Focus::Podcasts;},
+            .add=[&]()
+            {
+                this->_modalPopup = ModalMode::AddEditPodcast;
+            },
+            .edit=[this](PodcastCols const&p)
+            {
+                this->_addEditPodcastUi.setEdit(p);
+                this->_modalPopup = ModalMode::AddEditPodcast;
+            },
+            .del=[&](std::wstring const& title, std::function<void()> const& del)
+            {
+                this->_confirmUi.set(title, del);
+                this->_modalPopup = ModalMode::Confirm;
+            }
+        })
+        , _showsUi(logic, [&]{_focusedPanel = Focus::Shows;})
+        , _actionsUi(UiTable::Mode::SCROLL)
+        , _bottomBarUi(UiTable::Mode::SCROLL)
+        , _statusUi(logic, [&]{_focusedPanel = Focus::Status;},[this]{
+                this->_confirmUi.set(L"Quit", [this]{this->_isRunning = false;});
+                this->_modalPopup = ModalMode::Confirm;
+        })
+        , _addEditPodcastUi(logic, []{/*no _focusedPanel action*/})
+        , _confirmUi([&]{
+            this->_confirmUi.set(L"", []{});
+            this->_modalPopup=ModalMode::None;
+        })
+        , _infoUi(UiTable::Mode::SCROLL, [&]{/*no _focusedPanel action*/})
+    {
+        buildWindows();
+    }
+
+    ~Ui()
+    {
+        delWindows();
+    }
+
+private:
 
     void render_actions_bar()
     {
         std::vector<std::wstring> lines(2, L"");
 
-        if (focus == Focus::Shows)
+        if (_focusedPanel == Focus::Shows)
         {
             lines[0] = L"Info (i)   Time sort (t)   Length sort (l)   Select Above (+)   Select Below (-)";
         }
-        if (focus == Focus::Podcasts)
+        if (_focusedPanel == Focus::Podcasts)
         {
             lines[0] = L"Refresh (r)  Edit (e)  Delete (d)";
         }
@@ -116,8 +158,8 @@ class PodcastUI
         int y  = (h - mh) / 2;
         int x  = (w - mw) / 2;
 
-        info_table.delWindow();
-        info_table.buildWindow(mh, mw, y, x);
+        _infoUi.delWindow();
+        _infoUi.buildWindow(mh, mw, y, x);
 
         auto const& shows = logic.showsInRankRange(_showsUi.cursor(), 1);
 
@@ -146,7 +188,7 @@ class PodcastUI
         std::optional<std::wstring> title =
             shows.empty() ? std::nullopt : std::make_optional(to_wstring(shows[0].title));
 
-        info_table.renderArray(lines, title);
+        _infoUi.renderArray(lines, title);
 
     }
 
@@ -154,9 +196,9 @@ class PodcastUI
     // Key handling
     // --------------------------------------------------------------------
 
-    bool handle_mouse(MouseEvent const& ev)
+    bool doHandleMouse(MouseEvent const& ev) override
     {
-        if (modal_mode == ModalMode::None)
+        if (_modalPopup == ModalMode::None)
         {
             // always active
             if (_podcastUi.handleMouseEvent(ev))
@@ -168,63 +210,48 @@ class PodcastUI
         }
 
         // Modal active only when visible
-        if (modal_mode == ModalMode::Confirm)
+        if (_modalPopup == ModalMode::Confirm)
             return _confirmUi.handleMouseEvent(ev);
-        else if (modal_mode == ModalMode::Info)
-            return info_table.handleMouseEvent(ev);
-        else if (modal_mode == ModalMode::AddEditPodcast)
+        else if (_modalPopup == ModalMode::Info)
+            return _infoUi.handleMouseEvent(ev);
+        else if (_modalPopup == ModalMode::AddEditPodcast)
             return _addEditPodcastUi.handleMouseEvent(ev);
         return false;
     }
 
-    bool handle_key(WINDOW* stdscr, int k)
+    bool doHandleKey(int k) override
     {
-        if (k == KEY_RESIZE)
-        {
-            render_layout(stdscr);
-            return true;
-        }
-        if (k == KEY_MOUSE)
-        {
-            if (auto event = getMouseEvent())
-            {
-                if (handle_mouse(*event))
-                {
-                    return true;
-                }
-            }
-        }
         // ESC closes app only when no modal is open
         if (k == 27)
         {
-            if (modal_mode == ModalMode::None)
+            if (_modalPopup == ModalMode::None)
             {
-                _confirmUi.set(L"Quit", [this]{this->running = false;});
-                modal_mode=ModalMode::Confirm;
+                _confirmUi.set(L"Quit", [this]{this->_isRunning = false;});
+                _modalPopup=ModalMode::Confirm;
                 return true;
             }
         }
         // exit modals
-        if (modal_mode != ModalMode::None)
+        if (_modalPopup != ModalMode::None)
         {
             if (k == 27) // ESC
             {
-                modal_mode = ModalMode::None;
+                _modalPopup = ModalMode::None;
                 return true;
             }
         }
 
         // Modal dispatch
-        if (modal_mode == ModalMode::Confirm)
+        if (_modalPopup == ModalMode::Confirm)
             return _confirmUi.handleKey(k);
 
-        if (modal_mode == ModalMode::AddEditPodcast)
+        if (_modalPopup == ModalMode::AddEditPodcast)
         {
             bool done = false;
             bool ret = _addEditPodcastUi.handleKey(k, done);
             if (done)
             {
-                modal_mode = ModalMode::None;
+                _modalPopup = ModalMode::None;
             }
             return ret;
         }
@@ -238,7 +265,7 @@ class PodcastUI
 
         auto status_cycle = [&](int amount)
         {
-            auto it = std::find(focus_order.begin(), focus_order.end(), focus);
+            auto it = std::find(focus_order.begin(), focus_order.end(), _focusedPanel);
             int idx = std::distance(focus_order.begin(), it);
             idx = (idx + amount + focus_order.size()) % focus_order.size();
             return focus_order[idx];
@@ -247,67 +274,67 @@ class PodcastUI
         // TAB → forward
         if (k == 9)
         {
-            focus = status_cycle(1);
+            _focusedPanel = status_cycle(1);
             return true;
         }
 
         // SHIFT+TAB
         if (k == KEY_BTAB)
         {
-            focus = status_cycle(-1);
+            _focusedPanel = status_cycle(-1);
             return true;
         }
 
         // Auto switching windows
         if (k == KEY_RIGHT)
         {
-            if (focus == Focus::Podcasts)
+            if (_focusedPanel == Focus::Podcasts)
             {
                 if (_podcastUi.cursor() < 2)
-                    focus = Focus::Status;
+                    _focusedPanel = Focus::Status;
                 else
-                    focus = Focus::Shows;
+                    _focusedPanel = Focus::Shows;
                 return true;
             }
         }
 
         if (k == KEY_LEFT)
         {
-            if (focus == Focus::Shows &&
+            if (_focusedPanel == Focus::Shows &&
                 _showsUi.dynamicColCurrentOffsetX() == 0)
             {
-                focus = Focus::Podcasts;
+                _focusedPanel = Focus::Podcasts;
                 return true;
             }
-            if (focus == Focus::Status &&
+            if (_focusedPanel == Focus::Status &&
                 _statusUi.leftMostStatus())
             {
-                focus = Focus::Podcasts;
+                _focusedPanel = Focus::Podcasts;
                 return true;
             }
         }
 
         if (k == KEY_DOWN)
         {
-            if (focus == Focus::Status)
+            if (_focusedPanel == Focus::Status)
             {
-                focus = Focus::Shows;
+                _focusedPanel = Focus::Shows;
                 return true;
             }
         }
 
         if (k == KEY_UP)
         {
-            if (focus == Focus::Shows &&
+            if (_focusedPanel == Focus::Shows &&
                 _showsUi.cursor() == 0)
             {
-                focus = Focus::Status;
+                _focusedPanel = Focus::Status;
                 return true;
             }
         }
 
         // Normal dispatch
-        switch (focus)
+        switch (_focusedPanel)
         {
             case Focus::Podcasts:
                 return _podcastUi.handleKey(k);
@@ -320,7 +347,7 @@ class PodcastUI
                 }
                 if (k == 'i' || k == 'I')
                 {
-                    modal_mode = ModalMode::Info;
+                    _modalPopup = ModalMode::Info;
                     return true;
                 }
                 return false;
@@ -328,21 +355,18 @@ class PodcastUI
 
         return false;
     }
-    void delWindows()
+    void doDelWindows() override
     {
         _podcastUi.delWindow();
         _showsUi.delWindow();
         _actionsUi.delWindow();
         _bottomBarUi.delWindow();
         _statusUi.delWindow();
-        info_table.delWindow();
+        _infoUi.delWindow();
         _confirmUi.delWindow();
     }
-    void buildWindows()
+    void doBuildWindows(int h, int w) override
     {
-        int h, w;
-        getmaxyx(stdscr, h, w);
-
         int left_w = std::max(20, w / 4);
         int right_w = w - left_w;
 
@@ -373,8 +397,6 @@ class PodcastUI
         }
 
         {
-            int h, w;
-            getmaxyx(stdscr, h, w);
             int mh = std::min(h - 4, 20);
             int mw = std::min(w - 4, 70);
             int y  = (h - mh) / 2;
@@ -382,134 +404,32 @@ class PodcastUI
             _addEditPodcastUi.buildWindow(mh, mw, y, x);
         }
     }
-    void render_layout(WINDOW* stdscr)
+    void doRenderLayout() override
     {
-        wnoutrefresh(stdscr);
-
-        _podcastUi.render(focus == Focus::Podcasts);
-        _statusUi.render(focus == Focus::Status);
-        _showsUi.render(focus == Focus::Shows);
+        _podcastUi.render(_focusedPanel == Focus::Podcasts);
+        _statusUi.render(_focusedPanel == Focus::Status);
+        _showsUi.render(_focusedPanel == Focus::Shows);
         render_actions_bar();
         render_bottom_bar();
 
-        if (modal_mode == ModalMode::Confirm)
+        if (_modalPopup == ModalMode::Confirm)
         {
             _confirmUi.render();
         }
-        else if (modal_mode == ModalMode::Info)
+        else if (_modalPopup == ModalMode::Info)
         {
             render_info_modal(stdscr);
         }
-        else if (modal_mode == ModalMode::AddEditPodcast)
+        else if (_modalPopup == ModalMode::AddEditPodcast)
         {
             _addEditPodcastUi.render();
         }
 
-        doupdate();
-
     }
-
-public:
-    void run()
-    {
-        while (running)
-        {
-            render_layout(stdscr);
-
-            int k = wgetch(stdscr);
-            if (k == KEY_RESIZE)
-            {
-                // Update curses internal structures
-                resize_term(0, 0);
-
-                // Recreate your windows with new sizes
-                delWindows();
-                buildWindows();
-
-                // Redraw everything
-                render_layout(stdscr);
-
-                // Refresh all windows
-                wnoutrefresh(stdscr);
-                doupdate();
-            }
-            else
-            {
-                handle_key(stdscr, k);
-            }
-        }
-    }
-    ~PodcastUI()
-    {
-        delWindows();
-        endwin();
-    }
-    explicit PodcastUI(const std::string& db_path)
-        : logic(db_path)
-        , focus(Focus::Podcasts)
-        , _podcastUi(logic, UiPodcastTable::Actions{
-            .winSelection=[&]{focus = Focus::Podcasts;},
-            .add=[&]()
-            {
-                modal_delete_id.reset();
-                modal_mode = ModalMode::AddEditPodcast;
-            },
-            .edit=[this](PodcastCols const&p)
-            {
-                this->_addEditPodcastUi.setEdit(p);
-                this->modal_mode = ModalMode::AddEditPodcast;
-            },
-            .del=[&](std::wstring const& title, std::function<void()> const& del)
-            {
-                this->_confirmUi.set(title, del);
-                this->modal_mode = ModalMode::Confirm;
-            }
-        })
-        , _showsUi(logic, [&]{focus = Focus::Shows;})
-        , _actionsUi(UiTable::Mode::SCROLL)
-        , _bottomBarUi(UiTable::Mode::SCROLL)
-        , _statusUi(logic, [&]{focus = Focus::Status;},[this]{
-                this->_confirmUi.set(L"Quit", [this]{this->running = false;});
-                this->modal_mode = ModalMode::Confirm;
-        })
-        , _addEditPodcastUi(logic, []{/*no focus action*/})
-        , _confirmUi([&]{
-            _confirmUi.set(L"", []{});
-            modal_mode=ModalMode::None;
-        })
-        , info_table(UiTable::Mode::SCROLL, [&]{/*no focus action*/})
-    {
-        initscr();
-
-        cbreak();
-        noecho();
-
-        mousemask(ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION, NULL);
-        mouseinterval(0);//CLICKED will not work but gives fast mouse event response
-        // set_escdelay(0); // wgetch(win) -> wgetch_escdelay(win, delay)
-        curs_set(0);
-        nodelay(stdscr, FALSE);
-        keypad(stdscr, TRUE);
-
-        // Colors
-        start_color();
-        use_default_colors();
-
-        init_pair(1, COLOR_BLACK, COLOR_WHITE); // cursor highlight
-        init_pair(2, COLOR_BLUE, -1);           // active status
-        init_pair(3, COLOR_BLUE, COLOR_WHITE);  // cursor + active
-        init_pair(4, COLOR_BLUE, -1);           // active window
-
-        buildWindows();
-    }
-
-    enum class Focus { Podcasts, Status, Shows };
-    enum class ModalMode { None, AddEditPodcast, Info, Confirm };
-
 
     DowncastLogic logic;
 
-    Focus focus;
+    Focus _focusedPanel;
     UiPodcastTable _podcastUi;
     UiShowsTable _showsUi;
     UiTable _actionsUi;
@@ -517,26 +437,16 @@ public:
     UiStatusTable _statusUi;
     UiPodcastSetup _addEditPodcastUi;
     UiConfirm _confirmUi;
-    UiTable info_table;
+    UiTable _infoUi;
 
-    ModalMode modal_mode = ModalMode::None;
-    std::optional<int> modal_delete_id;
+    ModalMode _modalPopup = ModalMode::None;
 
-    bool running = true;
 };
-
-#ifndef _WIN32
-#include <locale.h>
-#endif
 
 int main()
 {
-    #ifndef _WIN32
-        setlocale(LC_ALL, "");
-    #endif
 
-    PodcastUI ui("castapod.db3");
+    Ui ui("castapod.db3");
     ui.run();
-
     return 0;
 }
