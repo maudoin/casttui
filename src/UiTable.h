@@ -47,6 +47,72 @@ struct Cell
 };
 
 // --------------------------------------------------------------------
+// TableRender
+// --------------------------------------------------------------------
+class UiTable;
+struct TableRender
+{
+  UiTable& table;
+  WINDOW *win;
+  int col;
+  int totalInnerW;
+  int dataRowCount;
+  const std::vector<HeaderColumn> cols_def;
+  bool focused;
+  std::pair<std::optional<int>, std::optional<int>> vparams;
+  int const dynamicIndex;
+  int viewContentFirstRow;
+  int viewContentDataSize;
+
+  ~TableRender();
+  friend struct Row;
+  struct Row
+  {
+    TableRender &tableRender;
+    int i;
+
+    int row()const;
+    int dataRow()const;
+
+    int x;
+    int col_text_offset;
+    int width;
+
+    Row& operator*(){return *this;}
+    bool operator==(Row const& c){return c.i==i;}
+    bool operator!=(Row const& c){return c.i!=i;}
+    Row& operator++(){++i;return *this;}
+    int index(){return i;}
+
+    ~Row();
+    friend struct Col;
+    struct Col
+    {
+      Row& context;
+      int i;
+
+      Col& operator*(){return *this;}
+      bool operator==(Col const& c){return c.i==i;}
+      bool operator!=(Col const& c){return c.i!=i;}
+      Col& operator++(){++i;return *this;}
+      int index(){return i;}
+
+      UiHotspot draw(Cell const& cell)
+      {
+        return context.draw(i, cell);
+      }
+    };
+
+    Col begin();
+    Col end(){return {*this, static_cast<int>(tableRender.cols_def.size())};}
+  private:
+    UiHotspot draw(int i, Cell const& cell);
+  };
+  Row begin(){return {*this, 0};}
+  Row end(){return {*this, viewContentDataSize};}
+};
+
+// --------------------------------------------------------------------
 // UiTable
 // --------------------------------------------------------------------
 class UiTable : public UiHotspotGroup
@@ -73,6 +139,14 @@ public:
       const std::vector<HeaderColumn> &header_cols,
       const std::function<Cell(int, int)> &cell_cb,
       bool focused = false);
+
+  friend class TableRender;
+  TableRender renderLoop(
+      int dataRowCount,
+      const std::vector<HeaderColumn> &header_cols,
+      const std::function<Cell(int, int)> &cell_cb,
+      bool focused = false);
+  void renderEnd(TableRender& tableRender);
 
   void renderArray(
       const std::vector<Cell> &array,

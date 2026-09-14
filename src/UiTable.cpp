@@ -253,109 +253,6 @@ inline std::pair<std::optional<int>, std::optional<int>> scrollbar_thumb(
 }
 
 // ------------------------------------------------------------
-struct TableRender
-{
-    WINDOW *win;
-    int col;
-    int dataRowCount;
-    const std::vector<HeaderColumn> &cols_def;
-    bool focused;
-    int textOffset;
-    std::pair<std::optional<int>, std::optional<int>> vparams;
-    int const dynamicIndex;
-    int &dynamicColMaxDataWidth;
-};
-
-struct Row
-{
-  TableRender &table;
-  int row;
-  int dataRow;
-
-  int x;
-  int col_text_offset;
-  int width;
-
-  ~Row();
-  friend struct Col;
-  struct Col
-  {
-    Row& context;
-    int i;
-
-    Col& operator*(){return *this;}
-    bool operator==(Col const& c){return c.i==i;}
-    bool operator!=(Col const& c){return c.i!=i;}
-    Col& operator++();
-    UiHotspot draw(Cell const& cell)
-    {
-      return context.draw(i, cell);
-    }
-    int row(){return context.dataRow;}
-    int col(){return i;}
-  };
-
-  Col begin();
-  Col end()
-  {
-    return {*this, static_cast<int>(table.cols_def.size())};
-  }
-private:
-  UiHotspot draw(int i, Cell const& cell);
-};
-Row::Col& Row::Col::operator++()
-{
-  ++i;
-  return *this;
-}
-Row::Col Row::begin()
-{
-  std::wstring left = build_left_border();
-
-  x = 0;
-  addstr_focus(table.win, row, table.col + x, left, table.focused);
-  x += 1;
-  return {*this, 0};
-}
-UiHotspot Row::draw(int i, Cell const& cell)
-{
-    if (i > 0)
-    {
-      addstr_focus(table.win, row, table.col + x, L"│", table.focused);
-      x += 1;
-    }
-
-    col_text_offset = table.cols_def[i].dynamic ? table.textOffset : 0;
-    width = table.cols_def[i].width;
-    //if (dataRow < dataRowCount)
-    auto res = [&]{
-      std::wstring text = cell.text;
-      if (table.dynamicIndex == i)
-        table.dynamicColMaxDataWidth = std::max(table.dynamicColMaxDataWidth, static_cast<int>(cell.text.size()));
-      // horizontal scroll
-      if (col_text_offset > 0)
-        text = text.substr(std::min((int)text.size(), col_text_offset));
-      // fill/fit column
-      text.resize(std::max(0, table.cols_def[i].width), ' ');
-
-      if ((int)text.size() < width)
-        text.append(width - text.size(), ' ');
-      else if ((int)text.size() > width)
-        text = text.substr(0, width);
-
-      addstr_run(table.win, row, table.col + x, text, cell.style);
-
-      return cell.callback ? UiHotspot{row, table.col + x, row + 1, table.col + x + (int)text.size(), *(cell.callback)}:UiHotspot{};
-    }();
-    x += width;
-    return res;
-}
-Row::~Row()
-{
-  addstr_focus(table.win, row, table.col + x, build_right_border(table.vparams, row), table.focused);
-}
-
-// ------------------------------------------------------------
 std::vector<HeaderColumn>
 resolveHeaderWidth(const std::vector<HeaderColumn> &headerCols, int totalInnerW)
 {
@@ -509,6 +406,25 @@ void UiTable::render(
   {
     return;
   }
+  for (TableRender::Row r : renderLoop(dataRowCount, headerCols, cell_cb, focused))
+  {
+    for (TableRender::Row::Col c : r)
+    {
+      Cell cell = cell_cb(r.index(), c.index());
+      if (auto h = c.draw(cell))
+      {
+        this->add(h);
+      }
+    }
+  }
+}
+// ------------------------------------------------------------
+TableRender UiTable::renderLoop(
+    int dataRowCount,
+    const std::vector<HeaderColumn> &headerCols,
+    const std::function<Cell(int, int)> &cell_cb,
+    bool focused)
+{
   setWin(_win);
   werase(_win);
   keypad(_win, TRUE);
@@ -560,32 +476,75 @@ void UiTable::render(
   // Data rows
   // ------------------------------------------------------------
   _dynamicColMaxDataWidth = 0;
-
-  TableRender tableRender{
+  return{*this,
           _win,
-          0,
+          0, totalInnerW,
           dataRowCount,
-          resolvedHeaderCols,
+          std::move(resolvedHeaderCols),
           focused,
-          _dynamicColCurrentOffsetX,
           vparams,
           dynamic_index,
-          _dynamicColMaxDataWidth};
-  int i = 0;
-  for (; i < std::min(dataRowCount,_lastKnownViewHeight); ++i)
-  {
-    for (Row::Col c : Row{tableRender, viewContentFirstRow+i, _firstVisibleDataRow+i})
+          viewContentFirstRow,
+          std::min(dataRowCount,_lastKnownViewHeight)};
+}
+// ------------------------------------------------------------
+int TableRender::Row::row()const{return tableRender.viewContentFirstRow+i;}
+int TableRender::Row::dataRow()const{return tableRender.table._firstVisibleDataRow+i;}
+// ------------------------------------------------------------
+TableRender::Row::Col TableRender::Row::begin()
+{
+  std::wstring left = build_left_border();
+
+  x = 0;
+  addstr_focus(tableRender.win, row(), tableRender.col + x, left, tableRender.focused);
+  x += 1;
+  return {*this, 0};
+}
+// ------------------------------------------------------------
+UiHotspot TableRender::Row::draw(int i, Cell const& cell)
+{
+    if (i > 0)
     {
-      Cell cell = cell_cb(c.row(), c.col());
-      if (auto h = c.draw(cell))
-      {
-        this->add(h);
-      }
+      addstr_focus(tableRender.win, row(), tableRender.col + x, L"│", tableRender.focused);
+      x += 1;
     }
-  }
-  for (; i < _lastKnownViewHeight; ++i)
+
+    col_text_offset = tableRender.cols_def[i].dynamic ? tableRender.table._dynamicColCurrentOffsetX : 0;
+    width = tableRender.cols_def[i].width;
+    //if (dataRow < dataRowCount)
+    auto res = [&]{
+      std::wstring text = cell.text;
+      if (tableRender.dynamicIndex == i)
+        tableRender.table._dynamicColMaxDataWidth = std::max(tableRender.table._dynamicColMaxDataWidth, static_cast<int>(cell.text.size()));
+      // horizontal scroll
+      if (col_text_offset > 0)
+        text = text.substr(std::min((int)text.size(), col_text_offset));
+      // fill/fit column
+      text.resize(std::max(0, tableRender.cols_def[i].width), ' ');
+
+      if ((int)text.size() < width)
+        text.append(width - text.size(), ' ');
+      else if ((int)text.size() > width)
+        text = text.substr(0, width);
+
+      addstr_run(tableRender.win, row(), tableRender.col + x, text, cell.style);
+
+      return cell.callback ? UiHotspot{row(), tableRender.col + x, row() + 1, tableRender.col + x + (int)text.size(), *(cell.callback)}:UiHotspot{};
+    }();
+    x += width;
+    return res;
+}
+// ------------------------------------------------------------
+TableRender::Row::~Row()
+{
+  addstr_focus(tableRender.win, row(), tableRender.col + x, build_right_border(tableRender.vparams, row()), tableRender.focused);
+}
+// ------------------------------------------------------------
+TableRender::~TableRender()
+{
+  for (int i = viewContentDataSize; i < table._lastKnownViewHeight; ++i)
   {
-    for (Row::Col c : Row{tableRender, viewContentFirstRow+i, _firstVisibleDataRow+i})
+    for (Row::Col c : Row{*this, i})
     {
       c.draw({L""});
     }
@@ -595,9 +554,9 @@ void UiTable::render(
   // Horizontal scrollbar
   // ------------------------------------------------------------
   auto hparams = scrollbar_thumb(
-      _dynamicColCurrentOffsetX,
-      _dynamicColMaxDataWidth,
-      _dynamicColViewWidth,
+      table._dynamicColCurrentOffsetX,
+      table._dynamicColMaxDataWidth,
+      table._dynamicColViewWidth,
       1,
       totalInnerW);
 
@@ -605,24 +564,24 @@ void UiTable::render(
       (*hparams.first == 1 && *hparams.second == totalInnerW - 2))
   {
     draw_bottom_border_header(
-        _win,
-        viewContentFirstRow + _lastKnownViewHeight,
+        table._win,
+        viewContentFirstRow + table._lastKnownViewHeight,
         0,
-        resolvedHeaderCols,
+        cols_def,
         focused);
   }
   else
   {
     draw_bottom_scroll_border(
-        _win,
-        viewContentFirstRow + _lastKnownViewHeight,
+        table._win,
+        viewContentFirstRow + table._lastKnownViewHeight,
         0,
         totalInnerW,
         hparams,
         focused);
   }
 
-  wrefresh(_win);
+  wrefresh(table._win);
 }
 
 // ------------------------------------------------------------
