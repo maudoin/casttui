@@ -96,13 +96,13 @@ protected:
 
 private:
   int _cursor;
-  Mode mode;
+  Mode _mode;
   int _firstVisibleDataRow;
   int _dynamicColCurrentOffsetX;
 
-  int dynamicColViewWidth;
-  int dynamicColMaxDataWidth;
+  int _dynamicColViewWidth;
+  int _dynamicColMaxDataWidth;
 
-  int data_row_count;
-  int lastKnownViewHeight;
+  int _dataRowCount;
+  int _lastKnownViewHeight;
 };

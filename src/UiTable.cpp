@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <ranges>
 
+namespace{
 // --------------------------------------------------------------------
 // Safe write helpers
 // --------------------------------------------------------------------
@@ -291,17 +292,19 @@ void draw_row_assembled_cols(
       std::wstring text = cell.text;
       if (dynamicIndex == i)
         dynamicColMaxDataWidth = std::max(dynamicColMaxDataWidth, static_cast<int>(cell.text.size()));
-      cell.text.resize(std::max(0, cols_def[i].width), ' ');
-
+      // horizontal scroll
       if (col_text_offset > 0)
         text = text.substr(std::min((int)text.size(), col_text_offset));
+      // fill/fit column
+      cell.text.resize(std::max(0, cols_def[i].width), ' ');
+
 
       if ((int)text.size() < width)
         text.append(width - text.size(), ' ');
       else if ((int)text.size() > width)
         text = text.substr(0, width);
 
-      addstr_run(_win, row, col + x + col_text_offset, text, cell.style);
+      addstr_run(_win, row, col + x, text, cell.style);
 
       if (cell.callback)
       {
@@ -315,7 +318,40 @@ void draw_row_assembled_cols(
   addstr_focus(_win, row, col + x, right, focused);
 }
 // ------------------------------------------------------------
-// Constructor
+std::vector<HeaderColumn>
+resolveHeaderWidth(const std::vector<HeaderColumn> &headerCols, int totalInnerW)
+{
+  int fixed = 0;
+  int num_fill = 0;
+  for (std::size_t i = 0; i < headerCols.size(); ++i)
+  {
+    if (headerCols[i].width > 0 && !headerCols[i].dynamic)
+      fixed += headerCols[i].width;
+    else
+    {
+      num_fill++;
+    }
+  }
+
+  int sep_space = static_cast<int>(headerCols.size()) - 1;
+  int remaining = totalInnerW - fixed - sep_space;
+  int fill_width = num_fill > 0 ? remaining / num_fill : 0;
+
+
+  std::vector<HeaderColumn> resolvedHeaderCols;
+  resolvedHeaderCols.reserve(headerCols.size());
+  for (auto const &hc : headerCols)
+  {
+    HeaderColumn r = hc;
+    r.width = hc.width > 0 ? hc.width : fill_width;
+    r.dynamic |= hc.width <= 0;
+    resolvedHeaderCols.push_back(r);
+  }
+  return resolvedHeaderCols;
+}
+}
+// ------------------------------------------------------------
+// CLASS
 // ------------------------------------------------------------
 UiTable::UiTable(Mode mode,
                  std::function<void()> const &callback,
@@ -323,25 +359,23 @@ UiTable::UiTable(Mode mode,
                  int dynamicColCurrentOffsetX)
   : UiHotspotGroup(callback)
   , _cursor(firstVisibleDataRow)
-  , mode(mode)
+  , _mode(mode)
   , _firstVisibleDataRow(firstVisibleDataRow)
   , _dynamicColCurrentOffsetX(dynamicColCurrentOffsetX)
-  , dynamicColViewWidth(0)
-  , dynamicColMaxDataWidth(0)
-  , data_row_count(0)
-  , lastKnownViewHeight(0)
+  , _dynamicColViewWidth(0)
+  , _dynamicColMaxDataWidth(0)
+  , _dataRowCount(0)
+  , _lastKnownViewHeight(0)
 {
 }
 
 // ------------------------------------------------------------
-// Vertical scrolling
-// ------------------------------------------------------------
 void UiTable::scrollTo(int newCursor)
 {
-  if (mode == Mode::CURSOR)
+  if (_mode == Mode::CURSOR)
   {
-    _cursor = std::clamp(newCursor, 0, data_row_count - 1);
-    int visible = lastKnownViewHeight;
+    _cursor = std::clamp(newCursor, 0, _dataRowCount - 1);
+    int visible = _lastKnownViewHeight;
 
     if (_cursor < _firstVisibleDataRow)
       _firstVisibleDataRow = _cursor;
@@ -351,16 +385,14 @@ void UiTable::scrollTo(int newCursor)
   else
   {
     _firstVisibleDataRow =
-        std::clamp(newCursor, 0, data_row_count - 1);
+        std::clamp(newCursor, 0, _dataRowCount - 1);
   }
 }
 
 // ------------------------------------------------------------
-// Vertical scrolling
-// ------------------------------------------------------------
 void UiTable::scrollVertical(int amount)
 {
-  if (mode == Mode::CURSOR)
+  if (_mode == Mode::CURSOR)
   {
     scrollTo(_cursor + amount);
   }
@@ -371,18 +403,14 @@ void UiTable::scrollVertical(int amount)
 }
 
 // ------------------------------------------------------------
-// Horizontal scrolling
-// ------------------------------------------------------------
 void UiTable::scrollHorizontal(int amount)
 {
   _dynamicColCurrentOffsetX =
       std::clamp(_dynamicColCurrentOffsetX + amount,
                  0,
-                 std::max(0, dynamicColMaxDataWidth - (dynamicColViewWidth - 1)));
+                 std::max(0, _dynamicColMaxDataWidth - (_dynamicColViewWidth - 1)));
 }
 
-// ------------------------------------------------------------
-// Key handling
 // ------------------------------------------------------------
 bool UiTable::handleKeyCh(int key)
 {
@@ -398,12 +426,12 @@ bool UiTable::handleKeyCh(int key)
   }
   if (key == KEY_PPAGE)
   {
-    scrollVertical(-lastKnownViewHeight);
+    scrollVertical(-_lastKnownViewHeight);
     return true;
   }
   if (key == KEY_NPAGE)
   {
-    scrollVertical(lastKnownViewHeight);
+    scrollVertical(_lastKnownViewHeight);
     return true;
   }
   if (key == KEY_LEFT)
@@ -419,21 +447,23 @@ bool UiTable::handleKeyCh(int key)
   return false;
 }
 
+// ------------------------------------------------------------
 void UiTable::delWindow()
 {
   delwin(_win);
   _win = nullptr;
 }
+
+// ------------------------------------------------------------
 void UiTable::buildWindow(int nlines, int ncols, int begy, int begx)
 {
   _win = newwin(nlines, ncols, begy, begx);
 }
-// ------------------------------------------------------------
-// Main render()
+
 // ------------------------------------------------------------
 void UiTable::render(
     int dataRowCount,
-    const std::vector<HeaderColumn> &header_cols,
+    const std::vector<HeaderColumn> &headerCols,
     const std::function<Cell(int, int)> &cell_cb,
     bool focused)
 {
@@ -442,92 +472,58 @@ void UiTable::render(
     return;
   }
   setWin(_win);
-  data_row_count = dataRowCount;
+  werase(_win);
+  keypad(_win, TRUE);
+
+  _dataRowCount = dataRowCount;
 
   int h, w;
   getmaxyx(_win, h, w);
-  werase(_win);
-  keypad(_win, TRUE);
+  int totalInnerW = w - 2;
 
   // ------------------------------------------------------------
   // Resolve column widths
   // ------------------------------------------------------------
+  auto it = std::ranges::find_if(headerCols,
+      [](auto const& hc){ return hc.width <= 0 || hc.dynamic; });
+  int dynamic_index = (it == headerCols.end() ? -1 : it - headerCols.begin());
 
-  int fixed = 0;
-  int num_fill = 0;
+  bool hasHeader = std::ranges::any_of(headerCols,
+    [](auto const &hc){ return hc.name.has_value(); });
+  int viewContentFirstRow = hasHeader ? 3 : 1;
+  _lastKnownViewHeight = h - (hasHeader ? 4 : 2);
 
-  for (auto const &hc : header_cols)
-  {
-    if (hc.width > 0)
-      fixed += hc.width;
-    else
-      num_fill++;
-  }
+  std::vector<HeaderColumn> resolvedHeaderCols = resolveHeaderWidth(headerCols, totalInnerW);
 
-  int total_inner = w - 2;
-  int sep_space = static_cast<int>(header_cols.size()) - 1;
-  int remaining = total_inner - fixed - sep_space;
-  int fill_width = num_fill > 0 ? remaining / num_fill : 0;
-
-  bool has_header =
-      std::ranges::any_of(header_cols,
-                          [](auto const &hc)
-                          { return hc.name.has_value(); });
-
-  std::vector<HeaderColumn> resolved_header_cols;
-  resolved_header_cols.reserve(header_cols.size());
-  for (auto const &hc : header_cols)
-  {
-    HeaderColumn r = hc;
-    r.width = hc.width > 0 ? hc.width : fill_width;
-    r.dynamic = hc.width == 0;
-    resolved_header_cols.push_back(r);
-  }
-
-  int viewContentFirstRow = has_header ? 3 : 1;
-  lastKnownViewHeight = h - (has_header ? 4 : 2);
-
+  _dynamicColViewWidth =
+      (dynamic_index >= 0 ? resolvedHeaderCols[dynamic_index].width : 0);
   // ------------------------------------------------------------
   // Vertical scrollbar
   // ------------------------------------------------------------
   auto vparams = scrollbar_thumb(
       _firstVisibleDataRow,
       dataRowCount,
-      lastKnownViewHeight,
-      has_header ? 3 : 1,
-      lastKnownViewHeight);
-
-  int dynamic_index = -1;
-  for (std::size_t i = 0; i < header_cols.size(); ++i)
-  {
-    if (header_cols[i].dynamic)
-    {
-      dynamic_index = static_cast<int>(i);
-      break;
-    }
-  }
-
-  dynamicColViewWidth =
-      (dynamic_index >= 0 ? resolved_header_cols[dynamic_index].width : 0);
+      _lastKnownViewHeight,
+      viewContentFirstRow,
+      _lastKnownViewHeight);
 
   // ------------------------------------------------------------
   // Draw header + mid border
   // ------------------------------------------------------------
-  draw_top_border_header(_win, 0, 0, resolved_header_cols, focused);
+  draw_top_border_header(_win, 0, 0, resolvedHeaderCols, focused);
 
-  if (has_header)
+  if (hasHeader)
   {
-    draw_header_row(_win, 1, 0, resolved_header_cols, *this, focused);
-    draw_mid_border_header(_win, 2, 0, resolved_header_cols, focused);
+    draw_header_row(_win, 1, 0, resolvedHeaderCols, *this, focused);
+    draw_mid_border_header(_win, 2, 0, resolvedHeaderCols, focused);
   }
 
   // ------------------------------------------------------------
   // Data rows
   // ------------------------------------------------------------
-  dynamicColMaxDataWidth = 0;
-  std::vector<Cell> cells;
+  _dynamicColMaxDataWidth = 0;
 
-  for (int i = 0; i < lastKnownViewHeight; ++i)
+  for (int i = 0; i < _lastKnownViewHeight; ++i)
   {
     draw_row_assembled_cols(
         _win,
@@ -536,15 +532,13 @@ void UiTable::render(
         _firstVisibleDataRow + i,
         dataRowCount,
         cell_cb,
-        resolved_header_cols,
+        resolvedHeaderCols,
         *this,
         focused,
         _dynamicColCurrentOffsetX,
         vparams,
         dynamic_index,
-        dynamicColMaxDataWidth);
-
-    //wnoutrefresh(_win);
+        _dynamicColMaxDataWidth);
   }
 
   // ------------------------------------------------------------
@@ -552,28 +546,28 @@ void UiTable::render(
   // ------------------------------------------------------------
   auto hparams = scrollbar_thumb(
       _dynamicColCurrentOffsetX,
-      dynamicColMaxDataWidth,
-      dynamicColViewWidth,
+      _dynamicColMaxDataWidth,
+      _dynamicColViewWidth,
       1,
-      total_inner);
+      totalInnerW);
 
   if (!hparams.first || !hparams.second ||
-      (*hparams.first == 1 && *hparams.second == total_inner - 2))
+      (*hparams.first == 1 && *hparams.second == totalInnerW - 2))
   {
     draw_bottom_border_header(
         _win,
-        viewContentFirstRow + lastKnownViewHeight,
+        viewContentFirstRow + _lastKnownViewHeight,
         0,
-        resolved_header_cols,
+        resolvedHeaderCols,
         focused);
   }
   else
   {
     draw_bottom_scroll_border(
         _win,
-        viewContentFirstRow + lastKnownViewHeight,
+        viewContentFirstRow + _lastKnownViewHeight,
         0,
-        total_inner,
+        totalInnerW,
         hparams,
         focused);
   }
