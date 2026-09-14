@@ -17,11 +17,11 @@
 
 struct UiHotspot
 {
-  int beginRow, beginCol, endRow, endCol;
-  std::function<void()> callback;
+  int beginRow=0, beginCol=0, endRow=0, endCol=0;
+  std::function<void()> callback=[]{};
   bool handleMouseEvent(MouseEvent const& ev)const;
   void setWin(WINDOW* win);
-
+  operator bool()const{return beginRow&&beginCol&&endRow&&endCol;}
 };
 class UiHotspotGroup : public UiHotspot
 {
@@ -32,6 +32,7 @@ public:
 
   void clear();
   void addLocalSpot(int beginRow, int beginCol, int endRow, int endCol, std::function<void()> const& callback);
+  void add(UiHotspot const& h){_items.push_back(h);}
 private:
   std::vector<UiHotspot> _items;
 };
