@@ -66,7 +66,7 @@ inline void draw_bottom_scroll_border(
       chars.append(L"─"); // FIXED
   }
 
-  addstr_focus(_win, row, col, std::wstring(L"╰") + chars, focused);
+  addstr_focus(_win, row, col, std::wstring(L"╰") + chars + std::wstring(L"╯"), focused);
 }
 
 inline void draw_border_columns(
@@ -217,8 +217,6 @@ inline void draw_header_row(
 }
 
 // ------------------------------------------------------------
-// draw_row_assembled_cols()
-// ------------------------------------------------------------
 void draw_empty_border(
     WINDOW *_win,
     int row,
@@ -231,8 +229,6 @@ void draw_empty_border(
   addstr_focus(_win, row, col + width, build_right_border(vparams, row), focused);
 }
 
-// --------------------------------------------------------------------
-// Scrollbar thumb
 // --------------------------------------------------------------------
 inline std::pair<std::optional<int>, std::optional<int>> scrollbar_thumb(
     int dataOffset,
@@ -256,18 +252,20 @@ inline std::pair<std::optional<int>, std::optional<int>> scrollbar_thumb(
 }
 
 // ------------------------------------------------------------
-// draw_row_assembled_cols()
-// ------------------------------------------------------------
 void draw_row_assembled_cols(
     WINDOW *_win,
     int row,
     int col,
-    const std::vector<Cell> &cells,
+    int dataRow,
+    int dataRowCount,
+    const std::function<Cell(int, int)> &cell_cb,
     const std::vector<HeaderColumn> &cols_def,
     UiHotspotGroup &hostHotspotGroup,
     bool focused,
     int textOffset,
-    std::pair<std::optional<int>, std::optional<int>> vparams)
+    std::pair<std::optional<int>, std::optional<int>> vparams,
+    int const dynamicIndex,
+    int &dynamicColMaxDataWidth)
 {
   std::wstring left = build_left_border();
   std::wstring right = build_right_border(vparams, row);
@@ -276,7 +274,7 @@ void draw_row_assembled_cols(
   addstr_focus(_win, row, col + x, left, focused);
   x += 1;
 
-  for (std::size_t i = 0; i < cells.size(); ++i)
+  for (int i = 0; i < static_cast<int>(cols_def.size()); ++i)
   {
     if (i > 0)
     {
@@ -287,26 +285,31 @@ void draw_row_assembled_cols(
     int col_text_offset = cols_def[i].dynamic ? textOffset : 0;
     int width = cols_def[i].width;
 
-    auto const &cell = cells[i];
-
-    std::wstring text = cell.text;
-
-    if (col_text_offset > 0 && col_text_offset < (int)text.size())
-      text = text.substr(col_text_offset);
-
-    if ((int)text.size() < width)
-      text.append(width - text.size(), ' ');
-    else if ((int)text.size() > width)
-      text = text.substr(0, width);
-
-    addstr_run(_win, row, col + x, text, cell.style);
-
-    if (cell.callback)
+    if (dataRow < dataRowCount)
     {
-      hostHotspotGroup.addLocalSpot(row, col + x, row + 1, col + x + (int)text.size(), *(cell.callback));
+      Cell cell = cell_cb(dataRow, i);
+      std::wstring text = cell.text;
+      if (dynamicIndex == i)
+        dynamicColMaxDataWidth = std::max(dynamicColMaxDataWidth, static_cast<int>(cell.text.size()));
+      cell.text.resize(std::max(0, cols_def[i].width), ' ');
+
+      if (col_text_offset > 0)
+        text = text.substr(std::min((int)text.size(), col_text_offset));
+
+      if ((int)text.size() < width)
+        text.append(width - text.size(), ' ');
+      else if ((int)text.size() > width)
+        text = text.substr(0, width);
+
+      addstr_run(_win, row, col + x + col_text_offset, text, cell.style);
+
+      if (cell.callback)
+      {
+        hostHotspotGroup.addLocalSpot(row, col + x, row + 1, col + x + (int)text.size(), *(cell.callback));
+      }
     }
 
-    x += (int)text.size();
+    x += width;
   }
 
   addstr_focus(_win, row, col + x, right, focused);
@@ -327,7 +330,6 @@ UiTable::UiTable(Mode mode,
   , dynamicColMaxDataWidth(0)
   , data_row_count(0)
   , lastKnownViewHeight(0)
-  , first_data_row(0)
 {
 }
 
@@ -450,8 +452,6 @@ void UiTable::render(
   // ------------------------------------------------------------
   // Resolve column widths
   // ------------------------------------------------------------
-  std::vector<int> cols;
-  cols.reserve(header_cols.size());
 
   int fixed = 0;
   int num_fill = 0;
@@ -469,9 +469,6 @@ void UiTable::render(
   int remaining = total_inner - fixed - sep_space;
   int fill_width = num_fill > 0 ? remaining / num_fill : 0;
 
-  for (auto const &hc : header_cols)
-    cols.push_back(hc.width > 0 ? hc.width : fill_width);
-
   bool has_header =
       std::ranges::any_of(header_cols,
                           [](auto const &hc)
@@ -479,7 +476,6 @@ void UiTable::render(
 
   std::vector<HeaderColumn> resolved_header_cols;
   resolved_header_cols.reserve(header_cols.size());
-
   for (auto const &hc : header_cols)
   {
     HeaderColumn r = hc;
@@ -488,16 +484,8 @@ void UiTable::render(
     resolved_header_cols.push_back(r);
   }
 
-  if (has_header)
-  {
-    lastKnownViewHeight = h - 4;
-    first_data_row = 3;
-  }
-  else
-  {
-    lastKnownViewHeight = h - 2;
-    first_data_row = 1;
-  }
+  int viewContentFirstRow = has_header ? 3 : 1;
+  lastKnownViewHeight = h - (has_header ? 4 : 2);
 
   // ------------------------------------------------------------
   // Vertical scrollbar
@@ -508,11 +496,6 @@ void UiTable::render(
       lastKnownViewHeight,
       has_header ? 3 : 1,
       lastKnownViewHeight);
-
-  int inner_width = 0;
-  for (auto c : cols)
-    inner_width += c;
-  inner_width += static_cast<int>(cols.size()) - 1;
 
   int dynamic_index = -1;
   for (std::size_t i = 0; i < header_cols.size(); ++i)
@@ -542,46 +525,26 @@ void UiTable::render(
   // Data rows
   // ------------------------------------------------------------
   dynamicColMaxDataWidth = 0;
-  std::vector<Cell> cell_objs;
   std::vector<Cell> cells;
 
   for (int i = 0; i < lastKnownViewHeight; ++i)
   {
-    int data_row = _firstVisibleDataRow + i;
-    if (data_row >= dataRowCount)
-    {
-      draw_empty_border(_win, first_data_row + i, 0, w - 1, focused, vparams);
-      continue;
-    }
-
-    cells.clear();
-    cells.reserve(cols.size());
-
-    for (int col_index = 0; col_index < static_cast<int>(cols.size()); ++col_index)
-    {
-      Cell cell = cell_cb(data_row, col_index);
-      if ((int)cell.text.size() < cols[col_index])
-        cell.text.append(cols[col_index] - cell.text.size(), ' ');
-      cells.emplace_back(cell);
-    }
-
-    if (dynamic_index >= 0)
-      dynamicColMaxDataWidth =
-          std::max(dynamicColMaxDataWidth,
-                   static_cast<int>(cells[dynamic_index].text.size()));
-
     draw_row_assembled_cols(
         _win,
-        first_data_row + i,
+        viewContentFirstRow + i,
         0,
-        cells,
+        _firstVisibleDataRow + i,
+        dataRowCount,
+        cell_cb,
         resolved_header_cols,
         *this,
         focused,
         _dynamicColCurrentOffsetX,
-        vparams);
+        vparams,
+        dynamic_index,
+        dynamicColMaxDataWidth);
 
-    wnoutrefresh(_win);
+    //wnoutrefresh(_win);
   }
 
   // ------------------------------------------------------------
@@ -592,14 +555,14 @@ void UiTable::render(
       dynamicColMaxDataWidth,
       dynamicColViewWidth,
       1,
-      inner_width);
+      total_inner);
 
   if (!hparams.first || !hparams.second ||
-      (*hparams.first == 1 && *hparams.second == inner_width - 2))
+      (*hparams.first == 1 && *hparams.second == total_inner - 2))
   {
     draw_bottom_border_header(
         _win,
-        first_data_row + lastKnownViewHeight,
+        viewContentFirstRow + lastKnownViewHeight,
         0,
         resolved_header_cols,
         focused);
@@ -608,9 +571,9 @@ void UiTable::render(
   {
     draw_bottom_scroll_border(
         _win,
-        first_data_row + lastKnownViewHeight,
+        viewContentFirstRow + lastKnownViewHeight,
         0,
-        inner_width,
+        total_inner,
         hparams,
         focused);
   }

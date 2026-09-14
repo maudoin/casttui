@@ -105,5 +105,4 @@ private:
 
   int data_row_count;
   int lastKnownViewHeight;
-  int first_data_row;
 };
