@@ -33,6 +33,7 @@ struct HeaderColumn
   std::optional<std::wstring> name = std::nullopt;
   SortDir sort = SortDir::NONE;
   bool dynamic = false;
+  bool fit = false;
   std::optional<std::function<void()>> callback;
 };
 
@@ -41,16 +42,44 @@ struct HeaderColumn
 // --------------------------------------------------------------------
 struct Cell
 {
-  std::wstring text;
+  std::wstring text = L"";
   int style = A_NORMAL;
-  std::optional<std::function<void()>> callback;
 };
+
 
 // --------------------------------------------------------------------
 // UiTable
 // --------------------------------------------------------------------
 class UiTable : public UiHotspotGroup
 {
+  struct TableRender
+  {
+    UiTable& table;
+    int k;
+    int col;
+    int totalInnerW;
+    int dataRowCount;
+    const std::vector<HeaderColumn> cols_def;
+    bool focused;
+    std::pair<std::optional<int>, std::optional<int>> vparams;
+    int const dynamicIndex;
+    int viewContentFirstRow;
+    int viewContentDataSize;
+
+    struct Row
+    {
+      TableRender &tableRender;
+      int i;
+      int x = 0;
+      ~Row(){tableRender.endRow(*this);}
+    };
+    ~TableRender();
+    int rowCount() const {return viewContentDataSize;}
+    Row startRow(int i){return Row{*this, i};};
+    void endRow(Row const& row);
+    std::optional<MouseEvent> getEvent(Row& row, int col);
+    void draw(Row& row, int col, Cell const& cell);
+  };
 public:
   enum class Mode
   {
@@ -66,21 +95,41 @@ public:
   void scrollVertical(int amount);
   void scrollHorizontal(int amount);
 
-  bool handleKeyCh(int key);
+  bool handleKey(int key);
 
+  template<typename GetCell>
   void render(
-      int dataRowCount,
-      const std::vector<HeaderColumn> &header_cols,
-      const std::function<Cell(int, int)> &cell_cb,
-      bool focused = false);
+    int k,
+    int dataRowCount,
+    const std::vector<HeaderColumn> &header_cols,
+    const GetCell &cell_cb,
+    bool focused = false)
+  {
+    auto tableRender = renderStart(k, dataRowCount, header_cols, focused);
+    for (int i = 0; i < tableRender.rowCount(); ++i)
+    {
+      TableRender::Row r = tableRender.startRow(i);
+      for (int c = 0 ; c < tableRender.cols_def.size();++c)
+      {
+        tableRender.draw(r, c, cell_cb(_firstVisibleDataRow+i, c, tableRender.getEvent(r, c)));
+      }
+    }
+  }
+  TableRender renderStart(
+    int k,
+    int dataRowCount,
+    const std::vector<HeaderColumn> &headerCols,
+    bool focused);
 
   void renderArray(
-      const std::vector<Cell> &array,
-      const std::optional<std::wstring> &title = std::nullopt,
-      bool focused = false);
+    int k,
+    const std::vector<Cell> &array,
+    const std::optional<std::wstring> &title = std::nullopt,
+    bool focused = false);
   void renderSingleLine(
-      const std::vector<Cell> &array,
-      bool focused = false);
+    int k,
+    const std::vector<Cell> &array,
+    bool focused = false);
 
   int cursor() const { return _cursor; }
   int firstVisibleDataRow() const { return _firstVisibleDataRow; }
@@ -105,4 +154,6 @@ private:
 
   int _dataRowCount;
   int _lastKnownViewHeight;
+
+  friend class TableRender;
 };

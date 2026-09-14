@@ -54,7 +54,7 @@ void UiPodcastSetup::setEdit(PodcastCols const &p)
   modal_edit_buffer = "";
 }
 
-void UiPodcastSetup::render()
+void UiPodcastSetup::render(int k)
 {
   int h = getHeight();
   int inner_h = h - 2;
@@ -86,14 +86,20 @@ void UiPodcastSetup::render()
     HeaderColumn{.width = -1, .dynamic = true},
   };
 
-  auto cell_cb = [=, this](int row, int col) -> Cell
+  auto cell_cb = [=, this](int row, int col, std::optional<MouseEvent> const& ev) -> Cell
   {
     if (row == inner_h - 1)
     {
       if (col == 0)
-        return Cell{.text=_mode == Mode::AddPodcast ? L"Add podcast (s)" : L"Save podcast (s)", .style=A_BOLD, .callback=[this]{this->savePodcast();}};
+      {
+        if (ev){savePodcast();}
+        return Cell{.text=_mode == Mode::AddPodcast ? L"Add podcast (s)" : L"Save podcast (s)", .style=A_BOLD};
+      }
       if (col == 1)
-        return Cell{.text=L"Cancel (Esc)", .style=A_BOLD, .callback=_doneCallback};
+      {
+        if (ev){_doneCallback();}
+        return Cell{.text=L"Cancel (Esc)", .style=A_BOLD};
+      }
     }
 
     auto setRowNoEdit = [this, row]{
@@ -112,7 +118,8 @@ void UiPodcastSetup::render()
       if (col == 0)
       {
         int style = (isCurrentField && !editing) ? COLOR_PAIR(1) : A_NORMAL;
-        return Cell{.text=f.label, .style=style, .callback=setRowNoEdit};
+        if (ev){setRowNoEdit();}
+        return Cell{.text=f.label, .style=style};
       }
       else
       {
@@ -120,11 +127,16 @@ void UiPodcastSetup::render()
           editing ? to_wstring(modal_edit_buffer) + L"_" : f.value;
         int style = (isCurrentField && editing) ? COLOR_PAIR(1) : A_NORMAL;
         if (!f.editable)
-          return Cell{.text=displayValue, .style=style, .callback=setRowNoEdit};
-        return Cell{.text=displayValue, .style=style, .callback=[this, row, displayValue]{
+        {
+          if (ev){setRowNoEdit();}
+          return Cell{.text=displayValue, .style=style};
+        }
+        if (ev)
+        {
           modal_field = row;
           startEdit();
-        }};
+        }
+        return Cell{.text=displayValue, .style=style};
       }
     }
     // Preview rows
@@ -133,11 +145,13 @@ void UiPodcastSetup::render()
       int preview = row-fieldCount;
       if (col==0 && preview==0)
       {
-        return Cell{.text=L"Preview", .style=A_BOLD, .callback=setRowNoEdit};
+        if (ev){setRowNoEdit();}
+        return Cell{.text=L"Preview", .style=A_BOLD};
       }
       if (col==1 && preview < modal_preview_shows.size())
       {
-        return Cell{.text=to_wstring(modal_preview_shows[preview]), .style=A_NORMAL, .callback=setRowNoEdit};
+        if (ev){setRowNoEdit();}
+        return Cell{.text=to_wstring(modal_preview_shows[preview]), .style=A_NORMAL};
       }
     }
 
@@ -145,7 +159,7 @@ void UiPodcastSetup::render()
     return Cell{L"", A_NORMAL};
   };
 
-  UiTable::render(inner_h, cols, cell_cb, true);
+  UiTable::render(k, inner_h, cols, cell_cb, true);
 }
 
 bool UiPodcastSetup::handleKey(int k)
@@ -209,7 +223,7 @@ bool UiPodcastSetup::handleKey(int k)
   }
   if (modal_field == 4 && (k == KEY_LEFT || k == KEY_RIGHT))
   {
-    return UiTable::handleKeyCh(k);
+    return UiTable::handleKey(k);
   }
 
   // ENTER begins editing

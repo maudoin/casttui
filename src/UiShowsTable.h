@@ -12,7 +12,7 @@ class UiShowsTable : public UiTable
 public:
   UiShowsTable(DowncastLogic& logic, std::function<void()> const& winSelection);
 
-  void render(bool focused);
+  void render(int k, bool focused);
   bool handleKey(int k);
 
 private:

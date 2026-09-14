@@ -26,7 +26,7 @@ UiStatusTable::UiStatusTable(DowncastLogic& _logic, std::function<void()> const&
   };
 }
 
-void UiStatusTable::render(bool focused)
+void UiStatusTable::render(int k, bool focused)
 {
   std::wstring title = L"Status: ";
   std::wstring quitLabel = L" X ";
@@ -45,7 +45,7 @@ void UiStatusTable::render(bool focused)
   // quit
   cols.push_back(HeaderColumn{.width =  static_cast<int>(quitLabel.size())});
 
-  auto cell_cb = [&](int row, int col) -> Cell
+  auto cell_cb = [&](int row, int col, std::optional<MouseEvent> const& ev) -> Cell
   {
     if (col == 0)
     {
@@ -55,7 +55,8 @@ void UiStatusTable::render(bool focused)
     if (col == cols.size()-1)
     {
       // Quit
-      return Cell{quitLabel, A_NORMAL, _exit};
+      if (ev){_exit();}
+      return Cell{quitLabel, A_NORMAL};
     }
     int statusIndex = col-1;
     if (statusIndex >= _labels.size())
@@ -76,8 +77,8 @@ void UiStatusTable::render(bool focused)
     style = COLOR_PAIR(1);
     else
     style = A_NORMAL;
-
-    return Cell{label, style,  [this, statusIndex]{
+    if (ev)
+    {
       this->_cursorPosition = statusIndex;
       auto const& [_, status] = this->_labels[statusIndex];
       this->_logic.setCurrentPodcastRowIndex(
@@ -85,10 +86,11 @@ void UiStatusTable::render(bool focused)
         status,
         DowncastLogic::SetPodcastOption::FORCE_REFRESH
       );
-    }};
+    }
+    return Cell{label, style};
   };
 
-  UiTable::render(1, cols, cell_cb, focused);
+  UiTable::render(k, 1, cols, cell_cb, focused);
 }
 
 bool UiStatusTable::handleKey(int k)

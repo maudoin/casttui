@@ -27,27 +27,27 @@ void UiConfirm::cancel()
   set(L"", []{});
 }
 
-void UiConfirm::render()
+void UiConfirm::render(int k)
 {
   std::wstring cancel = L"Cancel";
 
-  auto cell_cb = [&](int, int col) -> Cell {
+  auto cell_cb = [&](int, int col, std::optional<MouseEvent> const& ev) -> Cell {
     bool const isCursor = col==_field;
     int style = A_NORMAL;
     if (isCursor)
     style = COLOR_PAIR(1);
     if (col == 0)
     {
+      if (ev) _action();
       return Cell{
         .text=_title,
-        .style=style,
-        .callback=_action
+        .style=style
       };
     }
+    if (ev) _cancel();
     return Cell{
       .text=cancel,
-      .style=style,
-      .callback=_cancel
+      .style=style
     };
   };
 
@@ -56,7 +56,7 @@ void UiConfirm::render()
     HeaderColumn{ .width = static_cast<int>(cancel.size()) }
   };
 
-  UiTable::render(1, cols, cell_cb, true);
+  UiTable::render(k, 1, cols, cell_cb, true);
 }
 
 bool UiConfirm::handleKey(int k)

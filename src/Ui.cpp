@@ -70,9 +70,9 @@ class Ui : public UiApp
 
 private:
 
-  void renderActionsBar()
+  void renderActionsBar(int k)
   {
-    std::vector<Cell> items;
+    std::vector<HeaderColumn> items;
 
     if (_focusedPanel == Focus::Shows)
     {
@@ -81,13 +81,13 @@ private:
           this->_logic.setShowSorting(col, DowncastLogic::cycle(_logic.getShowSorting(col)));
         };
       };
-      items.push_back({ .text = L"Info (i)",          .callback = [this]{this->_modalPopup = ModalMode::Info;} });
-      items.push_back({ .text = L"Name sort (n)",     .callback = sortCallback(&MediaViewCols::title)});
-      items.push_back({ .text = L"Time sort (t)",     .callback = sortCallback(&MediaViewCols::date)});
-      items.push_back({ .text = L"Length sort (l)",   .callback = sortCallback(&MediaViewCols::duration)});
-      items.push_back({ .text = L"Select Above (-)",  .callback = [this]{
+      items.push_back({ .width=0, .name = L"Info (i)",          .fit=true, .callback = [this]{this->_modalPopup = ModalMode::Info;} });
+      items.push_back({ .width=0, .name = L"Name sort (n)",     .fit=true, .callback = sortCallback(&MediaViewCols::title)});
+      items.push_back({ .width=0, .name = L"Time sort (t)",     .fit=true, .callback = sortCallback(&MediaViewCols::date)});
+      items.push_back({ .width=0, .name = L"Length sort (l)",   .fit=true, .callback = sortCallback(&MediaViewCols::duration)});
+      items.push_back({ .width=0, .name = L"Select Above (-)",  .fit=true, .callback = [this]{
         this->_logic.selectShowRange(0, this->_showsUi.cursor(), true);}});
-        items.push_back({ .text = L"Select Below (+)",  .callback = [this]{
+        items.push_back({ .width=0, .name = L"Select Below (+)", .fit=true, .callback = [this]{
           this->_logic.selectShowRange(this->_showsUi.cursor(), this->_logic.showCount()-1, true);}});
       }
 
@@ -95,20 +95,20 @@ private:
       if (_focusedPanel == Focus::Podcasts && podcastIndexOpt)
       {
         int podcastIndex = *podcastIndexOpt;
-        items.push_back({ .text = L"Refresh (r)", .callback = [this, podcastIndex]{
+        items.push_back({ .width=0, .name = L"Refresh (r)", .fit=true, .callback = [this, podcastIndex]{
           if (podcastIndex<_logic.podcastCount())
           {
             this->_logic.refreshPodcastAtIndex(podcastIndex);}
           }
         });
-        items.push_back({ .text = L"Edit (e)",    .callback = [this, podcastIndex]{
+        items.push_back({ .width=0, .name = L"Edit (e)",    .fit=true, .callback = [this, podcastIndex]{
           if (podcastIndex<_logic.podcastCount())
           {
             this->_addEditPodcastUi.setEdit(_logic.podcast(podcastIndex));
             this->_modalPopup = ModalMode::AddEditPodcast;
           }
         } });
-        items.push_back({ .text = L"Delete (d)",  .callback = [this, podcastIndex]{
+        items.push_back({ .width=0, .name = L"Delete (d)",  .fit=true, .callback = [this, podcastIndex]{
           this->_modalPopup = ModalMode::Confirm;
           this->_confirmUi.set(L"Delete '" + to_wstring(_logic.podcast(podcastIndex).title) + L"'?", [this, podcastIndex]{
             if (podcastIndex<_logic.podcastCount())
@@ -123,38 +123,38 @@ private:
     using MediaStatus = DowncastLogic::MediaStatus;
     if (_logic.isStatusActive(MediaStatus::New))
     {
-      items.push_back({ .text = L"Update (u)", .callback = [this]{this->_logic.refreshCurrentPodcast();} });
+      items.push_back({ .width=0, .name = L"Update (u)", .fit=true, .callback = [this]{this->_logic.refreshCurrentPodcast();} });
     }
 
     if (_logic.isStatusActive(MediaStatus::Queued))
     {
       if (_logic.isDownloading())
       {
-        items.push_back({ .text = L"Downloading…", .callback = []{} });
+        items.push_back({ .width=0, .name = L"Downloading…", .fit=true, .callback = []{} });
       }
       else
       {
-        items.push_back({ .text = L"Start Download (d)", .callback = [this]{this->_logic.startDownload();} });
+        items.push_back({ .width=0, .name = L"Start Download (d)", .fit=true, .callback = [this]{this->_logic.startDownload();} });
       }
     }
 
     if (_logic.anySelection())
     {
       if (!_logic.isStatusActive(MediaStatus::New))
-      items.push_back({ .text = L"Set New (n)", .callback = [this]{this->_logic.setSelectedShowsStatus(Status::NEW);} });
+      items.push_back({ .width=0, .name = L"Set New (n)", .fit=true, .callback = [this]{this->_logic.setSelectedShowsStatus(Status::NEW);} });
 
       if (!_logic.isStatusActive(MediaStatus::Skipped))
-      items.push_back({ .text = L"Skip (s)", .callback = [this]{this->_logic.setSelectedShowsStatus(Status::SKIPPED);} });
+      items.push_back({ .width=0, .name = L"Skip (s)", .fit=true, .callback = [this]{this->_logic.setSelectedShowsStatus(Status::SKIPPED);} });
 
       if (!_logic.isStatusActive(MediaStatus::Queued))
-      items.push_back({ .text = L"Queue (q)", .callback = [this]{this->_logic.setSelectedShowsStatus(Status::QUEUED);} });
+      items.push_back({ .width=0, .name = L"Queue (q)", .fit=true, .callback = [this]{this->_logic.setSelectedShowsStatus(Status::QUEUED);} });
     }
 
-    items.emplace_back(L"");
-    _actionsUi.renderSingleLine(items);
+    items.push_back({ .width=0, .name=L"", .dynamic=true});
+    _actionsUi.render(k, 0, items, [](int, int, std::optional<MouseEvent> const&){return Cell{};});
   }
 
-  void renderBottomBar()
+  void renderBottomBar(int k)
   {
     std::wstring text;
 
@@ -188,11 +188,11 @@ private:
       text = L"Ready";
     }
 
-    _bottomBarUi.renderArray(std::vector<Cell>{Cell{text}});
+    _bottomBarUi.renderArray(k, std::vector<Cell>{Cell{text}});
   }
 
 
-  void render_info_modal(WINDOW* stdscr)
+  void renderInfoModal(int k)
   {
     int h, w;
     getmaxyx(stdscr, h, w);
@@ -207,31 +207,20 @@ private:
     auto const& shows = _logic.showsInRankRange(_showsUi.cursor(), 1);
 
     std::wstring text = shows.empty() ? L"No show selected." : html_to_text(to_wstring(shows[0].summary));
-    std::vector<Cell> lines;
+    auto lines  = std::views::split(text, '\n');
 
-    int max_lines = mh - 2;
-    int count = 0;
-    std::string current;
-    for (char c : text)
-    {
-      if (c == '\n')
-      {
-        lines.emplace_back(to_wstring(current));
-        current.clear();
-        if (++count >= max_lines) break;
-      }
-      else
-      {
-        current.push_back(c);
-      }
-    }
-    if (!current.empty() && count < max_lines)
-    lines.emplace_back(to_wstring(current));
 
     std::optional<std::wstring> title =
-    shows.empty() ? std::nullopt : std::make_optional(to_wstring(shows[0].title));
+      shows.empty() ? std::nullopt : std::make_optional(to_wstring(shows[0].title));
+    std::vector<HeaderColumn> cols{
+        HeaderColumn{.name=title, .dynamic=true}};
 
-    _infoUi.renderArray(lines, title);
+    auto getCell = [&](int row, int col, std::optional<MouseEvent> const&)
+    {
+      auto range=*std::next(lines.begin(), row);
+      return Cell{.text={range.begin(), range.end()}};
+    };
+    _infoUi.render(k, static_cast<int>(std::ranges::distance(lines)), cols, getCell, true);
 
   }
 
@@ -442,25 +431,25 @@ bool doHandleKey(int k) override
       _addEditPodcastUi.buildWindow(mh, mw, y, x);
     }
   }
-  void doRenderLayout() override
+  void doRender(int k) override
   {
-    _podcastUi.render(_focusedPanel == Focus::Podcasts);
-    _statusUi.render(_focusedPanel == Focus::Status);
-    _showsUi.render(_focusedPanel == Focus::Shows);
-    renderActionsBar();
-    renderBottomBar();
+    _podcastUi.render(k, _focusedPanel == Focus::Podcasts);
+    _statusUi.render(k, _focusedPanel == Focus::Status);
+    _showsUi.render(k, _focusedPanel == Focus::Shows);
+    renderActionsBar(k);
+    renderBottomBar(k);
 
     if (_modalPopup == ModalMode::Confirm)
     {
-      _confirmUi.render();
+      _confirmUi.render(k);
     }
     else if (_modalPopup == ModalMode::Info)
     {
-      render_info_modal(stdscr);
+      renderInfoModal(k);
     }
     else if (_modalPopup == ModalMode::AddEditPodcast)
     {
-      _addEditPodcastUi.render();
+      _addEditPodcastUi.render(k);
     }
 
   }

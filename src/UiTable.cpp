@@ -160,6 +160,11 @@ inline std::wstring build_left_border()
   return L"│";
 }
 
+inline std::wstring build_separator()
+{
+  return L"│";
+}
+
 inline std::wstring build_right_border(
     std::pair<std::optional<int>, std::optional<int>> vparams,
     int row)
@@ -251,73 +256,57 @@ inline std::pair<std::optional<int>, std::optional<int>> scrollbar_thumb(
 
   return {thumbStart, thumbStart + thumbSize};
 }
-
+}//namespace
 // ------------------------------------------------------------
-void draw_row_assembled_cols(
-    WINDOW *_win,
-    int row,
-    int col,
-    int dataRow,
-    int dataRowCount,
-    const std::function<Cell(int, int)> &cell_cb,
-    const std::vector<HeaderColumn> &cols_def,
-    UiHotspotGroup &hostHotspotGroup,
-    bool focused,
-    int textOffset,
-    std::pair<std::optional<int>, std::optional<int>> vparams,
-    int const dynamicIndex,
-    int &dynamicColMaxDataWidth)
+std::optional<MouseEvent> UiTable::TableRender::getEvent(Row& r, int i)
 {
-  std::wstring left = build_left_border();
-  std::wstring right = build_right_border(vparams, row);
-
-  int x = 0;
-  addstr_focus(_win, row, col + x, left, focused);
-  x += 1;
-
-  for (int i = 0; i < static_cast<int>(cols_def.size()); ++i)
+  if (k == KEY_MOUSE)
   {
-    if (i > 0)
+    if (auto ev = getMouseEvent())
     {
-      addstr_focus(_win, row, col + x, L"│", focused);
-      x += 1;
-    }
-
-    int col_text_offset = cols_def[i].dynamic ? textOffset : 0;
-    int width = cols_def[i].width;
-
-    if (dataRow < dataRowCount)
-    {
-      Cell cell = cell_cb(dataRow, i);
-      std::wstring text = cell.text;
-      if (dynamicIndex == i)
-        dynamicColMaxDataWidth = std::max(dynamicColMaxDataWidth, static_cast<int>(cell.text.size()));
-      // horizontal scroll
-      if (col_text_offset > 0)
-        text = text.substr(std::min((int)text.size(), col_text_offset));
-      // fill/fit column
-      cell.text.resize(std::max(0, cols_def[i].width), ' ');
-
-
-      if ((int)text.size() < width)
-        text.append(width - text.size(), ' ');
-      else if ((int)text.size() > width)
-        text = text.substr(0, width);
-
-      addstr_run(_win, row, col + x, text, cell.style);
-
-      if (cell.callback)
+      MouseEvent mev = ev->toLocal(table._win);
+      int row = viewContentFirstRow+r.i;
+      if (mev.hit({row, col + r.x + 1, row + 1, col + r.x + 1 + cols_def[i].width}))
       {
-        hostHotspotGroup.addLocalSpot(row, col + x, row + 1, col + x + (int)text.size(), *(cell.callback));
+        return ev;
       }
     }
-
-    x += width;
   }
+  return std::nullopt;
+}
+void UiTable::TableRender::draw(Row& r, int i, Cell const& cell)
+{
+  int row = viewContentFirstRow+r.i;
+  addstr_focus(table._win, row, col + r.x, i==0?build_left_border():build_separator(), focused);
 
-  addstr_focus(_win, row, col + x, right, focused);
+  int col_text_offset = cols_def[i].dynamic ? table._dynamicColCurrentOffsetX : 0;
+  int width = cols_def[i].width;
+
+  std::wstring text = cell.text;
+  if (dynamicIndex == i)
+    table._dynamicColMaxDataWidth = std::max(table._dynamicColMaxDataWidth, static_cast<int>(cell.text.size()));
+  // horizontal scroll
+  if (col_text_offset > 0)
+    text = text.substr(std::min((int)text.size(), col_text_offset));
+  // fill/fit column
+  text.resize(std::max(0, cols_def[i].width), ' ');
+
+  if ((int)text.size() < width)
+    text.append(width - text.size(), ' ');
+  else if ((int)text.size() > width)
+    text = text.substr(0, width);
+
+  addstr_run(table._win, row, col + r.x + 1, text, cell.style);
+  r.x += width + 1;
 }
 // ------------------------------------------------------------
+void UiTable::TableRender::endRow(Row const& r)
+{
+  int row = viewContentFirstRow+r.i;
+  addstr_focus(table._win, row, col + r.x, build_right_border(vparams, row), focused);
+}
+// ------------------------------------------------------------
+namespace{
 std::vector<HeaderColumn>
 resolveHeaderWidth(const std::vector<HeaderColumn> &headerCols, int totalInnerW)
 {
@@ -327,6 +316,8 @@ resolveHeaderWidth(const std::vector<HeaderColumn> &headerCols, int totalInnerW)
   {
     if (headerCols[i].width > 0 && !headerCols[i].dynamic)
       fixed += headerCols[i].width;
+    else if (headerCols[i].fit && headerCols[i].name)
+      fixed += headerCols[i].name->size();
     else
     {
       num_fill++;
@@ -343,7 +334,7 @@ resolveHeaderWidth(const std::vector<HeaderColumn> &headerCols, int totalInnerW)
   for (auto const &hc : headerCols)
   {
     HeaderColumn r = hc;
-    r.width = hc.width > 0 ? hc.width : fill_width;
+    r.width = (hc.fit && hc.name) ? hc.name->size() : hc.width > 0 ? hc.width : fill_width;
     r.dynamic |= hc.width <= 0;
     resolvedHeaderCols.push_back(r);
   }
@@ -412,7 +403,7 @@ void UiTable::scrollHorizontal(int amount)
 }
 
 // ------------------------------------------------------------
-bool UiTable::handleKeyCh(int key)
+bool UiTable::handleKey(int key)
 {
   if (key == KEY_UP)
   {
@@ -461,16 +452,12 @@ void UiTable::buildWindow(int nlines, int ncols, int begy, int begx)
 }
 
 // ------------------------------------------------------------
-void UiTable::render(
-    int dataRowCount,
-    const std::vector<HeaderColumn> &headerCols,
-    const std::function<Cell(int, int)> &cell_cb,
-    bool focused)
+UiTable::TableRender UiTable::renderStart(
+  int k,
+  int dataRowCount,
+  const std::vector<HeaderColumn> &headerCols,
+  bool focused)
 {
-  if (!_win)
-  {
-    return;
-  }
   setWin(_win);
   werase(_win);
   keypad(_win, TRUE);
@@ -491,7 +478,7 @@ void UiTable::render(
   bool hasHeader = std::ranges::any_of(headerCols,
     [](auto const &hc){ return hc.name.has_value(); });
   int viewContentFirstRow = hasHeader ? 3 : 1;
-  _lastKnownViewHeight = h - (hasHeader ? 4 : 2);
+  _lastKnownViewHeight = h - (hasHeader? 4 : 2);
 
   std::vector<HeaderColumn> resolvedHeaderCols = resolveHeaderWidth(headerCols, totalInnerW);
 
@@ -515,39 +502,46 @@ void UiTable::render(
   if (hasHeader)
   {
     draw_header_row(_win, 1, 0, resolvedHeaderCols, *this, focused);
-    draw_mid_border_header(_win, 2, 0, resolvedHeaderCols, focused);
+    if (h>3)
+    {
+      draw_mid_border_header(_win, 2, 0, resolvedHeaderCols, focused);
+    }
   }
 
   // ------------------------------------------------------------
   // Data rows
   // ------------------------------------------------------------
   _dynamicColMaxDataWidth = 0;
-
-  for (int i = 0; i < _lastKnownViewHeight; ++i)
+  return{*this,
+          k,
+          0, totalInnerW,
+          dataRowCount,
+          std::move(resolvedHeaderCols),
+          focused,
+          vparams,
+          dynamic_index,
+          viewContentFirstRow,
+          std::min(dataRowCount,_lastKnownViewHeight)};
+}
+// ------------------------------------------------------------
+UiTable::TableRender::~TableRender()
+{
+  for (int i = viewContentDataSize; i < table._lastKnownViewHeight; ++i)
   {
-    draw_row_assembled_cols(
-        _win,
-        viewContentFirstRow + i,
-        0,
-        _firstVisibleDataRow + i,
-        dataRowCount,
-        cell_cb,
-        resolvedHeaderCols,
-        *this,
-        focused,
-        _dynamicColCurrentOffsetX,
-        vparams,
-        dynamic_index,
-        _dynamicColMaxDataWidth);
+    TableRender::Row r = startRow(i);
+    for (int c = 0 ; c < cols_def.size();++c)
+    {
+      draw(r, c, {});
+    }
   }
 
   // ------------------------------------------------------------
   // Horizontal scrollbar
   // ------------------------------------------------------------
   auto hparams = scrollbar_thumb(
-      _dynamicColCurrentOffsetX,
-      _dynamicColMaxDataWidth,
-      _dynamicColViewWidth,
+      table._dynamicColCurrentOffsetX,
+      table._dynamicColMaxDataWidth,
+      table._dynamicColViewWidth,
       1,
       totalInnerW);
 
@@ -555,34 +549,34 @@ void UiTable::render(
       (*hparams.first == 1 && *hparams.second == totalInnerW - 2))
   {
     draw_bottom_border_header(
-        _win,
-        viewContentFirstRow + _lastKnownViewHeight,
+        table._win,
+        viewContentFirstRow + table._lastKnownViewHeight,
         0,
-        resolvedHeaderCols,
+        cols_def,
         focused);
   }
   else
   {
     draw_bottom_scroll_border(
-        _win,
-        viewContentFirstRow + _lastKnownViewHeight,
+        table._win,
+        viewContentFirstRow + table._lastKnownViewHeight,
         0,
         totalInnerW,
         hparams,
         focused);
   }
 
-  wrefresh(_win);
+  wrefresh(table._win);
 }
 
 // ------------------------------------------------------------
 void UiTable::renderArray(
+    int k,
     const std::vector<Cell> &array,
     const std::optional<std::wstring> &title,
     bool focused)
 {
-  setWin(_win);
-  auto cell_cb = [&array](int row, int) -> Cell
+  auto cell_cb = [&array](int row, int, std::optional<MouseEvent> const&) -> Cell
   {
     return array[row];
   };
@@ -590,16 +584,16 @@ void UiTable::renderArray(
   std::vector<HeaderColumn> cols{
       HeaderColumn{0, title, SortDir::NONE, true}};
 
-  render(static_cast<int>(array.size()), cols, cell_cb, focused);
+  render(k, static_cast<int>(array.size()), cols, cell_cb, focused);
 }
 
 // ------------------------------------------------------------
 void UiTable::renderSingleLine(
+    int k,
     const std::vector<Cell> &array,
     bool focused)
 {
-  setWin(_win);
-  auto cell_cb = [&array](int, int col) -> Cell
+  auto cell_cb = [&array](int, int col, std::optional<MouseEvent> const&) -> Cell
   {
     return array[col];
   };
@@ -610,5 +604,5 @@ void UiTable::renderSingleLine(
   std::vector<HeaderColumn> cols(colsView.begin(), colsView.end());
   if (!cols.empty())
     cols.back().width = -1;
-  render(1, cols, cell_cb, focused);
+  render(k, 1, cols, cell_cb, focused);
 }

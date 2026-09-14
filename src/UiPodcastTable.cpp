@@ -25,7 +25,7 @@ UiPodcastTable::UiPodcastTable(DowncastLogic& logic, Actions const& actions)
 {
 }
 
-void UiPodcastTable::render(bool focused)
+void UiPodcastTable::render(int k, bool focused)
 {
   int count = _logic.podcastCount() + 2;
 
@@ -42,7 +42,7 @@ void UiPodcastTable::render(bool focused)
     HeaderColumn{.width = -1, .name = std::nullopt, .sort = SortDir::NONE, .dynamic = true}
   };
 
-  auto cell_cb = [&](int row, int /*col*/) -> Cell
+  auto cell_cb = [&](int row, int /*col*/, std::optional<MouseEvent> const& ev) -> Cell
   {
     const std::wstring& title = titles[row];
     bool isCursor   = (row == cursor() && focused);
@@ -58,13 +58,15 @@ void UiPodcastTable::render(bool focused)
     else
     style = A_NORMAL;
 
-    return Cell{title, style, [this, row]{
+    if (ev)
+    {
       this->scrollTo(row);
       this->pickPodcast();
-    }};
+    }
+    return Cell{title, style};
   };
 
-  UiTable::render(count, cols, cell_cb, focused);
+  UiTable::render(k, count, cols, cell_cb, focused);
 }
 
 std::optional<int> UiPodcastTable::getPodcastIndex()const
@@ -75,7 +77,7 @@ std::optional<int> UiPodcastTable::getPodcastIndex()const
 
 bool UiPodcastTable::handleKey(int k)
 {
-  if (UiTable::handleKeyCh(k))
+  if (UiTable::handleKey(k))
   return true;
 
   // Only valid podcast rows (skip Add/All)

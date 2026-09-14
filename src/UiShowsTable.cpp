@@ -38,7 +38,7 @@ namespace{
   }
 }
 
-void UiShowsTable::render(bool focused)
+void UiShowsTable::render(int k, bool focused)
 {
   int h = getHeight();
   int inner_h = h - 2;
@@ -62,7 +62,7 @@ void UiShowsTable::render(bool focused)
     HeaderColumn{.width = 10, .name = L"Duration",.sort = toSortDir(durationSort), .dynamic = false, .callback=makeCallback(&MediaViewCols::duration, durationSort)},
   };
 
-  auto cell_cb = [&](int row, int col) -> Cell
+  auto cell_cb = [&](int row, int col, std::optional<MouseEvent> const& ev) -> Cell
   {
     int idx = row - firstVisibleDataRow();
     if (idx < 0 || idx >= static_cast<int>(shows.size()))
@@ -90,19 +90,20 @@ void UiShowsTable::render(bool focused)
     style = COLOR_PAIR(1);
     else
     style = A_NORMAL;
-
-    return Cell{text, style, [this, row]{
-      this->scrollTo(row);
-      this->_logic.showSelection(row, true, false);
-    }};
+    if (ev)
+    {
+      scrollTo(row);
+      _logic.showSelection(row, true, false);
+    }
+    return Cell{text, style};
   };
 
-  UiTable::render(_logic.showCount(), cols, cell_cb, focused);
+  UiTable::render(k, _logic.showCount(), cols, cell_cb, focused);
 }
 
 bool UiShowsTable::handleKey(int k)
 {
-  if (UiTable::handleKeyCh(k))
+  if (UiTable::handleKey(k))
   return true;
 
   using MediaStatus = DowncastLogic::MediaStatus;
