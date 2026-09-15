@@ -25,7 +25,7 @@ UiPodcastTable::UiPodcastTable(DowncastLogic& logic, Actions const& actions)
 {
 }
 
-void UiPodcastTable::render(bool focused)
+void UiPodcastTable::render(int k, bool focused)
 {
   int count = _logic.podcastCount() + 2;
 
@@ -42,29 +42,31 @@ void UiPodcastTable::render(bool focused)
     HeaderColumn{.width = -1, .name = std::nullopt, .sort = SortDir::NONE, .dynamic = true}
   };
 
-  auto cell_cb = [&](int row, int /*col*/) -> Cell
+  for (TableRender::Row r : renderLoop(k, count, cols, focused))
   {
-    const std::wstring& title = titles[row];
-    bool isCursor   = (row == cursor() && focused);
-    bool isSelected = (row >= 2 && _logic.isCurrentPodcast(row - 2));
+    for (TableRender::Row::Col c : r)
+    {
+      const std::wstring& title = titles[r.index()];
+      bool isCursor   = (r.index() == cursor() && focused);
+      bool isSelected = (r.index() >= 2 && _logic.isCurrentPodcast(r.index() - 2));
 
-    int style;
-    if (isCursor && isSelected)
-    style = COLOR_PAIR(3);
-    else if (isSelected)
-    style = COLOR_PAIR(2);
-    else if (isCursor)
-    style = COLOR_PAIR(1);
-    else
-    style = A_NORMAL;
+      int style;
+      if (isCursor && isSelected)
+      style = COLOR_PAIR(3);
+      else if (isSelected)
+      style = COLOR_PAIR(2);
+      else if (isCursor)
+      style = COLOR_PAIR(1);
+      else
+      style = A_NORMAL;
 
-    return Cell{title, style, [this, row]{
-      this->scrollTo(row);
-      this->pickPodcast();
-    }};
-  };
-
-  UiTable::render(count, cols, cell_cb, focused);
+      if (c.draw({title, style}))
+      {
+        this->scrollTo(r.index());
+        this->pickPodcast();
+      }
+    }
+  }
 }
 
 std::optional<int> UiPodcastTable::getPodcastIndex()const
@@ -75,7 +77,7 @@ std::optional<int> UiPodcastTable::getPodcastIndex()const
 
 bool UiPodcastTable::handleKey(int k)
 {
-  if (UiTable::handleKeyCh(k))
+  if (UiTable::handleKey(k))
   return true;
 
   // Only valid podcast rows (skip Add/All)

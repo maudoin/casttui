@@ -55,9 +55,10 @@ UiApp::~UiApp()
 
 void UiApp::run()
 {
+  render(ERR);
+
   while (_isRunning)
   {
-    renderLayout();
 
     int k = wgetch(stdscr);
     if (k == KEY_RESIZE)
@@ -70,7 +71,7 @@ void UiApp::run()
       buildWindows();
 
       // Redraw everything
-      renderLayout();
+      render(ERR);
 
       // Refresh all windows
       wnoutrefresh(stdscr);
@@ -79,17 +80,13 @@ void UiApp::run()
     else
     {
       handleKey(k);
+      render(k);
     }
   }
 }
 
 bool UiApp::handleKey(int k)
 {
-  if (k == KEY_RESIZE)
-  {
-    renderLayout();
-    return true;
-  }
   if (k == KEY_MOUSE)
   {
     if (auto event = getMouseEvent())
@@ -113,11 +110,11 @@ void UiApp::buildWindows()
 
   doBuildWindows(h, w);
 }
-void UiApp::renderLayout()
+void UiApp::render(int k)
 {
   wnoutrefresh(stdscr);
 
-  doRenderLayout();
+  doRender(k);
 
   doupdate();
 }

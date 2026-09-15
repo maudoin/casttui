@@ -70,7 +70,7 @@ class Ui : public UiApp
 
 private:
 
-  void renderActionsBar()
+  void renderActionsBar(int k)
   {
     std::vector<Cell> items;
 
@@ -151,10 +151,10 @@ private:
     }
 
     items.emplace_back(L"");
-    _actionsUi.renderSingleLine(items);
+    _actionsUi.renderSingleLine(k, items);
   }
 
-  void renderBottomBar()
+  void renderBottomBar(int k)
   {
     std::wstring text;
 
@@ -188,11 +188,11 @@ private:
       text = L"Ready";
     }
 
-    _bottomBarUi.renderArray(std::vector<Cell>{Cell{text}});
+    _bottomBarUi.renderArray(k, std::vector<Cell>{Cell{text}});
   }
 
 
-  void render_info_modal(WINDOW* stdscr)
+  void renderInfoModal(int k)
   {
     int h, w;
     getmaxyx(stdscr, h, w);
@@ -231,7 +231,7 @@ private:
     std::optional<std::wstring> title =
     shows.empty() ? std::nullopt : std::make_optional(to_wstring(shows[0].title));
 
-    _infoUi.renderArray(lines, title);
+    _infoUi.renderArray(k, lines, title);
 
   }
 
@@ -442,25 +442,25 @@ bool doHandleKey(int k) override
       _addEditPodcastUi.buildWindow(mh, mw, y, x);
     }
   }
-  void doRenderLayout() override
+  void doRender(int k) override
   {
-    _podcastUi.render(_focusedPanel == Focus::Podcasts);
-    _statusUi.render(_focusedPanel == Focus::Status);
-    _showsUi.render(_focusedPanel == Focus::Shows);
-    renderActionsBar();
-    renderBottomBar();
+    _podcastUi.render(k, _focusedPanel == Focus::Podcasts);
+    _statusUi.render(k, _focusedPanel == Focus::Status);
+    _showsUi.render(k, _focusedPanel == Focus::Shows);
+    renderActionsBar(k);
+    renderBottomBar(k);
 
     if (_modalPopup == ModalMode::Confirm)
     {
-      _confirmUi.render();
+      _confirmUi.render(k);
     }
     else if (_modalPopup == ModalMode::Info)
     {
-      render_info_modal(stdscr);
+      renderInfoModal(k);
     }
     else if (_modalPopup == ModalMode::AddEditPodcast)
     {
-      _addEditPodcastUi.render();
+      _addEditPodcastUi.render(k);
     }
 
   }

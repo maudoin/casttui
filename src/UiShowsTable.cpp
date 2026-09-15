@@ -38,7 +38,7 @@ namespace{
   }
 }
 
-void UiShowsTable::render(bool focused)
+void UiShowsTable::render(int k, bool focused)
 {
   int h = getHeight();
   int inner_h = h - 2;
@@ -62,47 +62,51 @@ void UiShowsTable::render(bool focused)
     HeaderColumn{.width = 10, .name = L"Duration",.sort = toSortDir(durationSort), .dynamic = false, .callback=makeCallback(&MediaViewCols::duration, durationSort)},
   };
 
-  auto cell_cb = [&](int row, int col) -> Cell
+  for (TableRender::Row r : renderLoop(k, _logic.showCount(), cols, focused))
   {
-    int idx = row - firstVisibleDataRow();
-    if (idx < 0 || idx >= static_cast<int>(shows.size()))
-    return Cell{L"", A_NORMAL};
+    for (TableRender::Row::Col c : r)
+    {
+      int idx = r.index() - firstVisibleDataRow();
+      if (idx < 0 || idx >= static_cast<int>(shows.size()))
+      {
+        c.draw({});
+        continue;
+      }
+      auto const& s = shows[idx];
 
-    auto const& s = shows[idx];
+      std::wstring text;
+      if (c.index() == 0)
+      text = to_wstring(s.title);
+      else if (c.index() == 1)
+      text = to_wstring(s.dateStr());
+      else
+      text = to_wstring(s.durationStr());
 
-    std::wstring text;
-    if (col == 0)
-    text = to_wstring(s.title);
-    else if (col == 1)
-    text = to_wstring(s.dateStr());
-    else
-    text = to_wstring(s.durationStr());
+      bool isSelected = (r.index() >= 2 && _logic.isShowRankSelected(r.index()));
+      bool isCursor   = (r.index() == cursor() && focused);
 
-    bool isSelected = (row >= 2 && _logic.isShowRankSelected(row));
-    bool isCursor   = (row == cursor() && focused);
+      int style;
+      if (isCursor && isSelected)
+      style = COLOR_PAIR(3);
+      else if (isSelected)
+      style = COLOR_PAIR(2);
+      else if (isCursor)
+      style = COLOR_PAIR(1);
+      else
+      style = A_NORMAL;
 
-    int style;
-    if (isCursor && isSelected)
-    style = COLOR_PAIR(3);
-    else if (isSelected)
-    style = COLOR_PAIR(2);
-    else if (isCursor)
-    style = COLOR_PAIR(1);
-    else
-    style = A_NORMAL;
-
-    return Cell{text, style, [this, row]{
-      this->scrollTo(row);
-      this->_logic.showSelection(row, true, false);
-    }};
-  };
-
-  UiTable::render(_logic.showCount(), cols, cell_cb, focused);
+      if (c.draw({text, style}))
+      {
+        this->scrollTo(r.index());
+        this->_logic.showSelection(r.index(), true, false);
+      }
+    }
+  }
 }
 
 bool UiShowsTable::handleKey(int k)
 {
-  if (UiTable::handleKeyCh(k))
+  if (UiTable::handleKey(k))
   return true;
 
   using MediaStatus = DowncastLogic::MediaStatus;

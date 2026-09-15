@@ -26,7 +26,7 @@ UiStatusTable::UiStatusTable(DowncastLogic& _logic, std::function<void()> const&
   };
 }
 
-void UiStatusTable::render(bool focused)
+void UiStatusTable::render(int k, bool focused)
 {
   std::wstring title = L"Status: ";
   std::wstring quitLabel = L" X ";
@@ -45,50 +45,58 @@ void UiStatusTable::render(bool focused)
   // quit
   cols.push_back(HeaderColumn{.width =  static_cast<int>(quitLabel.size())});
 
-  auto cell_cb = [&](int row, int col) -> Cell
+  for (TableRender::Row r : renderLoop(k, 1, cols, focused))
   {
-    if (col == 0)
+    for (TableRender::Row::Col c : r)
     {
-      // Title
-      return Cell{title, A_NORMAL};
-    }
-    if (col == cols.size()-1)
-    {
-      // Quit
-      return Cell{quitLabel, A_NORMAL, _exit};
-    }
-    int statusIndex = col-1;
-    if (statusIndex >= _labels.size())
-    {
-      // Spacer
-      return Cell{L"", A_NORMAL};
-    }
-    auto const& [label, status] = _labels[statusIndex];
-    bool isSelected = _logic.isStatusActive(status);
-    bool isCursor   = (statusIndex == _cursorPosition && focused);
+      if (c.index() == 0)
+      {
+        // Title
+        c.draw({title});
+        continue;
+      }
+      if (c.index() == cols.size()-1)
+      {
+        // Quit
+        if (c.draw({quitLabel}))
+        {
+          _exit();
+        }
+        continue;
+      }
+      int statusIndex = c.index()-1;
+      if (statusIndex >= _labels.size())
+      {
+        // Spacer
+        c.draw({});
+        continue;
+      }
+      auto const& [label, status] = _labels[statusIndex];
+      bool isSelected = _logic.isStatusActive(status);
+      bool isCursor   = (statusIndex == _cursorPosition && focused);
 
-    int style;
-    if (isCursor && isSelected)
-    style = COLOR_PAIR(3);
-    else if (isSelected)
-    style = COLOR_PAIR(2);
-    else if (isCursor)
-    style = COLOR_PAIR(1);
-    else
-    style = A_NORMAL;
+      int style;
+      if (isCursor && isSelected)
+      style = COLOR_PAIR(3);
+      else if (isSelected)
+      style = COLOR_PAIR(2);
+      else if (isCursor)
+      style = COLOR_PAIR(1);
+      else
+      style = A_NORMAL;
 
-    return Cell{label, style,  [this, statusIndex]{
-      this->_cursorPosition = statusIndex;
-      auto const& [_, status] = this->_labels[statusIndex];
-      this->_logic.setCurrentPodcastRowIndex(
-        std::nullopt,
-        status,
-        DowncastLogic::SetPodcastOption::FORCE_REFRESH
-      );
-    }};
-  };
-
-  UiTable::render(1, cols, cell_cb, focused);
+      if (c.draw({label, style}))
+      {
+        this->_cursorPosition = statusIndex;
+        auto const& [_, status] = this->_labels[statusIndex];
+        this->_logic.setCurrentPodcastRowIndex(
+          std::nullopt,
+          status,
+          DowncastLogic::SetPodcastOption::FORCE_REFRESH
+        );
+      }
+    }
+  }
 }
 
 bool UiStatusTable::handleKey(int k)

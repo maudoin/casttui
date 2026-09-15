@@ -17,14 +17,14 @@ public:
   virtual bool doHandleKey(int k) = 0;
   virtual void doDelWindows() = 0;
   virtual void doBuildWindows(int h, int w) = 0;
-  virtual void doRenderLayout() = 0;
+  virtual void doRender(int k) = 0;
 
   void buildWindows();
   void delWindows();
 private:
 
   bool handleKey(int k);
-  void renderLayout();
+  void render(int k);
 protected:
   bool _isRunning = true;
 };

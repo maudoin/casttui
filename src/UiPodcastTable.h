@@ -22,7 +22,7 @@ public:
 
   explicit UiPodcastTable(DowncastLogic& logic, Actions const& actions);
 
-  void render(bool focused);
+  void render(int k, bool focused);
   bool handleKey(int k);
   bool pickPodcast();
   std::optional<int> getPodcastIndex()const;

@@ -20,7 +20,7 @@ public:
   void setAdd();
   void setEdit(PodcastCols const&p);
 
-  void render();
+  void render(int k);
 
   bool handleKey(int k);
 

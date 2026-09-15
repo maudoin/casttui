@@ -347,7 +347,7 @@ void UiTable::scrollHorizontal(int amount)
 }
 
 // ------------------------------------------------------------
-bool UiTable::handleKeyCh(int key)
+bool UiTable::handleKey(int key)
 {
   if (key == KEY_UP)
   {
@@ -396,34 +396,11 @@ void UiTable::buildWindow(int nlines, int ncols, int begy, int begx)
 }
 
 // ------------------------------------------------------------
-void UiTable::render(
-    int dataRowCount,
-    const std::vector<HeaderColumn> &headerCols,
-    const std::function<Cell(int, int)> &cell_cb,
-    bool focused)
-{
-  if (!_win)
-  {
-    return;
-  }
-  for (TableRender::Row r : renderLoop(dataRowCount, headerCols, cell_cb, focused))
-  {
-    for (TableRender::Row::Col c : r)
-    {
-      Cell cell = cell_cb(r.index(), c.index());
-      if (auto h = c.draw(cell))
-      {
-        this->add(h);
-      }
-    }
-  }
-}
-// ------------------------------------------------------------
 TableRender UiTable::renderLoop(
-    int dataRowCount,
-    const std::vector<HeaderColumn> &headerCols,
-    const std::function<Cell(int, int)> &cell_cb,
-    bool focused)
+  int k,
+  int dataRowCount,
+  const std::vector<HeaderColumn> &headerCols,
+  bool focused)
 {
   setWin(_win);
   werase(_win);
@@ -478,6 +455,7 @@ TableRender UiTable::renderLoop(
   _dynamicColMaxDataWidth = 0;
   return{*this,
           _win,
+          k,
           0, totalInnerW,
           dataRowCount,
           std::move(resolvedHeaderCols),
@@ -501,7 +479,7 @@ TableRender::Row::Col TableRender::Row::begin()
   return {*this, 0};
 }
 // ------------------------------------------------------------
-UiHotspot TableRender::Row::draw(int i, Cell const& cell)
+std::optional<MouseEvent> TableRender::Row::draw(int i, Cell const& cell)
 {
     if (i > 0)
     {
@@ -529,7 +507,18 @@ UiHotspot TableRender::Row::draw(int i, Cell const& cell)
 
       addstr_run(tableRender.win, row(), tableRender.col + x, text, cell.style);
 
-      return cell.callback ? UiHotspot{row(), tableRender.col + x, row() + 1, tableRender.col + x + (int)text.size(), *(cell.callback)}:UiHotspot{};
+      if (tableRender.k == KEY_MOUSE)
+      {
+        if (auto ev = getMouseEvent())
+        {
+          MouseEvent mev = ev->toLocal(tableRender.win);
+          if (mev.hit({row(), tableRender.col + x, row() + 1, tableRender.col + x + (int)text.size()}))
+          {
+            return ev;
+          }
+        }
+      }
+      return std::optional<MouseEvent>();
     }();
     x += width;
     return res;
@@ -586,32 +575,33 @@ TableRender::~TableRender()
 
 // ------------------------------------------------------------
 void UiTable::renderArray(
+    int k,
     const std::vector<Cell> &array,
     const std::optional<std::wstring> &title,
     bool focused)
 {
-  setWin(_win);
-  auto cell_cb = [&array](int row, int) -> Cell
-  {
-    return array[row];
-  };
-
   std::vector<HeaderColumn> cols{
       HeaderColumn{0, title, SortDir::NONE, true}};
 
-  render(static_cast<int>(array.size()), cols, cell_cb, focused);
+  for (TableRender::Row r : renderLoop(k, static_cast<int>(array.size()), cols, focused))
+  {
+    for (TableRender::Row::Col c : r)
+    {
+      Cell const& cell = array[r.index()];
+      if (c.draw(cell) && cell.callback)
+      {
+        (*cell.callback)();
+      }
+    }
+  }
 }
 
 // ------------------------------------------------------------
 void UiTable::renderSingleLine(
+    int k,
     const std::vector<Cell> &array,
     bool focused)
 {
-  setWin(_win);
-  auto cell_cb = [&array](int, int col) -> Cell
-  {
-    return array[col];
-  };
   auto colsView = array | std::views::transform([](const Cell &c)
                                                 { return HeaderColumn{
                                                       .width = static_cast<int>(c.text.size()),
@@ -619,5 +609,15 @@ void UiTable::renderSingleLine(
   std::vector<HeaderColumn> cols(colsView.begin(), colsView.end());
   if (!cols.empty())
     cols.back().width = -1;
-  render(1, cols, cell_cb, focused);
+  for (TableRender::Row r : renderLoop(k, 1, cols, focused))
+  {
+    for (TableRender::Row::Col c : r)
+    {
+      Cell const& cell = array[c.index()];
+      if (c.draw(cell) && cell.callback)
+      {
+        (*cell.callback)();
+      }
+    }
+  }
 }

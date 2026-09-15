@@ -12,7 +12,7 @@ public:
 
   void set(std::wstring const& title, std::function<void()> const& action);
 
-  void render();
+  void render(int k);
   bool handleKey(int k);
 private:
   void cancel();

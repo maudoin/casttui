@@ -54,7 +54,7 @@ void UiPodcastSetup::setEdit(PodcastCols const &p)
   modal_edit_buffer = "";
 }
 
-void UiPodcastSetup::render()
+void UiPodcastSetup::render(int k)
 {
   int h = getHeight();
   int inner_h = h - 2;
@@ -86,66 +86,98 @@ void UiPodcastSetup::render()
     HeaderColumn{.width = -1, .dynamic = true},
   };
 
-  auto cell_cb = [=, this](int row, int col) -> Cell
+  for (TableRender::Row r : renderLoop(k, inner_h, cols, true))
   {
-    if (row == inner_h - 1)
+    for (TableRender::Row::Col c : r)
     {
-      if (col == 0)
-        return Cell{.text=_mode == Mode::AddPodcast ? L"Add podcast (s)" : L"Save podcast (s)", .style=A_BOLD, .callback=[this]{this->savePodcast();}};
-      if (col == 1)
-        return Cell{.text=L"Cancel (Esc)", .style=A_BOLD, .callback=_doneCallback};
-    }
+      if (r.index() == inner_h - 1)
+      {
+        if (c.index() == 0)
+        {
+          if (c.draw({.text = _mode == Mode::AddPodcast ? L"Add podcast (s)" : L"Save podcast (s)", .style = A_BOLD}))
+          {
+            savePodcast();
+          }
+          continue;
+        }
+        if (c.index() == 1)
+        {
+          if (c.draw({.text = L"Cancel (Esc)", .style = A_BOLD}))
+          {
+            _doneCallback();
+          }
+          continue;
+        }
+      }
 
-    auto setRowNoEdit = [this, row]{
+      auto setRowNoEdit = [this, row = r.index()]
+      {
         modal_field = row;
         modal_edit_buffer.clear();
         modal_editing = false;
       };
-    // Field rows
-    if (row >= 0 && row < fieldCount)
-    {
-      auto const& f = fields[row];
-
-      bool isCurrentField = (row == modal_field);
-      bool editing  = (modal_editing && isCurrentField);
-
-      if (col == 0)
+      // Field rows
+      if (r.index() >= 0 && r.index() < fieldCount)
       {
-        int style = (isCurrentField && !editing) ? COLOR_PAIR(1) : A_NORMAL;
-        return Cell{.text=f.label, .style=style, .callback=setRowNoEdit};
+        auto const &f = fields[r.index()];
+
+        bool isCurrentField = (r.index() == modal_field);
+        bool editing = (modal_editing && isCurrentField);
+
+        if (c.index() == 0)
+        {
+          int style = (isCurrentField && !editing) ? COLOR_PAIR(1) : A_NORMAL;
+          if (c.draw({.text = f.label, .style = style}))
+          {
+            setRowNoEdit();
+          }
+          continue;
+        }
+        else
+        {
+          std::wstring displayValue =
+              editing ? to_wstring(modal_edit_buffer) + L"_" : f.value;
+          int style = (isCurrentField && editing) ? COLOR_PAIR(1) : A_NORMAL;
+          if (c.draw({.text = displayValue, .style = style}))
+          {
+            if (f.editable)
+            {
+              modal_field = r.index();
+              startEdit();
+            }
+            else
+            {
+              setRowNoEdit();
+            }
+          }
+          continue;
+        }
       }
-      else
+      // Preview rows
+      if (r.index() >= fieldCount)
       {
-        std::wstring displayValue =
-          editing ? to_wstring(modal_edit_buffer) + L"_" : f.value;
-        int style = (isCurrentField && editing) ? COLOR_PAIR(1) : A_NORMAL;
-        if (!f.editable)
-          return Cell{.text=displayValue, .style=style, .callback=setRowNoEdit};
-        return Cell{.text=displayValue, .style=style, .callback=[this, row, displayValue]{
-          modal_field = row;
-          startEdit();
-        }};
+        int preview = r.index() - fieldCount;
+        if (c.index() == 0 && preview == 0)
+        {
+          if (c.draw({.text = L"Preview", .style = A_BOLD}))
+          {
+            setRowNoEdit();
+          }
+          continue;
+        }
+        if (c.index() == 1 && preview < modal_preview_shows.size())
+        {
+          if (c.draw({.text = to_wstring(modal_preview_shows[preview])}))
+          {
+            setRowNoEdit();
+          }
+          continue;
+        }
       }
+      // default fill
+      c.draw({});
     }
-    // Preview rows
-    if (row >= fieldCount)
-    {
-      int preview = row-fieldCount;
-      if (col==0 && preview==0)
-      {
-        return Cell{.text=L"Preview", .style=A_BOLD, .callback=setRowNoEdit};
-      }
-      if (col==1 && preview < modal_preview_shows.size())
-      {
-        return Cell{.text=to_wstring(modal_preview_shows[preview]), .style=A_NORMAL, .callback=setRowNoEdit};
-      }
-    }
-
-    // Footer row
-    return Cell{L"", A_NORMAL};
-  };
-
-  UiTable::render(inner_h, cols, cell_cb, true);
+  }
 }
 
 bool UiPodcastSetup::handleKey(int k)
@@ -209,7 +241,7 @@ bool UiPodcastSetup::handleKey(int k)
   }
   if (modal_field == 4 && (k == KEY_LEFT || k == KEY_RIGHT))
   {
-    return UiTable::handleKeyCh(k);
+    return UiTable::handleKey(k);
   }
 
   // ENTER begins editing

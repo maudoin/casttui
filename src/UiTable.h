@@ -41,7 +41,7 @@ struct HeaderColumn
 // --------------------------------------------------------------------
 struct Cell
 {
-  std::wstring text;
+  std::wstring text = L"";
   int style = A_NORMAL;
   std::optional<std::function<void()>> callback;
 };
@@ -54,6 +54,7 @@ struct TableRender
 {
   UiTable& table;
   WINDOW *win;
+  int k;
   int col;
   int totalInnerW;
   int dataRowCount;
@@ -97,7 +98,7 @@ struct TableRender
       Col& operator++(){++i;return *this;}
       int index(){return i;}
 
-      UiHotspot draw(Cell const& cell)
+      std::optional<MouseEvent> draw(Cell const& cell)
       {
         return context.draw(i, cell);
       }
@@ -106,7 +107,7 @@ struct TableRender
     Col begin();
     Col end(){return {*this, static_cast<int>(tableRender.cols_def.size())};}
   private:
-    UiHotspot draw(int i, Cell const& cell);
+    std::optional<MouseEvent> draw(int i, Cell const& cell);
   };
   Row begin(){return {*this, 0};}
   Row end(){return {*this, viewContentDataSize};}
@@ -132,29 +133,25 @@ public:
   void scrollVertical(int amount);
   void scrollHorizontal(int amount);
 
-  bool handleKeyCh(int key);
-
-  void render(
-      int dataRowCount,
-      const std::vector<HeaderColumn> &header_cols,
-      const std::function<Cell(int, int)> &cell_cb,
-      bool focused = false);
+  bool handleKey(int key);
 
   friend class TableRender;
   TableRender renderLoop(
-      int dataRowCount,
-      const std::vector<HeaderColumn> &header_cols,
-      const std::function<Cell(int, int)> &cell_cb,
-      bool focused = false);
+    int k,
+    int dataRowCount,
+    const std::vector<HeaderColumn> &header_cols,
+    bool focused = false);
   void renderEnd(TableRender& tableRender);
 
   void renderArray(
-      const std::vector<Cell> &array,
-      const std::optional<std::wstring> &title = std::nullopt,
-      bool focused = false);
+    int k,
+    const std::vector<Cell> &array,
+    const std::optional<std::wstring> &title = std::nullopt,
+    bool focused = false);
   void renderSingleLine(
-      const std::vector<Cell> &array,
-      bool focused = false);
+    int k,
+    const std::vector<Cell> &array,
+    bool focused = false);
 
   int cursor() const { return _cursor; }
   int firstVisibleDataRow() const { return _firstVisibleDataRow; }

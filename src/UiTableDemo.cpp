@@ -14,6 +14,7 @@ void run_table(int width, bool header, bool focus = false)
     UiTable table(UiTable::Mode::SCROLL, []{}, 5, 0);
     table.buildWindow(height, width, starty, startx);
 
+    int k = ERR;
     while (true)
     {
       std::vector<HeaderColumn> cols;
@@ -36,20 +37,22 @@ void run_table(int width, bool header, bool focus = false)
 
       int rowCount = 20;
 
-      auto cell_cb = [&cols](int row, int col) -> Cell {
-        std::wstring base = cols[col].name.value_or(L"");
-        std::wstring text = base + std::to_wstring(row);
-        int style = (row % 2 == 0) ? A_BOLD : A_DIM;
-        return Cell{ text, style };
-      };
-
-      table.render(rowCount, cols, cell_cb, focus);
-
-      int key = wgetch(stdscr);
-
-      if (!table.handleKeyCh(key))
+      for (TableRender::Row r : table.renderLoop(k, rowCount, cols, focus))
       {
-        if (key == 10 || key == 13 || key == 32 || key == 27)
+        for (TableRender::Row::Col c : r)
+        {
+          std::wstring base = cols[c.index()].name.value_or(L"");
+          std::wstring text = base + std::to_wstring(r.index());
+          int style = (r.index() % 2 == 0) ? A_BOLD : A_DIM;
+          c.draw({ text, style });
+        }
+      }
+
+      k = wgetch(stdscr);
+
+      if (!table.handleKey(k))
+      {
+        if (k == 10 || k == 13 || k == 32 || k == 27)
         break;
       }
     }

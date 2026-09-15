@@ -26,7 +26,7 @@ struct MouseEvent
     bool alt;
     mmask_t raw_bstate;
 
-    MouseEvent toLocal(WINDOW* win, MouseEvent const& ev)
+    MouseEvent toLocal(WINDOW* win)
     {
         int beginRow, beginCol;
         getbegyx(win, beginRow, beginCol);
@@ -34,6 +34,13 @@ struct MouseEvent
         locaEv.x -= beginCol;
         locaEv.y -= beginRow;
         return locaEv;
+    }
+
+    struct Loc{ int beginRow=0, beginCol=0, endRow=0, endCol=0; };
+    bool hit(Loc const& loc)
+    {
+        return (x >= loc.beginCol && x < loc.endCol) &&
+               (y >= loc.beginRow && y < loc.endRow);
     }
 };
 
