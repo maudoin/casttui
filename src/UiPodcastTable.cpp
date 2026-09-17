@@ -39,7 +39,7 @@ void UiPodcastTable::render(int k, bool focused)
   }
 
   std::vector<HeaderColumn> cols{
-    HeaderColumn{.width = -1, .name = std::nullopt, .sort = SortDir::NONE, .dynamic = true}
+    HeaderColumn{.width = HeaderColumn::FILL, .name = std::nullopt, .sort = SortDir::NONE}
   };
 
   auto cell_cb = [&](int row, int /*col*/, std::optional<MouseEvent> const& ev) -> Cell

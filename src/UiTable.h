@@ -29,11 +29,11 @@ enum class SortDir
 
 struct HeaderColumn
 {
+  static constexpr int FILL=-1;
+  static constexpr int FIT_LABEL=0;
   int width;
   std::optional<std::wstring> name = std::nullopt;
   SortDir sort = SortDir::NONE;
-  bool dynamic = false;
-  bool fit = false;
   std::optional<std::function<void()>> callback;
 };
 

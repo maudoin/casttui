@@ -21,17 +21,17 @@ void run_table(int width, bool header, bool focus = false)
       if (header)
       {
         cols = {
-          HeaderColumn{ 3, std::wstring(L"A"), SortDir::UP, false },
-          HeaderColumn{ 0, std::wstring(L"B (fill) "), SortDir::NONE, true },
-          HeaderColumn{ 4, std::wstring(L"C"), SortDir::NONE, false }
+          HeaderColumn{ 3, std::wstring(L"A"), SortDir::UP },
+          HeaderColumn{ HeaderColumn::FILL, std::wstring(L"B (fill) "), SortDir::NONE },
+          HeaderColumn{ 4, std::wstring(L"C"), SortDir::NONE }
         };
       }
       else
       {
         cols = {
-          HeaderColumn{ 10, std::nullopt, SortDir::NONE, false },
-          HeaderColumn{ 0, std::nullopt, SortDir::NONE, true },
-          HeaderColumn{ 20, std::nullopt, SortDir::NONE, false }
+          HeaderColumn{ 10, std::nullopt, SortDir::NONE },
+          HeaderColumn{ HeaderColumn::FILL, std::nullopt, SortDir::NONE },
+          HeaderColumn{ 20, std::nullopt, SortDir::NONE }
         };
       }
 

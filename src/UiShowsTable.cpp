@@ -57,9 +57,9 @@ void UiShowsTable::render(int k, bool focused)
   };
 
   std::vector<HeaderColumn> cols{
-    HeaderColumn{.width = -1, .name = L"Title",   .sort = toSortDir(titleSort),   .dynamic = true,   .callback=makeCallback(&MediaViewCols::title, titleSort)},
-    HeaderColumn{.width = 12, .name = L"Date",    .sort = toSortDir(dateSort),     .dynamic = false, .callback=makeCallback(&MediaViewCols::date, dateSort)},
-    HeaderColumn{.width = 10, .name = L"Duration",.sort = toSortDir(durationSort), .dynamic = false, .callback=makeCallback(&MediaViewCols::duration, durationSort)},
+    HeaderColumn{.width = HeaderColumn::FILL, .name = L"Title",   .sort = toSortDir(titleSort), .callback=makeCallback(&MediaViewCols::title, titleSort)},
+    HeaderColumn{.width = 12, .name = L"Date",    .sort = toSortDir(dateSort),     .callback=makeCallback(&MediaViewCols::date, dateSort)},
+    HeaderColumn{.width = 10, .name = L"Duration",.sort = toSortDir(durationSort), .callback=makeCallback(&MediaViewCols::duration, durationSort)},
   };
 
   auto cell_cb = [&](int row, int col, std::optional<MouseEvent> const& ev) -> Cell

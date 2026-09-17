@@ -52,7 +52,7 @@ void UiConfirm::render(int k)
   };
 
   std::vector<HeaderColumn> cols{
-    HeaderColumn{ .width = 0, .dynamic=true },
+    HeaderColumn{ .width = HeaderColumn::FILL },
     HeaderColumn{ .width = static_cast<int>(cancel.size()) }
   };
 

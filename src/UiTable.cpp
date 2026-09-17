@@ -279,7 +279,7 @@ void UiTable::TableRender::draw(Row& r, int i, Cell const& cell)
   int row = viewContentFirstRow+r.i;
   addstr_focus(table._win, row, col + r.x, i==0?build_left_border():build_separator(), focused);
 
-  int col_text_offset = cols_def[i].dynamic ? table._dynamicColCurrentOffsetX : 0;
+  int col_text_offset = (dynamicIndex == i) ? table._dynamicColCurrentOffsetX : 0;
   int width = cols_def[i].width;
 
   std::wstring text = cell.text;
@@ -314,9 +314,9 @@ resolveHeaderWidth(const std::vector<HeaderColumn> &headerCols, int totalInnerW)
   int num_fill = 0;
   for (std::size_t i = 0; i < headerCols.size(); ++i)
   {
-    if (headerCols[i].width > 0 && !headerCols[i].dynamic)
+    if (headerCols[i].width > 0)
       fixed += headerCols[i].width;
-    else if (headerCols[i].fit && headerCols[i].name)
+    else if (headerCols[i].width == HeaderColumn::FIT_LABEL && headerCols[i].name)
       fixed += headerCols[i].name->size();
     else
     {
@@ -334,8 +334,7 @@ resolveHeaderWidth(const std::vector<HeaderColumn> &headerCols, int totalInnerW)
   for (auto const &hc : headerCols)
   {
     HeaderColumn r = hc;
-    r.width = (hc.fit && hc.name) ? hc.name->size() : hc.width > 0 ? hc.width : fill_width;
-    r.dynamic |= hc.width <= 0;
+    r.width = (hc.width==HeaderColumn::FIT_LABEL && hc.name) ? hc.name->size() : hc.width == HeaderColumn::FILL ? fill_width : hc.width;
     resolvedHeaderCols.push_back(r);
   }
   return resolvedHeaderCols;
@@ -468,19 +467,18 @@ UiTable::TableRender UiTable::renderStart(
   getmaxyx(_win, h, w);
   int totalInnerW = w - 2;
 
+  std::vector<HeaderColumn> resolvedHeaderCols = resolveHeaderWidth(headerCols, totalInnerW);
   // ------------------------------------------------------------
   // Resolve column widths
   // ------------------------------------------------------------
-  auto it = std::ranges::find_if(headerCols,
-      [](auto const& hc){ return hc.width <= 0 || hc.dynamic; });
-  int dynamic_index = (it == headerCols.end() ? -1 : it - headerCols.begin());
+  auto it = std::ranges::find_if(resolvedHeaderCols,
+      [](auto const& hc){ return hc.width == HeaderColumn::FILL; });
+  int dynamic_index = (it == resolvedHeaderCols.end() ? -1 : it - resolvedHeaderCols.begin());
 
-  bool hasHeader = std::ranges::any_of(headerCols,
+  bool drawHeader = std::ranges::any_of(resolvedHeaderCols,
     [](auto const &hc){ return hc.name.has_value(); });
-  int viewContentFirstRow = hasHeader ? 3 : 1;
-  _lastKnownViewHeight = h - (hasHeader? 4 : 2);
-
-  std::vector<HeaderColumn> resolvedHeaderCols = resolveHeaderWidth(headerCols, totalInnerW);
+  int viewContentFirstRow = drawHeader ? 3 : 1;
+  _lastKnownViewHeight = h - (drawHeader? 4 : 2);
 
   _dynamicColViewWidth =
       (dynamic_index >= 0 ? resolvedHeaderCols[dynamic_index].width : 0);
@@ -499,7 +497,7 @@ UiTable::TableRender UiTable::renderStart(
   // ------------------------------------------------------------
   draw_top_border_header(_win, 0, 0, resolvedHeaderCols, focused);
 
-  if (hasHeader)
+  if (drawHeader)
   {
     draw_header_row(_win, 1, 0, resolvedHeaderCols, *this, focused);
     if (h>3)
@@ -582,7 +580,7 @@ void UiTable::renderArray(
   };
 
   std::vector<HeaderColumn> cols{
-      HeaderColumn{0, title, SortDir::NONE, true}};
+      HeaderColumn{.width=HeaderColumn::FILL, .name=title}};
 
   render(k, static_cast<int>(array.size()), cols, cell_cb, focused);
 }

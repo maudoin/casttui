@@ -81,13 +81,13 @@ private:
           this->_logic.setShowSorting(col, DowncastLogic::cycle(_logic.getShowSorting(col)));
         };
       };
-      items.push_back({ .width=0, .name = L"Info (i)",          .fit=true, .callback = [this]{this->_modalPopup = ModalMode::Info;} });
-      items.push_back({ .width=0, .name = L"Name sort (n)",     .fit=true, .callback = sortCallback(&MediaViewCols::title)});
-      items.push_back({ .width=0, .name = L"Time sort (t)",     .fit=true, .callback = sortCallback(&MediaViewCols::date)});
-      items.push_back({ .width=0, .name = L"Length sort (l)",   .fit=true, .callback = sortCallback(&MediaViewCols::duration)});
-      items.push_back({ .width=0, .name = L"Select Above (-)",  .fit=true, .callback = [this]{
+      items.push_back({ .width=HeaderColumn::FIT_LABEL, .name = L"Info (i)",          .callback = [this]{this->_modalPopup = ModalMode::Info;} });
+      items.push_back({ .width=HeaderColumn::FIT_LABEL, .name = L"Name sort (n)",     .callback = sortCallback(&MediaViewCols::title)});
+      items.push_back({ .width=HeaderColumn::FIT_LABEL, .name = L"Time sort (t)",     .callback = sortCallback(&MediaViewCols::date)});
+      items.push_back({ .width=HeaderColumn::FIT_LABEL, .name = L"Length sort (l)",   .callback = sortCallback(&MediaViewCols::duration)});
+      items.push_back({ .width=HeaderColumn::FIT_LABEL, .name = L"Select Above (-)",  .callback = [this]{
         this->_logic.selectShowRange(0, this->_showsUi.cursor(), true);}});
-        items.push_back({ .width=0, .name = L"Select Below (+)", .fit=true, .callback = [this]{
+        items.push_back({ .width=HeaderColumn::FIT_LABEL, .name = L"Select Below (+)", .callback = [this]{
           this->_logic.selectShowRange(this->_showsUi.cursor(), this->_logic.showCount()-1, true);}});
       }
 
@@ -95,20 +95,20 @@ private:
       if (_focusedPanel == Focus::Podcasts && podcastIndexOpt)
       {
         int podcastIndex = *podcastIndexOpt;
-        items.push_back({ .width=0, .name = L"Refresh (r)", .fit=true, .callback = [this, podcastIndex]{
+        items.push_back({ .width=HeaderColumn::FIT_LABEL, .name = L"Refresh (r)", .callback = [this, podcastIndex]{
           if (podcastIndex<_logic.podcastCount())
           {
             this->_logic.refreshPodcastAtIndex(podcastIndex);}
           }
         });
-        items.push_back({ .width=0, .name = L"Edit (e)",    .fit=true, .callback = [this, podcastIndex]{
+        items.push_back({ .width=HeaderColumn::FIT_LABEL, .name = L"Edit (e)",    .callback = [this, podcastIndex]{
           if (podcastIndex<_logic.podcastCount())
           {
             this->_addEditPodcastUi.setEdit(_logic.podcast(podcastIndex));
             this->_modalPopup = ModalMode::AddEditPodcast;
           }
         } });
-        items.push_back({ .width=0, .name = L"Delete (d)",  .fit=true, .callback = [this, podcastIndex]{
+        items.push_back({ .width=HeaderColumn::FIT_LABEL, .name = L"Delete (d)",  .callback = [this, podcastIndex]{
           this->_modalPopup = ModalMode::Confirm;
           this->_confirmUi.set(L"Delete '" + to_wstring(_logic.podcast(podcastIndex).title) + L"'?", [this, podcastIndex]{
             if (podcastIndex<_logic.podcastCount())
@@ -123,34 +123,34 @@ private:
     using MediaStatus = DowncastLogic::MediaStatus;
     if (_logic.isStatusActive(MediaStatus::New))
     {
-      items.push_back({ .width=0, .name = L"Update (u)", .fit=true, .callback = [this]{this->_logic.refreshCurrentPodcast();} });
+      items.push_back({ .width=HeaderColumn::FIT_LABEL, .name = L"Update (u)", .callback = [this]{this->_logic.refreshCurrentPodcast();} });
     }
 
     if (_logic.isStatusActive(MediaStatus::Queued))
     {
       if (_logic.isDownloading())
       {
-        items.push_back({ .width=0, .name = L"Downloading…", .fit=true, .callback = []{} });
+        items.push_back({ .width=HeaderColumn::FIT_LABEL, .name = L"Downloading…", .callback = []{} });
       }
       else
       {
-        items.push_back({ .width=0, .name = L"Start Download (d)", .fit=true, .callback = [this]{this->_logic.startDownload();} });
+        items.push_back({ .width=HeaderColumn::FIT_LABEL, .name = L"Start Download (d)", .callback = [this]{this->_logic.startDownload();} });
       }
     }
 
     if (_logic.anySelection())
     {
       if (!_logic.isStatusActive(MediaStatus::New))
-      items.push_back({ .width=0, .name = L"Set New (n)", .fit=true, .callback = [this]{this->_logic.setSelectedShowsStatus(Status::NEW);} });
+      items.push_back({ .width=HeaderColumn::FIT_LABEL, .name = L"Set New (n)", .callback = [this]{this->_logic.setSelectedShowsStatus(Status::NEW);} });
 
       if (!_logic.isStatusActive(MediaStatus::Skipped))
-      items.push_back({ .width=0, .name = L"Skip (s)", .fit=true, .callback = [this]{this->_logic.setSelectedShowsStatus(Status::SKIPPED);} });
+      items.push_back({ .width=HeaderColumn::FIT_LABEL, .name = L"Skip (s)", .callback = [this]{this->_logic.setSelectedShowsStatus(Status::SKIPPED);} });
 
       if (!_logic.isStatusActive(MediaStatus::Queued))
-      items.push_back({ .width=0, .name = L"Queue (q)", .fit=true, .callback = [this]{this->_logic.setSelectedShowsStatus(Status::QUEUED);} });
+      items.push_back({ .width=HeaderColumn::FIT_LABEL, .name = L"Queue (q)", .callback = [this]{this->_logic.setSelectedShowsStatus(Status::QUEUED);} });
     }
 
-    items.push_back({ .width=0, .name=L"", .dynamic=true});
+    items.push_back({ .width=HeaderColumn::FILL, .name=L""});
     _actionsUi.render(k, 0, items, [](int, int, std::optional<MouseEvent> const&){return Cell{};});
   }
 
@@ -213,7 +213,7 @@ private:
     std::optional<std::wstring> title =
       shows.empty() ? std::nullopt : std::make_optional(to_wstring(shows[0].title));
     std::vector<HeaderColumn> cols{
-        HeaderColumn{.name=title, .dynamic=true}};
+        HeaderColumn{.width=HeaderColumn::FILL, .name=title}};
 
     auto getCell = [&](int row, int col, std::optional<MouseEvent> const&)
     {

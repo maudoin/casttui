@@ -82,8 +82,8 @@ void UiPodcastSetup::render(int k)
 
   // Columns: Label | Value
   std::vector<HeaderColumn> cols{
-    HeaderColumn{.width = 20, .dynamic = false},
-    HeaderColumn{.width = -1, .dynamic = true},
+    HeaderColumn{.width = 20},
+    HeaderColumn{.width = HeaderColumn::FILL},
   };
 
   auto cell_cb = [=, this](int row, int col, std::optional<MouseEvent> const& ev) -> Cell

@@ -41,7 +41,7 @@ void UiStatusTable::render(int k, bool focused)
     cols.push_back(HeaderColumn{.width = static_cast<int>(label.size())});
   };
   // spacer
-  cols.push_back(HeaderColumn{.dynamic = true});
+  cols.push_back(HeaderColumn{.width = HeaderColumn::FILL});
   // quit
   cols.push_back(HeaderColumn{.width =  static_cast<int>(quitLabel.size())});
 
