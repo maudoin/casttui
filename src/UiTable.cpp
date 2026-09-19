@@ -16,10 +16,10 @@ namespace{
 // Safe write helpers
 // --------------------------------------------------------------------
 #ifdef DEBUG_UI
-inline void safe_addstr(WINDOW *_win, int row, int col, const std::wstring &ch, int attrs)
+inline void safe_addstr(WINDOW *win, int row, int col, const std::wstring &ch, int attrs)
 {
   int h, w;
-  getmaxyx(_win, h, w);
+  getmaxyx(win, h, w);
 
   if (row < 0 || row >= h || col < 0 || col >= w)
   {
@@ -28,25 +28,25 @@ inline void safe_addstr(WINDOW *_win, int row, int col, const std::wstring &ch, 
     std::wcerr << "=== CURSES ERROR TRACE ===\n";
     // StackTrace::print();
   }
-  wattron(_win, attrs);
-  mvwaddwstr(_win, row, col, ch.c_str());
-  wattroff(_win, attrs);
+  wattron(win, attrs);
+  mvwaddwstr(win, row, col, ch.c_str());
+  wattroff(win, attrs);
 }
 
-inline void mvwaddwstr_watt(WINDOW *_win, int row, int col, const std::wstring &chars, int attrs)
+inline void mvwaddwstr_watt(WINDOW *win, int row, int col, const std::wstring &chars, int attrs)
 {
   for (std::size_t i = 0; i < chars.size(); ++i)
   {
-    safe_addstr(_win, row, col + static_cast<int>(i),
+    safe_addstr(win, row, col + static_cast<int>(i),
                 std::wstring(1, chars[i]), attrs);
   }
 }
 #else
-inline void mvwaddwstr_watt(WINDOW *_win, int row, int col, const std::wstring &chars, int attrs)
+inline void mvwaddwstr_watt(WINDOW *win, int row, int col, const std::wstring &chars, int attrs)
 {
-  wattron(_win, attrs);
-  mvwaddwstr(_win, row, col, chars.c_str());
-  wattroff(_win, attrs);
+  wattron(win, attrs);
+  mvwaddwstr(win, row, col, chars.c_str());
+  wattroff(win, attrs);
 }
 #endif
 
@@ -54,7 +54,7 @@ inline void mvwaddwstr_watt(WINDOW *_win, int row, int col, const std::wstring &
 // Border builders
 // --------------------------------------------------------------------
 inline void draw_bottom_scroll_border(
-    WINDOW *_win,
+    WINDOW *win,
     int row,
     int col,
     int inner_width,
@@ -73,11 +73,11 @@ inline void draw_bottom_scroll_border(
       chars.append(L"─"); // FIXED
   }
 
-  mvwaddwstr_watt(_win, row, col, std::wstring(L"╰") + chars + std::wstring(L"╯"), borderStyle);
+  mvwaddwstr_watt(win, row, col, std::wstring(L"╰") + chars + std::wstring(L"╯"), borderStyle);
 }
 
 inline void draw_border_columns(
-    WINDOW *_win,
+    WINDOW *win,
     int row,
     int col,
     const std::vector<ColumnRange> &cols,
@@ -86,64 +86,64 @@ inline void draw_border_columns(
     const std::wstring &end,
     int borderStyle)
 {
-  mvwaddwstr_watt(_win, row, col, start, borderStyle);
+  mvwaddwstr_watt(win, row, col, start, borderStyle);
   for (std::size_t i = 0; i < cols.size(); ++i)
   {
     auto const& range = cols[i];
-    mvwaddwstr_watt(_win, row, col + range.start, std::wstring(range.width, L'─'), borderStyle);
-    mvwaddwstr_watt(_win, row, col + range.start + range.width, (i < cols.size() - 1)?mid:end, borderStyle);
+    mvwaddwstr_watt(win, row, col + range.start, std::wstring(range.width, L'─'), borderStyle);
+    mvwaddwstr_watt(win, row, col + range.start + range.width, (i < cols.size() - 1)?mid:end, borderStyle);
   }
 }
 
 void draw_top_border_header(
-    WINDOW *_win,
+    WINDOW *win,
     int row,
     int col,
     const std::vector<ColumnRange> &cols,
     int borderStyle)
 {
-  // box(_win, 0, 0);
-  draw_border_columns(_win, row, col, cols, L"╭", L"┬", L"╮", borderStyle);
+  // box(win, 0, 0);
+  draw_border_columns(win, row, col, cols, L"╭", L"┬", L"╮", borderStyle);
 }
 
 void draw_mid_border_header(
-    WINDOW *_win,
+    WINDOW *win,
     int row,
     int col,
     const std::vector<ColumnRange> &cols,
     int borderStyle)
 {
-  draw_border_columns(_win, row, col, cols, L"├", L"┼", L"┤", borderStyle);
+  draw_border_columns(win, row, col, cols, L"├", L"┼", L"┤", borderStyle);
 }
 
 void draw_bottom_border_header(
-    WINDOW *_win,
+    WINDOW *win,
     int row,
     int col,
     const std::vector<ColumnRange> &cols,
     int borderStyle)
 {
-  draw_border_columns(_win, row, col, cols, L"╰", L"┴", L"╯", borderStyle);
+  draw_border_columns(win, row, col, cols, L"╰", L"┴", L"╯", borderStyle);
 }
 
 void draw_top_border(
-    WINDOW *_win,
+    WINDOW *win,
     int row,
     int col,
     int inner_width,
     int borderStyle)
 {
-  draw_top_border_header(_win, row, col, {ColumnRange{0,inner_width}}, borderStyle);
+  draw_top_border_header(win, row, col, {ColumnRange{0,inner_width}}, borderStyle);
 }
 
 void draw_bottom_border(
-    WINDOW *_win,
+    WINDOW *win,
     int row,
     int col,
     int inner_width,
     int borderStyle)
 {
-  draw_bottom_border_header(_win, row, col, {ColumnRange{0,inner_width}}, borderStyle);
+  draw_bottom_border_header(win, row, col, {ColumnRange{0,inner_width}}, borderStyle);
 }
 
 inline std::wstring build_left_border()
@@ -175,14 +175,14 @@ inline bool fill(HeaderColumn const& c){return fill(c.width);}
 template<typename C>
 inline void draw_header_row(
   UiInput const& input,
-  WINDOW *_win,
+  WINDOW *win,
   int row,
   int col,
   const std::vector<C> &cols,
   const std::vector<ColumnRange> &colRanges,
   int borderStyle)
 {
-  mvwaddwstr_watt(_win, row, col, build_left_border(), borderStyle);
+  mvwaddwstr_watt(win, row, col, build_left_border(), borderStyle);
 
   for (std::size_t i = 0; i < cols.size(); ++i)
   {
@@ -205,13 +205,13 @@ inline void draw_header_row(
     else if (static_cast<int>(cell.size()) > headerRange.width)
       cell = cell.substr(0, headerRange.width);
 
-    mvwaddwstr_watt(_win, row, col + headerRange.start, cell, borderStyle);
-    mvwaddwstr_watt(_win, row, col + headerRange.start + headerRange.width,
+    mvwaddwstr_watt(win, row, col + headerRange.start, cell, borderStyle);
+    mvwaddwstr_watt(win, row, col + headerRange.start + headerRange.width,
       (i == cols.size()-1)?build_right_border({std::nullopt, std::nullopt}, 0):L"│", borderStyle);
     if constexpr(requires (C c){c.name;})
     if (header.callback)
     {
-      if (headerRange.getEvent(input, _win, row, col))
+      if (headerRange.getEvent(input, win, row, col))
       {
         (*header.callback)();
       }
@@ -221,15 +221,15 @@ inline void draw_header_row(
 
 // ------------------------------------------------------------
 void draw_empty_border(
-    WINDOW *_win,
+    WINDOW *win,
     int row,
     int col,
     int width,
     int borderStyle,
     std::pair<std::optional<int>, std::optional<int>> vparams)
 {
-  mvwaddwstr_watt(_win, row, col, build_left_border(), borderStyle);
-  mvwaddwstr_watt(_win, row, col + width, build_right_border(vparams, row), borderStyle);
+  mvwaddwstr_watt(win, row, col, build_left_border(), borderStyle);
+  mvwaddwstr_watt(win, row, col + width, build_right_border(vparams, row), borderStyle);
 }
 
 // --------------------------------------------------------------------
@@ -255,7 +255,7 @@ inline std::pair<std::optional<int>, std::optional<int>> scrollbar_thumb(
 }
 }//namespace
 // ------------------------------------------------------------
-std::optional<MouseEvent> UiTable::TableRender::getEvent(Row& r, int c)
+std::optional<UiInput::MouseEvent> UiTable::TableRender::getEvent(Row& r, int c)
 {
   return this->cols_def[c].getEvent(input, table._win, viewContentFirstRow+r.i, col);
 }
@@ -290,15 +290,26 @@ void UiTable::TableRender::endRow(Row const& r)
   int row = viewContentFirstRow+r.i;
   mvwaddwstr_watt(table._win, row, col + r.x, build_right_border(vparams, row), borderStyle);
 }
+namespace{
+UiInput::MouseEvent toLocal(WINDOW* win, UiInput::MouseEvent const& ev)
+{
+    int beginRow, beginCol;
+    getbegyx(win, beginRow, beginCol);
+    UiInput::MouseEvent locaEv = ev;
+    locaEv.x -= beginCol;
+    locaEv.y -= beginRow;
+    return locaEv;
+}
+}
 // ------------------------------------------------------------
-std::optional<MouseEvent> ColumnRange::getEvent(UiInput const& input, WINDOW* win, int row, int col)const
+std::optional<UiInput::MouseEvent> ColumnRange::getEvent(UiInput const& input, WINDOW* win, int row, int col)const
 {
   if (input.mev)
   {
-    MouseEvent mev = input.mev->toLocal(win);
+    UiInput::MouseEvent mev = toLocal(win, *(input.mev));
     if (mev.hit({row, col + start, row + 1, col + start + width}))
     {
-      return *(input.mev);
+      return input.mev;
     }
   }
   return std::nullopt;
@@ -487,6 +498,25 @@ Columns UiTable::renderHeaderImpl(
 Columns UiTable::renderHeader(UiInput const& input, std::vector<int> const&headerCols, int borderStyle){ return renderHeaderImpl(input, headerCols, borderStyle); }
 Columns UiTable::renderHeader(UiInput const& input, std::vector<HeaderColumn> const&headerCols, int borderStyle){ return renderHeaderImpl(input, headerCols, borderStyle); }
 // ------------------------------------------------------------
+bool UiTable::mouseHit(UiInput const& input)
+{
+  if (input.mev)
+  {
+    int beginRow, beginCol;
+    int h, w;
+    getbegyx(_win, beginRow, beginCol);
+    getmaxyx(_win, h, w);
+    int endRow = h + beginRow;
+    int endCol = w + beginCol;
+    if ((input.mev->x >= beginCol && input.mev->x < endCol) &&
+        (input.mev->y >= beginRow && input.mev->y < endRow))
+    {
+      return true;
+    }
+  }
+  return false;
+}
+// ------------------------------------------------------------
 UiTable::TableRender UiTable::renderStart(
   UiInput const& input,
   int dataRowCount,
@@ -607,7 +637,7 @@ void UiTable::renderArray(
     int borderStyle,
     const std::optional<std::wstring> &title)
 {
-  auto cellCallback = [&array](int row, int, std::optional<MouseEvent> const&) -> Cell
+  auto cellCallback = [&array](int row, int, std::optional<UiInput::MouseEvent> const&) -> Cell
   {
     return array[row];
   };

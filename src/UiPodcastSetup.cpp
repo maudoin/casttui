@@ -84,7 +84,7 @@ void UiPodcastSetup::render(UiInput const& input)
   // Columns: Label | Value
   Columns cols = UiTable::renderHeader(input, {20,HeaderColumn::FILL}, UiColors::focusedStyle());
 
-  auto cellCallback = [=, this](int row, int col, std::optional<MouseEvent> const& ev) -> Cell
+  auto cellCallback = [=, this](int row, int col, std::optional<UiInput::MouseEvent> const& ev) -> Cell
   {
     if (row == inner_h - 1)
     {

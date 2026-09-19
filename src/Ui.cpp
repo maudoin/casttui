@@ -214,7 +214,7 @@ private:
     Columns cols = _infoUi.renderHeader(input, {
         HeaderColumn{.width=HeaderColumn::FILL, .name=title}}, UiColors::focusedStyle());
 
-    auto getCell = [&](int row, int col, std::optional<MouseEvent> const&)
+    auto getCell = [&](int row, int col, std::optional<UiInput::MouseEvent> const&)
     {
       auto range=*std::next(lines.begin(), row);
       std::wstring line;

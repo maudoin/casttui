@@ -1,6 +1,5 @@
 #pragma once
 
-#include "MouseEvent.h"
 #include "UiApp.h"
 #include "UiColors.h"
 #include "UiInput.h"
@@ -35,7 +34,7 @@ struct HeaderColumn
 struct ColumnRange
 {
   int start,width;
-  std::optional<MouseEvent> getEvent(UiInput const& input, WINDOW* win, int row, int col)const;
+  std::optional<UiInput::MouseEvent> getEvent(UiInput const& input, WINDOW* win, int row, int col)const;
 };
 struct Columns
 {
@@ -85,7 +84,7 @@ class UiTable
     int rowCount() const {return viewContentDataSize;}
     Row startRow(int i){return Row{*this, i};};
     void endRow(Row const& row);
-    std::optional<MouseEvent> getEvent(Row& row, int col);
+    std::optional<UiInput::MouseEvent> getEvent(Row& row, int col);
     void draw(Row& row, int col, Cell const& cell);
   };
 public:
@@ -117,7 +116,7 @@ public:
     int borderStyle,
     WinSelOp const& winSelOp = {})
   {
-    if (UiApp::mouseHit(input, _win))
+    if (mouseHit(input))
     {
       winSelOp();
     }
@@ -149,7 +148,7 @@ public:
     int borderStyle)
   {
     auto h = renderHeader(input, headerCols, borderStyle);
-    render(input, 0, h, [](int, int, std::optional<MouseEvent> const&){return Cell{};}, borderStyle);
+    render(input, 0, h, [](int, int, std::optional<UiInput::MouseEvent> const&){return Cell{};}, borderStyle);
   }
 
   int cursor() const { return _cursor; }
@@ -165,6 +164,8 @@ protected:
   WINDOW *_win = nullptr;
 
 private:
+  bool mouseHit(UiInput const& input);
+
   std::function<void()> _callback;
   int _cursor;
   Mode _mode;

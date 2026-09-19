@@ -52,7 +52,7 @@ public:
     // quit
     cols.push_back(HeaderColumn{.width =  static_cast<int>(quitLabel.size())});
 
-    auto cellCallback = [&](int row, int col, std::optional<MouseEvent> const& ev) -> Cell
+    auto cellCallback = [&](int row, int col, std::optional<UiInput::MouseEvent> const& ev) -> Cell
     {
       if (col == 0)
       {

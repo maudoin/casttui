@@ -58,7 +58,7 @@ public:
       HeaderColumn{.width = HeaderColumn::FILL, .name = std::nullopt, .sort = SortDir::NONE}
     },UiColors::focusStyle(focused));
 
-    auto cellCallback = [&](int row, int /*col*/, std::optional<MouseEvent> const& ev) -> Cell
+    auto cellCallback = [&](int row, int /*col*/, std::optional<UiInput::MouseEvent> const& ev) -> Cell
     {
       const std::wstring& title = titles[row];
       bool isCursor   = focused && row == cursor();

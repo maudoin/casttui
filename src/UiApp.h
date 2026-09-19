@@ -1,6 +1,10 @@
 #pragma once
 
-#include "MouseEvent.h"
+#if defined(_WIN32)
+#include <curses.h>
+#else
+#include <ncursesw/curses.h>
+#endif
 
 #include <optional>
 

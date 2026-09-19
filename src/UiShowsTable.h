@@ -51,7 +51,7 @@ public:
       HeaderColumn{.width = 10, .name = L"Duration",.sort = toSortDir(durationSort), .callback=makeCallback(&MediaViewCols::duration, durationSort)},
     }, UiColors::focusStyle(focused));
 
-    auto cellCallback = [&](int row, int col, std::optional<MouseEvent> const& ev) -> Cell
+    auto cellCallback = [&](int row, int col, std::optional<UiInput::MouseEvent> const& ev) -> Cell
     {
       int idx = row - firstVisibleDataRow();
       if (idx < 0 || idx >= static_cast<int>(shows.size()))

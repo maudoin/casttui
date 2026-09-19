@@ -1,6 +1,5 @@
 #include "UiApp.h"
 
-#include "MouseEvent.h"
 #include "UiInput.h"
 
 #if defined(_WIN32)
@@ -44,24 +43,6 @@ UiApp::UiApp()
   start_color();
   use_default_colors();
 }
-bool UiApp::mouseHit(UiInput const& input, WINDOW* win)
-{
-  if (input.mev)
-  {
-    int beginRow, beginCol;
-    int h, w;
-    getbegyx(win, beginRow, beginCol);
-    getmaxyx(win, h, w);
-    int endRow = h + beginRow;
-    int endCol = w + beginCol;
-    if ((input.mev->x >= beginCol && input.mev->x < endCol) &&
-        (input.mev->y >= beginRow && input.mev->y < endRow))
-    {
-      return true;
-    }
-  }
-  return false;
-}
 
 UiApp::~UiApp()
 {
@@ -94,7 +75,7 @@ void UiApp::run()
     }
     else
     {
-      UiInput input{k, input.key == KEY_MOUSE?getMouseEvent():std::nullopt};
+      UiInput input = UiInput::init(k);
       getmaxyx(stdscr, input.height, input.width);
       handleKey(input);
       render(input);
