@@ -119,7 +119,9 @@ void UiApp::render(int k)
 {
   wnoutrefresh(stdscr);
 
-  doRender(k);
+  int h, w;
+  getmaxyx(stdscr, h, w);
+  doRender(k, h, w);
 
   doupdate();
 }

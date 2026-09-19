@@ -1,5 +1,6 @@
 #include "UiPodcastSetup.h"
 
+#include "UiColors.h"
 #include "UiTable.h"
 
 #include "DowncastLogic.h"
@@ -81,7 +82,7 @@ void UiPodcastSetup::render(int k)
   int fieldCount = static_cast<int>(fields.size());
 
   // Columns: Label | Value
-  Columns cols = UiTable::renderHeader(k, {20,HeaderColumn::FILL}, true);
+  Columns cols = UiTable::renderHeader(k, {20,HeaderColumn::FILL}, UiColors::focusedStyle());
 
   auto cellCallback = [=, this](int row, int col, std::optional<MouseEvent> const& ev) -> Cell
   {
@@ -183,7 +184,7 @@ void UiPodcastSetup::render(int k)
     return Cell{L"", A_NORMAL};
   };
 
-  UiTable::render(k, inner_h, cols, cellCallback, true);
+  UiTable::render(k, inner_h, cols, cellCallback, UiColors::focusedStyle());
 }
 
 bool UiPodcastSetup::handleKey(int k)

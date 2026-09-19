@@ -193,10 +193,8 @@ private:
   }
 
 
-  void renderInfoModal(int k)
+  void renderInfoModal(int k, int h, int w)
   {
-    int h, w;
-    getmaxyx(stdscr, h, w);
     int mh = std::min(h - 4, 20);
     int mw = std::min(w - 4, 170);
     int y  = (h - mh) / 2;
@@ -219,7 +217,10 @@ private:
     auto getCell = [&](int row, int col, std::optional<MouseEvent> const&)
     {
       auto range=*std::next(lines.begin(), row);
-      return Cell{.text={range.begin(), range.end()}};
+      std::wstring line;
+      line.reserve(std::ranges::distance(range));
+      std::ranges::for_each(range, [&](wchar_t ch){ line.push_back(ch); });
+      return Cell{.text=line};
     };
     _infoUi.render(k, static_cast<int>(std::ranges::distance(lines)), cols, getCell, UiColors::focusedStyle());
 
@@ -257,6 +258,11 @@ private:
     if (_modalPopup == ModalMode::AddEditPodcast)
     {
       return _addEditPodcastUi.handleKey(k);
+    }
+
+    if (_modalPopup == ModalMode::Info)
+    {
+      return _infoUi.handleKey(k);
     }
 
     // Focus cycling order
@@ -408,25 +414,27 @@ private:
       _addEditPodcastUi.buildWindow(mh, mw, y, x);
     }
   }
-  void doRender(int k) override
+  void doRender(int k, int height, int width) override
   {
-    _podcastUi.render(k, _focusedPanel == Focus::Podcasts, [&]{_focusedPanel = Focus::Podcasts;});
-    _statusUi.render(k, _focusedPanel == Focus::Status, [&]{_focusedPanel = Focus::Status;});
-    _showsUi.render(k, _focusedPanel == Focus::Shows, [&]{_focusedPanel = Focus::Shows;});
-    renderActionsBar(k);
-    renderBottomBar(k);
-
     if (_modalPopup == ModalMode::Confirm)
     {
       _confirmUi.render(k);
     }
     else if (_modalPopup == ModalMode::Info)
     {
-      renderInfoModal(k);
+      renderInfoModal(k, height, width);
     }
     else if (_modalPopup == ModalMode::AddEditPodcast)
     {
       _addEditPodcastUi.render(k);
+    }
+    else
+    {
+      _podcastUi.render(k, _focusedPanel == Focus::Podcasts, [&]{_focusedPanel = Focus::Podcasts;});
+      _statusUi.render(k, _focusedPanel == Focus::Status, [&]{_focusedPanel = Focus::Status;});
+      _showsUi.render(k, _focusedPanel == Focus::Shows, [&]{_focusedPanel = Focus::Shows;});
+      renderActionsBar(k);
+      renderBottomBar(k);
     }
 
   }

@@ -1,4 +1,11 @@
 #include "UiTable.h"
+
+#if defined(_WIN32)
+#include <curses.h>
+#else
+#include <ncursesw/curses.h>
+#endif
+
 #include <algorithm>
 #include <ranges>
 
@@ -611,4 +618,10 @@ void UiTable::renderArray(
       HeaderColumn{.width=HeaderColumn::FILL, .name=title}}, borderStyle);
 
   render(k, static_cast<int>(array.size()), cols, cellCallback, borderStyle);
+}
+
+// ------------------------------------------------------------
+int UiTable::getHeight() const
+{
+  return getmaxy(_win);
 }

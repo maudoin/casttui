@@ -3,11 +3,6 @@
 #include "MouseEvent.h"
 #include "UiApp.h"
 
-#if defined(_WIN32)
-#include <curses.h>
-#else
-#include <ncursesw/curses.h>
-#endif
 #include <string>
 #include <vector>
 #include <functional>
@@ -161,10 +156,7 @@ public:
   int firstVisibleDataRow() const { return _firstVisibleDataRow; }
   int dynamicColCurrentOffsetX() const { return _dynamicColCurrentOffsetX; }
 
-  int getHeight() const
-  {
-    return getmaxy(_win);
-  }
+  int getHeight() const;
 
 protected:
   template <typename C>
