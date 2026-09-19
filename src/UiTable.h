@@ -73,7 +73,7 @@ class UiTable
     int totalInnerW;
     int dataRowCount;
     const std::vector<ColumnRange> cols_def;
-    bool focused;
+    int borderStyle;
     std::pair<std::optional<int>, std::optional<int>> vparams;
     int const dynamicIndex;
     int viewContentFirstRow;
@@ -110,29 +110,29 @@ public:
 
   bool handleKey(int key);
 
-  Columns renderHeader(int k, std::vector<int> const&headerCols,bool focused);
-  Columns renderHeader(int k, std::vector<HeaderColumn> const&headerCols,bool focused);
+  Columns renderHeader(int k, std::vector<int> const&headerCols,int borderStyle);
+  Columns renderHeader(int k, std::vector<HeaderColumn> const&headerCols,int borderStyle);
 
   template<typename GetCell, typename WinSelOp=decltype([]{})>
   void render(
     int k,
     int dataRowCount,
     Columns const& header_cols,
-    const GetCell &cell_cb,
-    bool focused = false,
+    const GetCell &cellCallback,
+    int borderStyle,
     WinSelOp const& winSelOp = {})
   {
     if (UiApp::mouseHit(k, _win))
     {
       winSelOp();
     }
-    auto tableRender = renderStart(k, dataRowCount, header_cols, focused);
+    auto tableRender = renderStart(k, dataRowCount, header_cols, borderStyle);
     for (int i = 0; i < tableRender.rowCount(); ++i)
     {
       TableRender::Row r = tableRender.startRow(i);
       for (int c = 0 ; c < tableRender.cols_def.size();++c)
       {
-        tableRender.draw(r, c, cell_cb(_firstVisibleDataRow+i, c, tableRender.getEvent(r, c)));
+        tableRender.draw(r, c, cellCallback(_firstVisibleDataRow+i, c, tableRender.getEvent(r, c)));
       }
     }
   }
@@ -140,21 +140,21 @@ public:
     int k,
     int dataRowCount,
     const Columns &headerCols,
-    bool focused);
+    int borderStyle);
 
   void renderArray(
     int k,
     const std::vector<Cell> &array,
-    const std::optional<std::wstring> &title = std::nullopt,
-    bool focused = false);
+    int borderStyle,
+    const std::optional<std::wstring> &title = std::nullopt);
 
   void renderHeaderOnly(
     int k,
     std::vector<HeaderColumn> const&headerCols,
-    bool focused = false)
+    int borderStyle)
   {
-    auto h = renderHeader(k, headerCols, focused);
-    render(k, 0, h, [](int, int, std::optional<MouseEvent> const&){return Cell{};}, focused);
+    auto h = renderHeader(k, headerCols, borderStyle);
+    render(k, 0, h, [](int, int, std::optional<MouseEvent> const&){return Cell{};}, borderStyle);
   }
 
   int cursor() const { return _cursor; }
@@ -168,7 +168,7 @@ public:
 
 protected:
   template <typename C>
-  Columns renderHeaderImpl(int k, std::vector<C> const&headerCols, bool focused);
+  Columns renderHeaderImpl(int k, std::vector<C> const&headerCols, int borderStyle);
 
   WINDOW *_win = nullptr;
 

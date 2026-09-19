@@ -6,12 +6,12 @@ namespace{
 // --------------------------------------------------------------------
 // Safe write helpers
 // --------------------------------------------------------------------
+#ifdef DEBUG_UI
 inline void safe_addstr(WINDOW *_win, int row, int col, const std::wstring &ch, int attrs)
 {
   int h, w;
   getmaxyx(_win, h, w);
 
-#ifdef DEBUG_UI
   if (row < 0 || row >= h || col < 0 || col >= w)
   {
     std::wcerr << "[OOB] row=" << row << " col=" << col
@@ -19,7 +19,6 @@ inline void safe_addstr(WINDOW *_win, int row, int col, const std::wstring &ch, 
     std::wcerr << "=== CURSES ERROR TRACE ===\n";
     // StackTrace::print();
   }
-#endif
   wattron(_win, attrs);
   mvwaddwstr(_win, row, col, ch.c_str());
   wattroff(_win, attrs);
@@ -33,16 +32,14 @@ inline void addstr_run(WINDOW *_win, int row, int col, const std::wstring &chars
                 std::wstring(1, chars[i]), attrs);
   }
 }
-
-inline int attr_from_focus(bool focused)
+#else
+inline void addstr_run(WINDOW *_win, int row, int col, const std::wstring &chars, int attrs)
 {
-  return focused ? COLOR_PAIR(4) : A_NORMAL;
+  wattron(_win, attrs);
+  mvwaddwstr(_win, row, col, chars.c_str());
+  wattroff(_win, attrs);
 }
-
-inline void addstr_focus(WINDOW *_win, int row, int col, const std::wstring &chars, bool focused)
-{
-  addstr_run(_win, row, col, chars, attr_from_focus(focused));
-}
+#endif
 
 // --------------------------------------------------------------------
 // Border builders
@@ -53,7 +50,7 @@ inline void draw_bottom_scroll_border(
     int col,
     int inner_width,
     std::pair<std::optional<int>, std::optional<int>> hparams,
-    bool focused = false)
+    int borderStyle)
 {
   auto [startOpt, endOpt] = hparams;
   std::wstring chars;
@@ -67,7 +64,7 @@ inline void draw_bottom_scroll_border(
       chars.append(L"─"); // FIXED
   }
 
-  addstr_focus(_win, row, col, std::wstring(L"╰") + chars + std::wstring(L"╯"), focused);
+  addstr_run(_win, row, col, std::wstring(L"╰") + chars + std::wstring(L"╯"), borderStyle);
 }
 
 inline void draw_border_columns(
@@ -78,14 +75,14 @@ inline void draw_border_columns(
     const std::wstring &start,
     const std::wstring &mid,
     const std::wstring &end,
-    bool focused = false)
+    int borderStyle)
 {
-  addstr_focus(_win, row, col, start, focused);
+  addstr_run(_win, row, col, start, borderStyle);
   for (std::size_t i = 0; i < cols.size(); ++i)
   {
     auto const& range = cols[i];
-    addstr_focus(_win, row, col + range.start, std::wstring(range.width, L'─'), focused);
-    addstr_focus(_win, row, col + range.start + range.width, (i < cols.size() - 1)?mid:end, focused);
+    addstr_run(_win, row, col + range.start, std::wstring(range.width, L'─'), borderStyle);
+    addstr_run(_win, row, col + range.start + range.width, (i < cols.size() - 1)?mid:end, borderStyle);
   }
 }
 
@@ -94,10 +91,10 @@ void draw_top_border_header(
     int row,
     int col,
     const std::vector<ColumnRange> &cols,
-    bool focused)
+    int borderStyle)
 {
   // box(_win, 0, 0);
-  draw_border_columns(_win, row, col, cols, L"╭", L"┬", L"╮", focused);
+  draw_border_columns(_win, row, col, cols, L"╭", L"┬", L"╮", borderStyle);
 }
 
 void draw_mid_border_header(
@@ -105,9 +102,9 @@ void draw_mid_border_header(
     int row,
     int col,
     const std::vector<ColumnRange> &cols,
-    bool focused)
+    int borderStyle)
 {
-  draw_border_columns(_win, row, col, cols, L"├", L"┼", L"┤", focused);
+  draw_border_columns(_win, row, col, cols, L"├", L"┼", L"┤", borderStyle);
 }
 
 void draw_bottom_border_header(
@@ -115,9 +112,9 @@ void draw_bottom_border_header(
     int row,
     int col,
     const std::vector<ColumnRange> &cols,
-    bool focused)
+    int borderStyle)
 {
-  draw_border_columns(_win, row, col, cols, L"╰", L"┴", L"╯", focused);
+  draw_border_columns(_win, row, col, cols, L"╰", L"┴", L"╯", borderStyle);
 }
 
 void draw_top_border(
@@ -125,9 +122,9 @@ void draw_top_border(
     int row,
     int col,
     int inner_width,
-    bool focused)
+    int borderStyle)
 {
-  draw_top_border_header(_win, row, col, {ColumnRange{0,inner_width}}, focused);
+  draw_top_border_header(_win, row, col, {ColumnRange{0,inner_width}}, borderStyle);
 }
 
 void draw_bottom_border(
@@ -135,9 +132,9 @@ void draw_bottom_border(
     int row,
     int col,
     int inner_width,
-    bool focused)
+    int borderStyle)
 {
-  draw_bottom_border_header(_win, row, col, {ColumnRange{0,inner_width}}, focused);
+  draw_bottom_border_header(_win, row, col, {ColumnRange{0,inner_width}}, borderStyle);
 }
 
 inline std::wstring build_left_border()
@@ -174,9 +171,9 @@ inline void draw_header_row(
   int col,
   const std::vector<C> &cols,
   const std::vector<ColumnRange> &colRanges,
-  bool focused = false)
+  int borderStyle)
 {
-  addstr_focus(_win, row, col, build_left_border(), focused);
+  addstr_run(_win, row, col, build_left_border(), borderStyle);
 
   for (std::size_t i = 0; i < cols.size(); ++i)
   {
@@ -199,9 +196,9 @@ inline void draw_header_row(
     else if (static_cast<int>(cell.size()) > headerRange.width)
       cell = cell.substr(0, headerRange.width);
 
-    addstr_focus(_win, row, col + headerRange.start, cell, focused);
-    addstr_focus(_win, row, col + headerRange.start + headerRange.width,
-      (i == cols.size()-1)?build_right_border({std::nullopt, std::nullopt}, 0):L"│", focused);
+    addstr_run(_win, row, col + headerRange.start, cell, borderStyle);
+    addstr_run(_win, row, col + headerRange.start + headerRange.width,
+      (i == cols.size()-1)?build_right_border({std::nullopt, std::nullopt}, 0):L"│", borderStyle);
     if constexpr(requires (C c){c.name;})
     if (header.callback)
     {
@@ -219,11 +216,11 @@ void draw_empty_border(
     int row,
     int col,
     int width,
-    bool focused,
+    int borderStyle,
     std::pair<std::optional<int>, std::optional<int>> vparams)
 {
-  addstr_focus(_win, row, col, build_left_border(), focused);
-  addstr_focus(_win, row, col + width, build_right_border(vparams, row), focused);
+  addstr_run(_win, row, col, build_left_border(), borderStyle);
+  addstr_run(_win, row, col + width, build_right_border(vparams, row), borderStyle);
 }
 
 // --------------------------------------------------------------------
@@ -256,7 +253,7 @@ std::optional<MouseEvent> UiTable::TableRender::getEvent(Row& r, int c)
 void UiTable::TableRender::draw(Row& r, int i, Cell const& cell)
 {
   int row = viewContentFirstRow+r.i;
-  addstr_focus(table._win, row, col + r.x, i==0?build_left_border():build_separator(), focused);
+  addstr_run(table._win, row, col + r.x, i==0?build_left_border():build_separator(), borderStyle);
 
   int col_text_offset = (dynamicIndex == i) ? table._dynamicColCurrentOffsetX : 0;
   int width = cols_def[i].width;
@@ -282,7 +279,7 @@ void UiTable::TableRender::draw(Row& r, int i, Cell const& cell)
 void UiTable::TableRender::endRow(Row const& r)
 {
   int row = viewContentFirstRow+r.i;
-  addstr_focus(table._win, row, col + r.x, build_right_border(vparams, row), focused);
+  addstr_run(table._win, row, col + r.x, build_right_border(vparams, row), borderStyle);
 }
 // ------------------------------------------------------------
 std::optional<MouseEvent> ColumnRange::getEvent(int k, WINDOW* win, int row, int col)const
@@ -463,7 +460,7 @@ template<typename C>
 Columns UiTable::renderHeaderImpl(
   int k,
   std::vector<C> const& headerCols,
-  bool focused)
+  int borderStyle)
 {
   werase(_win);
   keypad(_win, TRUE);
@@ -473,28 +470,25 @@ Columns UiTable::renderHeaderImpl(
   // ------------------------------------------------------------
   // Draw header + mid border
   // ------------------------------------------------------------
-  draw_top_border_header(_win, 0, 0, resolvedHeaderCols.vec, focused);
+  draw_top_border_header(_win, 0, 0, resolvedHeaderCols.vec, borderStyle);
 
   if (resolvedHeaderCols.drawHeader)
   {
-    draw_header_row(k, _win, 1, 0, headerCols, resolvedHeaderCols.vec, focused);
+    draw_header_row(k, _win, 1, 0, headerCols, resolvedHeaderCols.vec, borderStyle);
   }
   return resolvedHeaderCols;
 }
-Columns UiTable::renderHeader(int k, std::vector<int> const&headerCols, bool focused){ return renderHeaderImpl(k, headerCols, focused); }
-Columns UiTable::renderHeader(int k, std::vector<HeaderColumn> const&headerCols, bool focused){ return renderHeaderImpl(k, headerCols, focused); }
+Columns UiTable::renderHeader(int k, std::vector<int> const&headerCols, int borderStyle){ return renderHeaderImpl(k, headerCols, borderStyle); }
+Columns UiTable::renderHeader(int k, std::vector<HeaderColumn> const&headerCols, int borderStyle){ return renderHeaderImpl(k, headerCols, borderStyle); }
 // ------------------------------------------------------------
 UiTable::TableRender UiTable::renderStart(
   int k,
   int dataRowCount,
   const Columns &resolvedHeaderCols,
-  bool focused)
+  int borderStyle)
 {
-  _dataRowCount = dataRowCount;
-
   int h, w;
   getmaxyx(_win, h, w);
-  int totalInnerW = w - 2;
 
   if (k == KEY_MOUSE)
   {
@@ -509,6 +503,9 @@ UiTable::TableRender UiTable::renderStart(
       _callback();
     }
   }
+
+  _dataRowCount = dataRowCount;
+  int totalInnerW = w - 2;
   // ------------------------------------------------------------
   // Resolve column widths
   // ------------------------------------------------------------
@@ -534,7 +531,7 @@ UiTable::TableRender UiTable::renderStart(
 
   if (resolvedHeaderCols.drawHeader && h>3)
   {
-    draw_mid_border_header(_win, 2, 0, resolvedHeaderCols.vec, focused);
+    draw_mid_border_header(_win, 2, 0, resolvedHeaderCols.vec, borderStyle);
   }
 
   // ------------------------------------------------------------
@@ -546,7 +543,7 @@ UiTable::TableRender UiTable::renderStart(
           0, totalInnerW,
           dataRowCount,
           std::move(resolvedHeaderCols.vec),
-          focused,
+          borderStyle,
           vparams,
           dynamic_index,
           viewContentFirstRow,
@@ -582,7 +579,7 @@ UiTable::TableRender::~TableRender()
         viewContentFirstRow + table._lastKnownViewHeight,
         0,
         cols_def,
-        focused);
+        borderStyle);
   }
   else
   {
@@ -592,7 +589,7 @@ UiTable::TableRender::~TableRender()
         0,
         totalInnerW,
         hparams,
-        focused);
+        borderStyle);
   }
 
   wrefresh(table._win);
@@ -602,16 +599,16 @@ UiTable::TableRender::~TableRender()
 void UiTable::renderArray(
     int k,
     const std::vector<Cell> &array,
-    const std::optional<std::wstring> &title,
-    bool focused)
+    int borderStyle,
+    const std::optional<std::wstring> &title)
 {
-  auto cell_cb = [&array](int row, int, std::optional<MouseEvent> const&) -> Cell
+  auto cellCallback = [&array](int row, int, std::optional<MouseEvent> const&) -> Cell
   {
     return array[row];
   };
 
   Columns cols = renderHeader(k, {
-      HeaderColumn{.width=HeaderColumn::FILL, .name=title}}, focused);
+      HeaderColumn{.width=HeaderColumn::FILL, .name=title}}, borderStyle);
 
-  render(k, static_cast<int>(array.size()), cols, cell_cb, focused);
+  render(k, static_cast<int>(array.size()), cols, cellCallback, borderStyle);
 }

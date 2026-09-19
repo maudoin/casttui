@@ -12,6 +12,7 @@
 #include <ctime>
 #include <ranges>
 
+// Class for cleanness but instantiated once, no need to have a separate compilation unit, compiled once anyway
 class UiPodcastSetup : public UiTable
 {
 public:

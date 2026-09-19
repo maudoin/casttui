@@ -83,7 +83,7 @@ void UiPodcastSetup::render(int k)
   // Columns: Label | Value
   Columns cols = UiTable::renderHeader(k, {20,HeaderColumn::FILL}, true);
 
-  auto cell_cb = [=, this](int row, int col, std::optional<MouseEvent> const& ev) -> Cell
+  auto cellCallback = [=, this](int row, int col, std::optional<MouseEvent> const& ev) -> Cell
   {
     if (row == inner_h - 1)
     {
@@ -183,7 +183,7 @@ void UiPodcastSetup::render(int k)
     return Cell{L"", A_NORMAL};
   };
 
-  UiTable::render(k, inner_h, cols, cell_cb, true);
+  UiTable::render(k, inner_h, cols, cellCallback, true);
 }
 
 bool UiPodcastSetup::handleKey(int k)

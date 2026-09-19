@@ -1,6 +1,6 @@
 #include "RssParser.h"
 
-#include <RapidXml/rapidxml.hpp>
+#include <RapidXML/rapidxml.hpp>
 
 #include <type_traits>
 #include <vector>

@@ -31,7 +31,7 @@ void UiConfirm::render(int k)
 {
   std::wstring cancel = L"Cancel";
 
-  auto cell_cb = [&](int, int col, std::optional<MouseEvent> const& ev) -> Cell {
+  auto cellCallback = [&](int, int col, std::optional<MouseEvent> const& ev) -> Cell {
     bool const isCursor = col==_field;
     int style = A_NORMAL;
     if (isCursor)
@@ -56,7 +56,7 @@ void UiConfirm::render(int k)
     HeaderColumn{ .width = static_cast<int>(cancel.size()) }
   }, true);
 
-  UiTable::render(k, 1, cols, cell_cb, true);
+  UiTable::render(k, 1, cols, cellCallback, true);
 }
 
 bool UiConfirm::handleKey(int k)

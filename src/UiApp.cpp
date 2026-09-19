@@ -41,11 +41,6 @@ UiApp::UiApp()
   // Colors
   start_color();
   use_default_colors();
-
-  init_pair(1, COLOR_BLACK, COLOR_WHITE); // cursor highlight
-  init_pair(2, COLOR_BLUE, -1);           // active status
-  init_pair(3, COLOR_BLUE, COLOR_WHITE);  // cursor + active
-  init_pair(4, COLOR_BLUE, -1);           // active window
 }
 
 std::optional<MouseEvent> UiApp::mouseHit(int k, WINDOW* win)
