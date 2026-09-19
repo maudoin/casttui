@@ -1,6 +1,7 @@
 #pragma once
 
-#include "UiHotspot.h"
+#include "MouseEvent.h"
+#include "UiApp.h"
 
 #if defined(_WIN32)
 #include <curses.h>
@@ -36,6 +37,18 @@ struct HeaderColumn
   SortDir sort = SortDir::NONE;
   std::optional<std::function<void()>> callback;
 };
+struct ColumnRange
+{
+  int start,width;
+  std::optional<MouseEvent> getEvent(int k, WINDOW* win, int row, int col)const;
+};
+struct Columns
+{
+  template <typename C>
+  Columns(int innerWidth, std::vector<C> const&headerCols);
+  std::vector<ColumnRange> vec;
+  bool drawHeader = false;
+};
 
 // --------------------------------------------------------------------
 // Cell
@@ -50,7 +63,7 @@ struct Cell
 // --------------------------------------------------------------------
 // UiTable
 // --------------------------------------------------------------------
-class UiTable : public UiHotspotGroup
+class UiTable
 {
   struct TableRender
   {
@@ -59,7 +72,7 @@ class UiTable : public UiHotspotGroup
     int col;
     int totalInnerW;
     int dataRowCount;
-    const std::vector<HeaderColumn> cols_def;
+    const std::vector<ColumnRange> cols_def;
     bool focused;
     std::pair<std::optional<int>, std::optional<int>> vparams;
     int const dynamicIndex;
@@ -97,14 +110,22 @@ public:
 
   bool handleKey(int key);
 
-  template<typename GetCell>
+  Columns renderHeader(int k, std::vector<int> const&headerCols,bool focused);
+  Columns renderHeader(int k, std::vector<HeaderColumn> const&headerCols,bool focused);
+
+  template<typename GetCell, typename WinSelOp=decltype([]{})>
   void render(
     int k,
     int dataRowCount,
-    const std::vector<HeaderColumn> &header_cols,
+    Columns const& header_cols,
     const GetCell &cell_cb,
-    bool focused = false)
+    bool focused = false,
+    WinSelOp const& winSelOp = {})
   {
+    if (UiApp::mouseHit(k, _win))
+    {
+      winSelOp();
+    }
     auto tableRender = renderStart(k, dataRowCount, header_cols, focused);
     for (int i = 0; i < tableRender.rowCount(); ++i)
     {
@@ -118,7 +139,7 @@ public:
   TableRender renderStart(
     int k,
     int dataRowCount,
-    const std::vector<HeaderColumn> &headerCols,
+    const Columns &headerCols,
     bool focused);
 
   void renderArray(
@@ -126,10 +147,15 @@ public:
     const std::vector<Cell> &array,
     const std::optional<std::wstring> &title = std::nullopt,
     bool focused = false);
-  void renderSingleLine(
+
+  void renderHeaderOnly(
     int k,
-    const std::vector<Cell> &array,
-    bool focused = false);
+    std::vector<HeaderColumn> const&headerCols,
+    bool focused = false)
+  {
+    auto h = renderHeader(k, headerCols, focused);
+    render(k, 0, h, [](int, int, std::optional<MouseEvent> const&){return Cell{};}, focused);
+  }
 
   int cursor() const { return _cursor; }
   int firstVisibleDataRow() const { return _firstVisibleDataRow; }
@@ -141,9 +167,13 @@ public:
   }
 
 protected:
+  template <typename C>
+  Columns renderHeaderImpl(int k, std::vector<C> const&headerCols, bool focused);
+
   WINDOW *_win = nullptr;
 
 private:
+  std::function<void()> _callback;
   int _cursor;
   Mode _mode;
   int _firstVisibleDataRow;

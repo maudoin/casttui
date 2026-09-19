@@ -19,13 +19,13 @@
 #include <ranges>
 
 UiPodcastTable::UiPodcastTable(DowncastLogic& logic, Actions const& actions)
-: UiTable(UiTable::Mode::CURSOR, actions.winSelection)
+: UiTable(UiTable::Mode::CURSOR)
 , _logic(logic)
 , _actions(actions)
 {
 }
 
-void UiPodcastTable::render(int k, bool focused)
+void UiPodcastTable::render(int k, bool focused, std::function<void()> const& winSelection)
 {
   int count = _logic.podcastCount() + 2;
 
@@ -38,9 +38,9 @@ void UiPodcastTable::render(int k, bool focused)
     titles.push_back(to_wstring(_logic.podcastTitle(i)));
   }
 
-  std::vector<HeaderColumn> cols{
+  Columns cols = UiTable::renderHeader(k, {
     HeaderColumn{.width = HeaderColumn::FILL, .name = std::nullopt, .sort = SortDir::NONE}
-  };
+  },focused);
 
   auto cell_cb = [&](int row, int /*col*/, std::optional<MouseEvent> const& ev) -> Cell
   {
@@ -66,7 +66,7 @@ void UiPodcastTable::render(int k, bool focused)
     return Cell{title, style};
   };
 
-  UiTable::render(k, count, cols, cell_cb, focused);
+  UiTable::render(k, count, cols, cell_cb, focused, winSelection);
 }
 
 std::optional<int> UiPodcastTable::getPodcastIndex()const

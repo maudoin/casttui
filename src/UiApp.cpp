@@ -48,6 +48,26 @@ UiApp::UiApp()
   init_pair(4, COLOR_BLUE, -1);           // active window
 }
 
+std::optional<MouseEvent> UiApp::mouseHit(int k, WINDOW* win)
+{
+  if (k == KEY_MOUSE)
+  {
+    int beginRow, beginCol;
+    int h, w;
+    getbegyx(win, beginRow, beginCol);
+    getmaxyx(win, h, w);
+    int endRow = h + beginRow;
+    int endCol = w + beginCol;
+    auto ev = getMouseEvent();
+    if (ev && (ev->x >= beginCol && ev->x < endCol) &&
+        (ev->y >= beginRow && ev->y < endRow))
+    {
+      return ev;
+    }
+  }
+  return std::nullopt;
+}
+
 UiApp::~UiApp()
 {
   endwin();
@@ -87,16 +107,6 @@ void UiApp::run()
 
 bool UiApp::handleKey(int k)
 {
-  if (k == KEY_MOUSE)
-  {
-    if (auto event = getMouseEvent())
-    {
-      if (doHandleMouse(*event))
-      {
-        return true;
-      }
-    }
-  }
   return doHandleKey(k);
 }
 void UiApp::delWindows()

@@ -14,7 +14,6 @@ class UiPodcastTable : public UiTable
 public:
   struct Actions
   {
-    std::function<void()> winSelection;
     std::function<void()> add;
     std::function<void(PodcastCols const&)> edit;
     std::function<void(std::wstring const& title, std::function<void()> const& del)> del;
@@ -22,7 +21,7 @@ public:
 
   explicit UiPodcastTable(DowncastLogic& logic, Actions const& actions);
 
-  void render(int k, bool focused);
+  void render(int k, bool focused, std::function<void()> const& winSelection);
   bool handleKey(int k);
   bool pickPodcast();
   std::optional<int> getPodcastIndex()const;

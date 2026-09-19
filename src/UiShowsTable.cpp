@@ -19,8 +19,8 @@
 #include <ranges>
 
 
-UiShowsTable::UiShowsTable(DowncastLogic& logic, std::function<void()> const& winSelection)
-: UiTable(UiTable::Mode::CURSOR,winSelection)
+UiShowsTable::UiShowsTable(DowncastLogic& logic)
+: UiTable(UiTable::Mode::CURSOR)
 , _logic(logic)
 {}
 
@@ -38,7 +38,7 @@ namespace{
   }
 }
 
-void UiShowsTable::render(int k, bool focused)
+void UiShowsTable::render(int k, bool focused, std::function<void()> const& winSelection)
 {
   int h = getHeight();
   int inner_h = h - 2;
@@ -56,11 +56,11 @@ void UiShowsTable::render(int k, bool focused)
     };
   };
 
-  std::vector<HeaderColumn> cols{
+  Columns cols = UiTable::renderHeader(k, {
     HeaderColumn{.width = HeaderColumn::FILL, .name = L"Title",   .sort = toSortDir(titleSort), .callback=makeCallback(&MediaViewCols::title, titleSort)},
     HeaderColumn{.width = 12, .name = L"Date",    .sort = toSortDir(dateSort),     .callback=makeCallback(&MediaViewCols::date, dateSort)},
     HeaderColumn{.width = 10, .name = L"Duration",.sort = toSortDir(durationSort), .callback=makeCallback(&MediaViewCols::duration, durationSort)},
-  };
+  }, focused);
 
   auto cell_cb = [&](int row, int col, std::optional<MouseEvent> const& ev) -> Cell
   {
@@ -98,7 +98,7 @@ void UiShowsTable::render(int k, bool focused)
     return Cell{text, style};
   };
 
-  UiTable::render(k, _logic.showCount(), cols, cell_cb, focused);
+  UiTable::render(k, _logic.showCount(), cols, cell_cb, focused, winSelection);
 }
 
 bool UiShowsTable::handleKey(int k)

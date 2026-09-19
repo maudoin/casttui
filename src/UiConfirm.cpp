@@ -51,10 +51,10 @@ void UiConfirm::render(int k)
     };
   };
 
-  std::vector<HeaderColumn> cols{
+  Columns cols = UiTable::renderHeader(k, {
     HeaderColumn{ .width = HeaderColumn::FILL },
     HeaderColumn{ .width = static_cast<int>(cancel.size()) }
-  };
+  }, true);
 
   UiTable::render(k, 1, cols, cell_cb, true);
 }

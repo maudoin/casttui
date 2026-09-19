@@ -14,9 +14,9 @@
 class UiStatusTable : public UiTable
 {
 public:
-  UiStatusTable(DowncastLogic& logic, std::function<void()> const& winSelection, std::function<void()> const& exit);
+  UiStatusTable(DowncastLogic& logic, std::function<void()> const& exit);
 
-  void render(int k, bool focused);
+  void render(int k, bool focused, std::function<void()> const& winSelection);
 
   bool handleKey(int k);
 

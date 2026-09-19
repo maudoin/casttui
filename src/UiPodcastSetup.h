@@ -34,6 +34,7 @@ private:
   Mode _mode = Mode::AddPodcast;
   int modal_field = 0;
   bool modal_editing = false;
+  int modal_caret = 0;
   std::string modal_url;
   std::string modal_title;
   std::string modal_target = ".";

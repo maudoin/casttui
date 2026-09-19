@@ -1,6 +1,8 @@
 #pragma once
 
-class MouseEvent;
+#include "MouseEvent.h"
+
+#include <optional>
 
 class UiApp
 {
@@ -11,9 +13,9 @@ public:
   ~UiApp();
 
   void run();
-  protected:
+  static std::optional<MouseEvent> mouseHit(int k, WINDOW* win);
 
-  virtual bool doHandleMouse(MouseEvent const& ev) = 0;
+protected:
   virtual bool doHandleKey(int k) = 0;
   virtual void doDelWindows() = 0;
   virtual void doBuildWindows(int h, int w) = 0;
@@ -21,8 +23,8 @@ public:
 
   void buildWindows();
   void delWindows();
-private:
 
+private:
   bool handleKey(int k);
   void render(int k);
 protected:

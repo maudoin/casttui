@@ -10,9 +10,9 @@ class DowncastLogic;
 class UiShowsTable : public UiTable
 {
 public:
-  UiShowsTable(DowncastLogic& logic, std::function<void()> const& winSelection);
+  UiShowsTable(DowncastLogic& logic);
 
-  void render(int k, bool focused);
+  void render(int k, bool focused, std::function<void()> const& winSelection);
   bool handleKey(int k);
 
 private:

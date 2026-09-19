@@ -17,28 +17,29 @@ void run_table(int width, bool header, bool focus = false)
     int key = ERR;
     while (true)
     {
-      std::vector<HeaderColumn> cols;
-      if (header)
-      {
-        cols = {
-          HeaderColumn{ 3, std::wstring(L"A"), SortDir::UP },
-          HeaderColumn{ HeaderColumn::FILL, std::wstring(L"B (fill) "), SortDir::NONE },
-          HeaderColumn{ 4, std::wstring(L"C"), SortDir::NONE }
-        };
-      }
-      else
-      {
-        cols = {
-          HeaderColumn{ 10, std::nullopt, SortDir::NONE },
-          HeaderColumn{ HeaderColumn::FILL, std::nullopt, SortDir::NONE },
-          HeaderColumn{ 20, std::nullopt, SortDir::NONE }
-        };
-      }
+      Columns cols = [&]{
+        if (header)
+        {
+          return table.renderHeader(key, {
+            HeaderColumn{ 3, std::wstring(L"A"), SortDir::UP },
+            HeaderColumn{ HeaderColumn::FILL, std::wstring(L"B (fill) "), SortDir::NONE },
+            HeaderColumn{ 4, std::wstring(L"C"), SortDir::NONE }
+          }, focus);
+        }
+        else
+        {
+          return table.renderHeader(key, {
+            HeaderColumn{ 10, std::nullopt, SortDir::NONE },
+            HeaderColumn{ HeaderColumn::FILL, std::nullopt, SortDir::NONE },
+            HeaderColumn{ 20, std::nullopt, SortDir::NONE }
+          }, focus);
+        }
+      }();
 
       int rowCount = 20;
 
       auto cell_cb = [&cols](int row, int col, std::optional<MouseEvent> const&) -> Cell {
-        std::wstring base = cols[col].name.value_or(L"");
+        std::wstring base = col==0?L"a":col==1?L"b":L"c";
         std::wstring text = base + std::to_wstring(row);
         int style = (row % 2 == 0) ? A_BOLD : A_DIM;
         return Cell{ text, style };

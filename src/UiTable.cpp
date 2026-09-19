@@ -74,41 +74,26 @@ inline void draw_border_columns(
     WINDOW *_win,
     int row,
     int col,
-    const std::vector<HeaderColumn> &cols,
+    const std::vector<ColumnRange> &cols,
     const std::wstring &start,
     const std::wstring &mid,
     const std::wstring &end,
     bool focused = false)
 {
   addstr_focus(_win, row, col, start, focused);
-
-  int x = 1;
   for (std::size_t i = 0; i < cols.size(); ++i)
   {
-    int w = std::max(0, cols[i].width);
-    std::wstring hrun;
-    {
-      hrun.reserve(w * 3); // box chars are multi-byte
-      for (int k = 0; k < w; ++k)
-        hrun.append(L"─");
-    }
-    addstr_focus(_win, row, col + x, hrun, focused);
-    x += w;
-    if (i < cols.size() - 1)
-    {
-      addstr_focus(_win, row, col + x, mid, focused);
-      x += 1;
-    }
+    auto const& range = cols[i];
+    addstr_focus(_win, row, col + range.start, std::wstring(range.width, L'─'), focused);
+    addstr_focus(_win, row, col + range.start + range.width, (i < cols.size() - 1)?mid:end, focused);
   }
-
-  addstr_focus(_win, row, col + x, end, focused);
 }
 
 void draw_top_border_header(
     WINDOW *_win,
     int row,
     int col,
-    const std::vector<HeaderColumn> &cols,
+    const std::vector<ColumnRange> &cols,
     bool focused)
 {
   // box(_win, 0, 0);
@@ -119,7 +104,7 @@ void draw_mid_border_header(
     WINDOW *_win,
     int row,
     int col,
-    const std::vector<HeaderColumn> &cols,
+    const std::vector<ColumnRange> &cols,
     bool focused)
 {
   draw_border_columns(_win, row, col, cols, L"├", L"┼", L"┤", focused);
@@ -129,7 +114,7 @@ void draw_bottom_border_header(
     WINDOW *_win,
     int row,
     int col,
-    const std::vector<HeaderColumn> &cols,
+    const std::vector<ColumnRange> &cols,
     bool focused)
 {
   draw_border_columns(_win, row, col, cols, L"╰", L"┴", L"╯", focused);
@@ -142,7 +127,7 @@ void draw_top_border(
     int inner_width,
     bool focused)
 {
-  draw_top_border_header(_win, row, col, {HeaderColumn{inner_width}}, focused);
+  draw_top_border_header(_win, row, col, {ColumnRange{0,inner_width}}, focused);
 }
 
 void draw_bottom_border(
@@ -152,7 +137,7 @@ void draw_bottom_border(
     int inner_width,
     bool focused)
 {
-  draw_bottom_border_header(_win, row, col, {HeaderColumn{inner_width}}, focused);
+  draw_bottom_border_header(_win, row, col, {ColumnRange{0,inner_width}}, focused);
 }
 
 inline std::wstring build_left_border()
@@ -175,22 +160,31 @@ inline std::wstring build_right_border(
   return L"│";
 }
 
+namespace{
+inline int width(int width){return std::max(0,width);}
+inline int width(HeaderColumn const& c){return (c.width == HeaderColumn::FIT_LABEL && c.name)?c.name->size():width(c.width);}
+inline bool fill(int width){return width == HeaderColumn::FILL;}
+inline bool fill(HeaderColumn const& c){return fill(c.width);}
+}
+template<typename C>
 inline void draw_header_row(
-    WINDOW *_win,
-    int row,
-    int col,
-    const std::vector<HeaderColumn> &cols,
-    UiHotspotGroup &hostHotspotGroup,
-    bool focused = false)
+  int k,
+  WINDOW *_win,
+  int row,
+  int col,
+  const std::vector<C> &cols,
+  const std::vector<ColumnRange> &colRanges,
+  bool focused = false)
 {
   addstr_focus(_win, row, col, build_left_border(), focused);
-  int x = 1;
 
   for (std::size_t i = 0; i < cols.size(); ++i)
   {
     const auto &header = cols[i];
+    const auto &headerRange = colRanges[i];
     std::wstring cell;
 
+    if constexpr(requires (C c){c.name;})
     if (header.name)
     {
       cell = *header.name;
@@ -200,26 +194,23 @@ inline void draw_header_row(
         cell += L" ↓";
     }
 
-    if (i > 0)
-    {
-      addstr_focus(_win, row, col + x, L"│", focused);
-      x += 1;
-    }
+    if (static_cast<int>(cell.size()) < headerRange.width)
+      cell.append(headerRange.width - cell.size(), ' ');
+    else if (static_cast<int>(cell.size()) > headerRange.width)
+      cell = cell.substr(0, headerRange.width);
 
-    if (static_cast<int>(cell.size()) < header.width)
-      cell.append(header.width - cell.size(), ' ');
-    else if (static_cast<int>(cell.size()) > header.width)
-      cell = cell.substr(0, header.width);
-
-    addstr_focus(_win, row, col + x, cell, focused);
+    addstr_focus(_win, row, col + headerRange.start, cell, focused);
+    addstr_focus(_win, row, col + headerRange.start + headerRange.width,
+      (i == cols.size()-1)?build_right_border({std::nullopt, std::nullopt}, 0):L"│", focused);
+    if constexpr(requires (C c){c.name;})
     if (header.callback)
     {
-      hostHotspotGroup.addLocalSpot(row, col + x, row + 1, col + x + header.width, *(header.callback));
+      if (headerRange.getEvent(k, _win, row, col))
+      {
+        (*header.callback)();
+      }
     }
-    x += header.width;
   }
-
-  addstr_focus(_win, row, col + x, build_right_border({std::nullopt, std::nullopt}, 0), focused);
 }
 
 // ------------------------------------------------------------
@@ -258,21 +249,9 @@ inline std::pair<std::optional<int>, std::optional<int>> scrollbar_thumb(
 }
 }//namespace
 // ------------------------------------------------------------
-std::optional<MouseEvent> UiTable::TableRender::getEvent(Row& r, int i)
+std::optional<MouseEvent> UiTable::TableRender::getEvent(Row& r, int c)
 {
-  if (k == KEY_MOUSE)
-  {
-    if (auto ev = getMouseEvent())
-    {
-      MouseEvent mev = ev->toLocal(table._win);
-      int row = viewContentFirstRow+r.i;
-      if (mev.hit({row, col + r.x + 1, row + 1, col + r.x + 1 + cols_def[i].width}))
-      {
-        return ev;
-      }
-    }
-  }
-  return std::nullopt;
+  return this->cols_def[c].getEvent(k, table._win, viewContentFirstRow+r.i, col);
 }
 void UiTable::TableRender::draw(Row& r, int i, Cell const& cell)
 {
@@ -306,39 +285,68 @@ void UiTable::TableRender::endRow(Row const& r)
   addstr_focus(table._win, row, col + r.x, build_right_border(vparams, row), focused);
 }
 // ------------------------------------------------------------
-namespace{
-std::vector<HeaderColumn>
-resolveHeaderWidth(const std::vector<HeaderColumn> &headerCols, int totalInnerW)
+std::optional<MouseEvent> ColumnRange::getEvent(int k, WINDOW* win, int row, int col)const
 {
-  int fixed = 0;
-  int num_fill = 0;
-  for (std::size_t i = 0; i < headerCols.size(); ++i)
+  if (k==KEY_MOUSE)
   {
-    if (headerCols[i].width > 0)
-      fixed += headerCols[i].width;
-    else if (headerCols[i].width == HeaderColumn::FIT_LABEL && headerCols[i].name)
-      fixed += headerCols[i].name->size();
-    else
+    if (auto ev = getMouseEvent())
     {
-      num_fill++;
+      MouseEvent mev = ev->toLocal(win);
+      if (mev.hit({row, col + start, row + 1, col + start + width}))
+      {
+        return ev;
+      }
     }
   }
-
-  int sep_space = static_cast<int>(headerCols.size()) - 1;
-  int remaining = totalInnerW - fixed - sep_space;
-  int fill_width = num_fill > 0 ? remaining / num_fill : 0;
-
-
-  std::vector<HeaderColumn> resolvedHeaderCols;
-  resolvedHeaderCols.reserve(headerCols.size());
+  return std::nullopt;
+}
+// ------------------------------------------------------------
+template <typename C>
+Columns::Columns(int totalWidth, std::vector<C> const&headerCols)
+{
+  int const totalInnerW = totalWidth - 2;
+  int fixed = 0;
+  int num_fill = 0;
+  vec.reserve(headerCols.size());
+  int x=1;
   for (auto const &hc : headerCols)
   {
-    HeaderColumn r = hc;
-    r.width = (hc.width==HeaderColumn::FIT_LABEL && hc.name) ? hc.name->size() : hc.width == HeaderColumn::FILL ? fill_width : hc.width;
-    resolvedHeaderCols.push_back(r);
+    int w;
+    if (fill(hc))
+    {
+      num_fill++;
+      w = 0;//width pending
+    }
+    else
+    {
+      w = ::width(hc);
+    }
+    fixed += w;
+    vec.emplace_back(x,w);
+    x+=w+1;
   }
-  return resolvedHeaderCols;
-}
+
+  if (num_fill)
+  {
+    int sep_space = static_cast<int>(headerCols.size()) - 1;
+    int remaining = totalInnerW - fixed - sep_space;
+    int fill_width = num_fill > 0 && remaining > 0? remaining / num_fill : 0;
+    int x=1;
+    for (std::size_t i = 0; i < headerCols.size(); ++i)
+    {
+      if (fill(headerCols[i]))
+      {
+        vec[i].width = fill_width;
+      }
+      vec[i].start = x;
+      x+=vec[i].width+1;
+    }
+  }
+  if constexpr (requires(C c) { c.name; })
+  {
+    drawHeader = std::ranges::any_of(headerCols,
+      [](C const &hc){ return hc.name.has_value(); });
+  }
 }
 // ------------------------------------------------------------
 // CLASS
@@ -347,7 +355,7 @@ UiTable::UiTable(Mode mode,
                  std::function<void()> const &callback,
                  int firstVisibleDataRow,
                  int dynamicColCurrentOffsetX)
-  : UiHotspotGroup(callback)
+  : _callback(callback)
   , _cursor(firstVisibleDataRow)
   , _mode(mode)
   , _firstVisibleDataRow(firstVisibleDataRow)
@@ -451,37 +459,68 @@ void UiTable::buildWindow(int nlines, int ncols, int begy, int begx)
 }
 
 // ------------------------------------------------------------
-UiTable::TableRender UiTable::renderStart(
+template<typename C>
+Columns UiTable::renderHeaderImpl(
   int k,
-  int dataRowCount,
-  const std::vector<HeaderColumn> &headerCols,
+  std::vector<C> const& headerCols,
   bool focused)
 {
-  setWin(_win);
   werase(_win);
   keypad(_win, TRUE);
 
+  int totalWidth = getmaxx(_win);
+  Columns resolvedHeaderCols(totalWidth, headerCols);
+  // ------------------------------------------------------------
+  // Draw header + mid border
+  // ------------------------------------------------------------
+  draw_top_border_header(_win, 0, 0, resolvedHeaderCols.vec, focused);
+
+  if (resolvedHeaderCols.drawHeader)
+  {
+    draw_header_row(k, _win, 1, 0, headerCols, resolvedHeaderCols.vec, focused);
+  }
+  return resolvedHeaderCols;
+}
+Columns UiTable::renderHeader(int k, std::vector<int> const&headerCols, bool focused){ return renderHeaderImpl(k, headerCols, focused); }
+Columns UiTable::renderHeader(int k, std::vector<HeaderColumn> const&headerCols, bool focused){ return renderHeaderImpl(k, headerCols, focused); }
+// ------------------------------------------------------------
+UiTable::TableRender UiTable::renderStart(
+  int k,
+  int dataRowCount,
+  const Columns &resolvedHeaderCols,
+  bool focused)
+{
   _dataRowCount = dataRowCount;
 
   int h, w;
   getmaxyx(_win, h, w);
   int totalInnerW = w - 2;
 
-  std::vector<HeaderColumn> resolvedHeaderCols = resolveHeaderWidth(headerCols, totalInnerW);
+  if (k == KEY_MOUSE)
+  {
+    int beginRow, beginCol;
+    getbegyx(_win, beginRow, beginCol);
+    int endRow = h + beginRow;
+    int endCol = w + beginCol;
+    auto ev = getMouseEvent();
+    if (ev && (ev->x >= beginCol && ev->x < endCol) &&
+        (ev->y >= beginRow && ev->y < endRow))
+    {
+      _callback();
+    }
+  }
   // ------------------------------------------------------------
   // Resolve column widths
   // ------------------------------------------------------------
-  auto it = std::ranges::find_if(resolvedHeaderCols,
+  auto it = std::ranges::find_if(resolvedHeaderCols.vec,
       [](auto const& hc){ return hc.width == HeaderColumn::FILL; });
-  int dynamic_index = (it == resolvedHeaderCols.end() ? -1 : it - resolvedHeaderCols.begin());
+  int dynamic_index = (it == resolvedHeaderCols.vec.end() ? -1 : it - resolvedHeaderCols.vec.begin());
 
-  bool drawHeader = std::ranges::any_of(resolvedHeaderCols,
-    [](auto const &hc){ return hc.name.has_value(); });
-  int viewContentFirstRow = drawHeader ? 3 : 1;
-  _lastKnownViewHeight = h - (drawHeader? 4 : 2);
+  int viewContentFirstRow = resolvedHeaderCols.drawHeader ? 3 : 1;
+  _lastKnownViewHeight = h - (resolvedHeaderCols.drawHeader? 4 : 2);
 
   _dynamicColViewWidth =
-      (dynamic_index >= 0 ? resolvedHeaderCols[dynamic_index].width : 0);
+      (dynamic_index >= 0 ? resolvedHeaderCols.vec[dynamic_index].width : 0);
   // ------------------------------------------------------------
   // Vertical scrollbar
   // ------------------------------------------------------------
@@ -492,18 +531,10 @@ UiTable::TableRender UiTable::renderStart(
       viewContentFirstRow,
       _lastKnownViewHeight);
 
-  // ------------------------------------------------------------
-  // Draw header + mid border
-  // ------------------------------------------------------------
-  draw_top_border_header(_win, 0, 0, resolvedHeaderCols, focused);
 
-  if (drawHeader)
+  if (resolvedHeaderCols.drawHeader && h>3)
   {
-    draw_header_row(_win, 1, 0, resolvedHeaderCols, *this, focused);
-    if (h>3)
-    {
-      draw_mid_border_header(_win, 2, 0, resolvedHeaderCols, focused);
-    }
+    draw_mid_border_header(_win, 2, 0, resolvedHeaderCols.vec, focused);
   }
 
   // ------------------------------------------------------------
@@ -514,7 +545,7 @@ UiTable::TableRender UiTable::renderStart(
           k,
           0, totalInnerW,
           dataRowCount,
-          std::move(resolvedHeaderCols),
+          std::move(resolvedHeaderCols.vec),
           focused,
           vparams,
           dynamic_index,
@@ -579,28 +610,8 @@ void UiTable::renderArray(
     return array[row];
   };
 
-  std::vector<HeaderColumn> cols{
-      HeaderColumn{.width=HeaderColumn::FILL, .name=title}};
+  Columns cols = renderHeader(k, {
+      HeaderColumn{.width=HeaderColumn::FILL, .name=title}}, focused);
 
   render(k, static_cast<int>(array.size()), cols, cell_cb, focused);
-}
-
-// ------------------------------------------------------------
-void UiTable::renderSingleLine(
-    int k,
-    const std::vector<Cell> &array,
-    bool focused)
-{
-  auto cell_cb = [&array](int, int col, std::optional<MouseEvent> const&) -> Cell
-  {
-    return array[col];
-  };
-  auto colsView = array | std::views::transform([](const Cell &c)
-                                                { return HeaderColumn{
-                                                      .width = static_cast<int>(c.text.size()),
-                                                  }; });
-  std::vector<HeaderColumn> cols(colsView.begin(), colsView.end());
-  if (!cols.empty())
-    cols.back().width = -1;
-  render(k, 1, cols, cell_cb, focused);
 }

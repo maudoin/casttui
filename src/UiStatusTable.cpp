@@ -10,8 +10,8 @@
 #include <ranges>
 
 
-UiStatusTable::UiStatusTable(DowncastLogic& _logic, std::function<void()> const& winSelection, std::function<void()> const& exit)
-: UiTable(UiTable::Mode::CURSOR, winSelection)
+UiStatusTable::UiStatusTable(DowncastLogic& _logic, std::function<void()> const& exit)
+: UiTable(UiTable::Mode::CURSOR)
 , _logic(_logic)
 , _cursorPosition(0)
 , _exit(exit)
@@ -26,7 +26,7 @@ UiStatusTable::UiStatusTable(DowncastLogic& _logic, std::function<void()> const&
   };
 }
 
-void UiStatusTable::render(int k, bool focused)
+void UiStatusTable::render(int k, bool focused, std::function<void()> const& winSelection)
 {
   std::wstring title = L"Status: ";
   std::wstring quitLabel = L" X ";
@@ -90,7 +90,7 @@ void UiStatusTable::render(int k, bool focused)
     return Cell{label, style};
   };
 
-  UiTable::render(k, 1, cols, cell_cb, focused);
+  UiTable::render(k, 1, UiTable::renderHeader(k, cols, focused), cell_cb, focused, winSelection);
 }
 
 bool UiStatusTable::handleKey(int k)

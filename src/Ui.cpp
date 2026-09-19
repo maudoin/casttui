@@ -29,7 +29,6 @@ class Ui : public UiApp
   : _logic(db_path)
   , _focusedPanel(Focus::Podcasts)
   , _podcastUi(_logic, UiPodcastTable::Actions{
-    .winSelection=[&]{_focusedPanel = Focus::Podcasts;},
     .add=[&]()
     {
       this->_addEditPodcastUi.setAdd();
@@ -46,10 +45,10 @@ class Ui : public UiApp
       this->_modalPopup = ModalMode::Confirm;
     }
   })
-  , _showsUi(_logic, [&]{_focusedPanel = Focus::Shows;})
+  , _showsUi(_logic)
   , _actionsUi(UiTable::Mode::SCROLL)
   , _bottomBarUi(UiTable::Mode::SCROLL)
-  , _statusUi(_logic, [&]{_focusedPanel = Focus::Status;},[this]{
+  , _statusUi(_logic, [this]{
     this->_confirmUi.set(L"Quit", [this]{this->_isRunning = false;});
     this->_modalPopup = ModalMode::Confirm;
   })
@@ -151,7 +150,7 @@ private:
     }
 
     items.push_back({ .width=HeaderColumn::FILL, .name=L""});
-    _actionsUi.render(k, 0, items, [](int, int, std::optional<MouseEvent> const&){return Cell{};});
+    _actionsUi.renderHeaderOnly(k, items);
   }
 
   void renderBottomBar(int k)
@@ -212,8 +211,8 @@ private:
 
     std::optional<std::wstring> title =
       shows.empty() ? std::nullopt : std::make_optional(to_wstring(shows[0].title));
-    std::vector<HeaderColumn> cols{
-        HeaderColumn{.width=HeaderColumn::FILL, .name=title}};
+    Columns cols = _infoUi.renderHeader(k, {
+        HeaderColumn{.width=HeaderColumn::FILL, .name=title}}, true);
 
     auto getCell = [&](int row, int col, std::optional<MouseEvent> const&)
     {
@@ -225,31 +224,6 @@ private:
   }
 
   // --------------------------------------------------------------------
-
-  bool doHandleMouse(MouseEvent const& ev) override
-  {
-    if (_modalPopup == ModalMode::None)
-    {
-      // always active
-      if (_podcastUi.handleMouseEvent(ev))
-      return true;
-      if (_showsUi.handleMouseEvent(ev))
-      return true;
-      if (_statusUi.handleMouseEvent(ev))
-      return true;
-    }
-
-    // Modal active only when visible
-    if (_modalPopup == ModalMode::Confirm)
-    return _confirmUi.handleMouseEvent(ev);
-    else if (_modalPopup == ModalMode::Info)
-    return _infoUi.handleMouseEvent(ev);
-    else if (_modalPopup == ModalMode::AddEditPodcast)
-    return _addEditPodcastUi.handleMouseEvent(ev);
-
-    _actionsUi.handleMouseEvent(ev);
-    return false;
-  }
 
 bool doHandleKey(int k) override
 {
@@ -433,9 +407,9 @@ bool doHandleKey(int k) override
   }
   void doRender(int k) override
   {
-    _podcastUi.render(k, _focusedPanel == Focus::Podcasts);
-    _statusUi.render(k, _focusedPanel == Focus::Status);
-    _showsUi.render(k, _focusedPanel == Focus::Shows);
+    _podcastUi.render(k, _focusedPanel == Focus::Podcasts, [&]{_focusedPanel = Focus::Podcasts;});
+    _statusUi.render(k, _focusedPanel == Focus::Status, [&]{_focusedPanel = Focus::Status;});
+    _showsUi.render(k, _focusedPanel == Focus::Shows, [&]{_focusedPanel = Focus::Shows;});
     renderActionsBar(k);
     renderBottomBar(k);
 

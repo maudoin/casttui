@@ -81,10 +81,7 @@ void UiPodcastSetup::render(int k)
   int fieldCount = static_cast<int>(fields.size());
 
   // Columns: Label | Value
-  std::vector<HeaderColumn> cols{
-    HeaderColumn{.width = 20},
-    HeaderColumn{.width = HeaderColumn::FILL},
-  };
+  Columns cols = UiTable::renderHeader(k, {20,HeaderColumn::FILL}, true);
 
   auto cell_cb = [=, this](int row, int col, std::optional<MouseEvent> const& ev) -> Cell
   {
@@ -123,8 +120,28 @@ void UiPodcastSetup::render(int k)
       }
       else
       {
-        std::wstring displayValue =
-          editing ? to_wstring(modal_edit_buffer) + L"_" : f.value;
+        //std::wstring displayValue =
+        //  editing ? to_wstring(modal_edit_buffer) + L"_" : f.value;
+        std::wstring displayValue;
+        if (editing)
+        {
+          std::wstring w = to_wstring(modal_edit_buffer);
+
+          int cellWidth = cols.vec[1].width;   // UiTable gives you this
+          int scroll = 0;
+          if (modal_caret >= cellWidth)
+              scroll = modal_caret - cellWidth + 1;
+
+          std::wstring slice = w.substr(scroll, cellWidth);
+
+          int caretPos = modal_caret - scroll;
+          if (caretPos >= 0 && caretPos <= (int)slice.size())
+              slice.insert(caretPos, L"_");
+
+          displayValue = slice;
+        } else {
+          displayValue = f.value;
+        }
         int style = (isCurrentField && editing) ? COLOR_PAIR(1) : A_NORMAL;
         if (!f.editable)
         {
@@ -135,6 +152,13 @@ void UiPodcastSetup::render(int k)
         {
           modal_field = row;
           startEdit();
+          // Move caret to mouse X
+          if (modal_editing) {
+            int rel = ev->x - cols.vec[col].start;   // you already have cell start X in UiTable
+            rel = std::max(0, rel);
+            rel = std::min(rel, (int)modal_edit_buffer.size());
+            modal_caret = rel;
+          }
         }
         return Cell{.text=displayValue, .style=style};
       }
@@ -168,11 +192,26 @@ bool UiPodcastSetup::handleKey(int k)
   // Editing _mode
   if (modal_editing)
   {
-    if (k == KEY_BACKSPACE || k == 127)
-    {
-      if (!modal_edit_buffer.empty())
-      modal_edit_buffer.pop_back();
+    if (k == KEY_LEFT) {
+      modal_caret = std::max(0, modal_caret - 1);
+      return true;
     }
+    else if (k == KEY_RIGHT) {
+      modal_caret = std::min((int)modal_edit_buffer.size(), modal_caret + 1);
+      return true;
+    }
+    else if (k == KEY_BACKSPACE || k == 127) {
+      if (modal_caret > 0) {
+        modal_edit_buffer.erase(modal_caret - 1, 1);
+        modal_caret--;
+      }
+      return true;
+    }
+    // if (k == KEY_BACKSPACE || k == 127)
+    // {
+    //   if (!modal_edit_buffer.empty())
+    //   modal_edit_buffer.pop_back();
+    // }
     else if (k == 10 || k == 13) // ENTER commits edit
     {
       switch (modal_field)
@@ -202,10 +241,17 @@ bool UiPodcastSetup::handleKey(int k)
       modal_editing = false;
       modal_edit_buffer.clear();
     }
-    else
+    // else
+    // {
+    //   if (k >= 32 && k <= 126)
+    //   modal_edit_buffer.push_back(static_cast<char>(k));
+    // }
+    if (k >= 32 && k <= 126)
     {
-      if (k >= 32 && k <= 126)
-      modal_edit_buffer.push_back(static_cast<char>(k));
+      modal_edit_buffer.insert(modal_edit_buffer.begin() + modal_caret,
+                               static_cast<char>(k));
+      modal_caret++;
+      return true;
     }
     return true;
   }
@@ -261,6 +307,7 @@ void UiPodcastSetup::startEdit()
       break;
   }
   modal_editing = true;
+  modal_caret = (int)modal_edit_buffer.size();   // caret at end
 }
 
 void UiPodcastSetup::savePodcast()
