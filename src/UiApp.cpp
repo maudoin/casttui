@@ -1,5 +1,6 @@
 #include "UiApp.h"
 
+#include "UiColors.h"
 #include "UiInput.h"
 
 #if defined(_WIN32)
@@ -42,6 +43,8 @@ UiApp::UiApp()
   // Colors
   start_color();
   use_default_colors();
+
+  UiColors::init();
 }
 
 UiApp::~UiApp()

@@ -29,9 +29,9 @@ protected:
   void buildWindows();
   void delWindows();
 
+  void exit() {_isRunning = false;}
 private:
   bool handleKey(UiInput const& input);
   void render(UiInput const& input);
-protected:
   bool _isRunning = true;
 };

@@ -50,7 +50,7 @@ class Ui : public UiApp
   , _actionsUi(UiTable::Mode::SCROLL)
   , _bottomBarUi(UiTable::Mode::SCROLL)
   , _statusUi(_logic, [this]{
-    this->_confirmUi.set(L"Quit", [this]{this->_isRunning = false;});
+    this->_confirmUi.set(L"Quit", [this]{this->exit();});
     this->_modalPopup = ModalMode::Confirm;
   })
   , _addEditPodcastUi(_logic, [this]{this->_modalPopup = ModalMode::None;})
@@ -60,7 +60,6 @@ class Ui : public UiApp
   })
   , _infoUi(UiTable::Mode::SCROLL, [&]{/*no _focusedPanel action*/})
   {
-    UiColors::init();
     buildWindows();
   }
 
@@ -234,7 +233,7 @@ private:
     {
       if (_modalPopup == ModalMode::None)
       {
-        _confirmUi.set(L"Quit", [this]{this->_isRunning = false;});
+        _confirmUi.set(L"Quit", [this]{this->exit();});
         _modalPopup=ModalMode::Confirm;
         return true;
       }
