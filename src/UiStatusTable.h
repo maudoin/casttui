@@ -33,7 +33,7 @@ public:
     };
   }
 
-  void render(int k, bool focused, std::function<void()> const& winSelection)
+  void render(UiInput const& input, bool focused, std::function<void()> const& winSelection)
   {
     std::wstring title = L"Status: ";
     std::wstring quitLabel = L" X ";
@@ -57,19 +57,19 @@ public:
       if (col == 0)
       {
         // Title
-        return Cell{title, A_NORMAL};
+        return Cell{title};
       }
       if (col == cols.size()-1)
       {
         // Quit
         if (ev){_exit();}
-        return Cell{quitLabel, A_NORMAL};
+        return Cell{quitLabel};
       }
       int statusIndex = col-1;
       if (statusIndex >= _labels.size())
       {
         // Spacer
-        return Cell{L"", A_NORMAL};
+        return Cell{};
       }
       auto const& [label, status] = _labels[statusIndex];
       bool isSelected = _logic.isStatusActive(status);
@@ -88,11 +88,11 @@ public:
       return Cell{label, UiColors::getStyle(isCursor, isSelected)};
     };
 
-    auto colRanges = UiTable::renderHeader(k, cols, UiColors::focusStyle(focused));
-    UiTable::render(k, 1, colRanges, cellCallback, UiColors::focusStyle(focused), winSelection);
+    auto colRanges = UiTable::renderHeader(input, cols, UiColors::focusStyle(focused));
+    UiTable::render(input, 1, colRanges, cellCallback, UiColors::focusStyle(focused), winSelection);
   }
 
-  bool handleKey(int k)
+  bool handleKey(UiInput const& input)
   {
     auto move_status_cursor = [&](int delta)
     {
@@ -103,19 +103,19 @@ public:
       );
     };
 
-    if (k == KEY_LEFT)
+    if (input.key == KEY_LEFT)
     {
       move_status_cursor(-1);
       return true;
     }
-    if (k == KEY_RIGHT)
+    if (input.key == KEY_RIGHT)
     {
       move_status_cursor(1);
       return true;
     }
 
     // ENTER selects status
-    if (k == 10 || k == 13)
+    if (input.key == 10 || input.key == 13)
     {
       auto const& [_, status] = _labels[_cursorPosition];
       _logic.setCurrentPodcastRowIndex(

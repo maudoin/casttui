@@ -1,5 +1,7 @@
 #include "UiApp.h"
+
 #include "MouseEvent.h"
+#include "UiInput.h"
 
 #if defined(_WIN32)
 #include <curses.h>
@@ -42,10 +44,9 @@ UiApp::UiApp()
   start_color();
   use_default_colors();
 }
-
-std::optional<MouseEvent> UiApp::mouseHit(int k, WINDOW* win)
+bool UiApp::mouseHit(UiInput const& input, WINDOW* win)
 {
-  if (k == KEY_MOUSE)
+  if (input.mev)
   {
     int beginRow, beginCol;
     int h, w;
@@ -53,14 +54,13 @@ std::optional<MouseEvent> UiApp::mouseHit(int k, WINDOW* win)
     getmaxyx(win, h, w);
     int endRow = h + beginRow;
     int endCol = w + beginCol;
-    auto ev = getMouseEvent();
-    if (ev && (ev->x >= beginCol && ev->x < endCol) &&
-        (ev->y >= beginRow && ev->y < endRow))
+    if ((input.mev->x >= beginCol && input.mev->x < endCol) &&
+        (input.mev->y >= beginRow && input.mev->y < endRow))
     {
-      return ev;
+      return true;
     }
   }
-  return std::nullopt;
+  return false;
 }
 
 UiApp::~UiApp()
@@ -70,7 +70,7 @@ UiApp::~UiApp()
 
 void UiApp::run()
 {
-  render(ERR);
+  render({ERR});
 
   while (_isRunning)
   {
@@ -86,7 +86,7 @@ void UiApp::run()
       buildWindows();
 
       // Redraw everything
-      render(ERR);
+      render({ERR});
 
       // Refresh all windows
       wnoutrefresh(stdscr);
@@ -94,15 +94,17 @@ void UiApp::run()
     }
     else
     {
-      handleKey(k);
-      render(k);
+      UiInput input{k, input.key == KEY_MOUSE?getMouseEvent():std::nullopt};
+      getmaxyx(stdscr, input.height, input.width);
+      handleKey(input);
+      render(input);
     }
   }
 }
 
-bool UiApp::handleKey(int k)
+bool UiApp::handleKey(UiInput const& input)
 {
-  return doHandleKey(k);
+  return doHandleKey(input);
 }
 void UiApp::delWindows()
 {
@@ -115,13 +117,11 @@ void UiApp::buildWindows()
 
   doBuildWindows(h, w);
 }
-void UiApp::render(int k)
+void UiApp::render(UiInput const& input)
 {
   wnoutrefresh(stdscr);
 
-  int h, w;
-  getmaxyx(stdscr, h, w);
-  doRender(k, h, w);
+  doRender(input);
 
   doupdate();
 }

@@ -71,7 +71,7 @@ class Ui : public UiApp
 
 private:
 
-  void renderActionsBar(int k)
+  void renderActionsBar(UiInput const& input)
   {
     std::vector<HeaderColumn> items;
 
@@ -152,10 +152,10 @@ private:
     }
 
     items.push_back({ .width=HeaderColumn::FILL, .name=L""});
-    _actionsUi.renderHeaderOnly(k, items, UiColors::normalStyle());
+    _actionsUi.renderHeaderOnly(input, items, UiColors::normalStyle());
   }
 
-  void renderBottomBar(int k)
+  void renderBottomBar(UiInput const& input)
   {
     std::wstring text;
 
@@ -189,16 +189,16 @@ private:
       text = L"Ready";
     }
 
-    _bottomBarUi.renderArray(k, std::vector<Cell>{Cell{text}}, UiColors::normalStyle());
+    _bottomBarUi.renderArray(input, std::vector<Cell>{Cell{text}}, UiColors::normalStyle());
   }
 
 
-  void renderInfoModal(int k, int h, int w)
+  void renderInfoModal(UiInput const& input)
   {
-    int mh = std::min(h - 4, 20);
-    int mw = std::min(w - 4, 170);
-    int y  = (h - mh) / 2;
-    int x  = (w - mw) / 2;
+    int mh = std::min(input.height - 4, 20);
+    int mw = std::min(input.width - 4, 170);
+    int y  = (input.height - mh) / 2;
+    int x  = (input.width - mw) / 2;
 
     _infoUi.delWindow();
     _infoUi.buildWindow(mh, mw, y, x);
@@ -211,7 +211,7 @@ private:
 
     std::optional<std::wstring> title =
       shows.empty() ? std::nullopt : std::make_optional(to_wstring(shows[0].title));
-    Columns cols = _infoUi.renderHeader(k, {
+    Columns cols = _infoUi.renderHeader(input, {
         HeaderColumn{.width=HeaderColumn::FILL, .name=title}}, UiColors::focusedStyle());
 
     auto getCell = [&](int row, int col, std::optional<MouseEvent> const&)
@@ -222,15 +222,15 @@ private:
       std::ranges::for_each(range, [&](wchar_t ch){ line.push_back(ch); });
       return Cell{.text=line};
     };
-    _infoUi.render(k, static_cast<int>(std::ranges::distance(lines)), cols, getCell, UiColors::focusedStyle());
+    _infoUi.render(input, static_cast<int>(std::ranges::distance(lines)), cols, getCell, UiColors::focusedStyle());
 
   }
 
   // --------------------------------------------------------------------
-  bool doHandleKey(int k) override
+  bool doHandleKey(UiInput const& input) override
   {
     // ESC closes app only when no modal is open
-    if (k == 27)
+    if (input.key == 27)
     {
       if (_modalPopup == ModalMode::None)
       {
@@ -242,7 +242,7 @@ private:
     // exit modals
     if (_modalPopup != ModalMode::None)
     {
-      if (k == 27) // ESC
+      if (input.key == 27) // ESC
       {
         _modalPopup = ModalMode::None;
         return true;
@@ -252,17 +252,17 @@ private:
     // Modal dispatch
     if (_modalPopup == ModalMode::Confirm)
     {
-      return _confirmUi.handleKey(k);
+      return _confirmUi.handleKey(input);
     }
 
     if (_modalPopup == ModalMode::AddEditPodcast)
     {
-      return _addEditPodcastUi.handleKey(k);
+      return _addEditPodcastUi.handleKey(input);
     }
 
     if (_modalPopup == ModalMode::Info)
     {
-      return _infoUi.handleKey(k);
+      return _infoUi.handleKey(input);
     }
 
     // Focus cycling order
@@ -281,21 +281,21 @@ private:
     };
 
     // TAB → forward
-    if (k == 9)
+    if (input.key == 9)
     {
       _focusedPanel = status_cycle(1);
       return true;
     }
 
     // SHIFT+TAB
-    if (k == KEY_BTAB)
+    if (input.key == KEY_BTAB)
     {
       _focusedPanel = status_cycle(-1);
       return true;
     }
 
     // Auto switching windows
-    if (k == KEY_RIGHT)
+    if (input.key == KEY_RIGHT)
     {
       if (_focusedPanel == Focus::Podcasts)
       {
@@ -307,7 +307,7 @@ private:
       }
     }
 
-    if (k == KEY_LEFT)
+    if (input.key == KEY_LEFT)
     {
       if (_focusedPanel == Focus::Shows &&
         _showsUi.dynamicColCurrentOffsetX() == 0)
@@ -323,7 +323,7 @@ private:
       }
     }
 
-    if (k == KEY_DOWN)
+    if (input.key == KEY_DOWN)
     {
       if (_focusedPanel == Focus::Status)
       {
@@ -332,7 +332,7 @@ private:
       }
     }
 
-    if (k == KEY_UP)
+    if (input.key == KEY_UP)
     {
       if (_focusedPanel == Focus::Shows &&
         _showsUi.cursor() == 0)
@@ -346,15 +346,15 @@ private:
     switch (_focusedPanel)
     {
       case Focus::Podcasts:
-      return _podcastUi.handleKey(k);
+      return _podcastUi.handleKey(input);
       case Focus::Status:
-      return _statusUi.handleKey(k);
+      return _statusUi.handleKey(input);
       case Focus::Shows:
-      if (_showsUi.handleKey(k))
+      if (_showsUi.handleKey(input))
       {
         return true;
       }
-      if (k == 'i' || k == 'I')
+      if (input.key == 'i' || input.key == 'I')
       {
         _modalPopup = ModalMode::Info;
         return true;
@@ -414,27 +414,27 @@ private:
       _addEditPodcastUi.buildWindow(mh, mw, y, x);
     }
   }
-  void doRender(int k, int height, int width) override
+  void doRender(UiInput const& input) override
   {
     if (_modalPopup == ModalMode::Confirm)
     {
-      _confirmUi.render(k);
+      _confirmUi.render(input);
     }
     else if (_modalPopup == ModalMode::Info)
     {
-      renderInfoModal(k, height, width);
+      renderInfoModal(input);
     }
     else if (_modalPopup == ModalMode::AddEditPodcast)
     {
-      _addEditPodcastUi.render(k);
+      _addEditPodcastUi.render(input);
     }
     else
     {
-      _podcastUi.render(k, _focusedPanel == Focus::Podcasts, [&]{_focusedPanel = Focus::Podcasts;});
-      _statusUi.render(k, _focusedPanel == Focus::Status, [&]{_focusedPanel = Focus::Status;});
-      _showsUi.render(k, _focusedPanel == Focus::Shows, [&]{_focusedPanel = Focus::Shows;});
-      renderActionsBar(k);
-      renderBottomBar(k);
+      _podcastUi.render(input, _focusedPanel == Focus::Podcasts, [&]{_focusedPanel = Focus::Podcasts;});
+      _statusUi.render(input, _focusedPanel == Focus::Status, [&]{_focusedPanel = Focus::Status;});
+      _showsUi.render(input, _focusedPanel == Focus::Shows, [&]{_focusedPanel = Focus::Shows;});
+      renderActionsBar(input);
+      renderBottomBar(input);
     }
 
   }

@@ -28,15 +28,13 @@ void UiConfirm::cancel()
   set(L"", []{});
 }
 
-void UiConfirm::render(int k)
+void UiConfirm::render(UiInput const& input)
 {
   std::wstring cancel = L"Cancel";
 
   auto cellCallback = [&](int, int col, std::optional<MouseEvent> const& ev) -> Cell {
     bool const isCursor = col==_field;
-    int style = A_NORMAL;
-    if (isCursor)
-    style = COLOR_PAIR(1);
+    int style = UiColors::highlightStyle(isCursor);
     if (col == 0)
     {
       if (ev) _action();
@@ -52,28 +50,28 @@ void UiConfirm::render(int k)
     };
   };
 
-  Columns cols = UiTable::renderHeader(k, {
+  Columns cols = UiTable::renderHeader(input, {
     HeaderColumn{ .width = HeaderColumn::FILL },
     HeaderColumn{ .width = static_cast<int>(cancel.size()) }
   }, UiColors::focusedStyle());
 
-  UiTable::render(k, 1, cols, cellCallback, UiColors::focusedStyle());
+  UiTable::render(input, 1, cols, cellCallback, UiColors::focusedStyle());
 }
 
-bool UiConfirm::handleKey(int k)
+bool UiConfirm::handleKey(UiInput const& input)
 {
   // Auto switching windows
-  if (k == KEY_RIGHT)
+  if (input.key == KEY_RIGHT)
   {
     _field = std::max(1, _field+1);
     return true;
   }
-  else if (k == KEY_LEFT)
+  else if (input.key == KEY_LEFT)
   {
     _field = std::min(0, _field-1);
     return true;
   }
-  else if (k == 10 || k == 13) // ENTER commits edit
+  else if (input.key == 10 || input.key == 13) // ENTER commits edit
   {
     if (_field == 1)
     {

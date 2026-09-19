@@ -55,7 +55,7 @@ void UiPodcastSetup::setEdit(PodcastCols const &p)
   modal_edit_buffer = "";
 }
 
-void UiPodcastSetup::render(int k)
+void UiPodcastSetup::render(UiInput const& input)
 {
   int h = getHeight();
   int inner_h = h - 2;
@@ -82,7 +82,7 @@ void UiPodcastSetup::render(int k)
   int fieldCount = static_cast<int>(fields.size());
 
   // Columns: Label | Value
-  Columns cols = UiTable::renderHeader(k, {20,HeaderColumn::FILL}, UiColors::focusedStyle());
+  Columns cols = UiTable::renderHeader(input, {20,HeaderColumn::FILL}, UiColors::focusedStyle());
 
   auto cellCallback = [=, this](int row, int col, std::optional<MouseEvent> const& ev) -> Cell
   {
@@ -115,7 +115,7 @@ void UiPodcastSetup::render(int k)
 
       if (col == 0)
       {
-        int style = (isCurrentField && !editing) ? COLOR_PAIR(1) : A_NORMAL;
+        int style = UiColors::highlightStyle(isCurrentField && !editing);
         if (ev){setRowNoEdit();}
         return Cell{.text=f.label, .style=style};
       }
@@ -143,7 +143,7 @@ void UiPodcastSetup::render(int k)
         } else {
           displayValue = f.value;
         }
-        int style = (isCurrentField && editing) ? COLOR_PAIR(1) : A_NORMAL;
+        int style = UiColors::highlightStyle(isCurrentField && editing);
         if (!f.editable)
         {
           if (ev){setRowNoEdit();}
@@ -176,44 +176,44 @@ void UiPodcastSetup::render(int k)
       if (col==1 && preview < modal_preview_shows.size())
       {
         if (ev){setRowNoEdit();}
-        return Cell{.text=to_wstring(modal_preview_shows[preview]), .style=A_NORMAL};
+        return Cell{.text=to_wstring(modal_preview_shows[preview]), .style=UiColors::normalStyle()};
       }
     }
 
     // Footer row
-    return Cell{L"", A_NORMAL};
+    return Cell{};
   };
 
-  UiTable::render(k, inner_h, cols, cellCallback, UiColors::focusedStyle());
+  UiTable::render(input, inner_h, cols, cellCallback, UiColors::focusedStyle());
 }
 
-bool UiPodcastSetup::handleKey(int k)
+bool UiPodcastSetup::handleKey(UiInput const& input)
 {
 
   // Editing _mode
   if (modal_editing)
   {
-    if (k == KEY_LEFT) {
+    if (input.key == KEY_LEFT) {
       modal_caret = std::max(0, modal_caret - 1);
       return true;
     }
-    else if (k == KEY_RIGHT) {
+    else if (input.key == KEY_RIGHT) {
       modal_caret = std::min((int)modal_edit_buffer.size(), modal_caret + 1);
       return true;
     }
-    else if (k == KEY_BACKSPACE || k == 127) {
+    else if (input.key == KEY_BACKSPACE || input.key == 127) {
       if (modal_caret > 0) {
         modal_edit_buffer.erase(modal_caret - 1, 1);
         modal_caret--;
       }
       return true;
     }
-    // if (k == KEY_BACKSPACE || k == 127)
+    // if (input.key == KEY_BACKSPACE || input.key == 127)
     // {
     //   if (!modal_edit_buffer.empty())
     //   modal_edit_buffer.pop_back();
     // }
-    else if (k == 10 || k == 13) // ENTER commits edit
+    else if (input.key == 10 || input.key == 13) // ENTER commits edit
     {
       switch (modal_field)
       {
@@ -247,10 +247,10 @@ bool UiPodcastSetup::handleKey(int k)
     //   if (k >= 32 && k <= 126)
     //   modal_edit_buffer.push_back(static_cast<char>(k));
     // }
-    if (k >= 32 && k <= 126)
+    if (input.key >= 32 && input.key <= 126)
     {
       modal_edit_buffer.insert(modal_edit_buffer.begin() + modal_caret,
-                               static_cast<char>(k));
+                               static_cast<char>(input.key));
       modal_caret++;
       return true;
     }
@@ -258,30 +258,30 @@ bool UiPodcastSetup::handleKey(int k)
   }
 
   // Navigation between fields
-  if (k == KEY_UP)
+  if (input.key == KEY_UP)
   {
     modal_field = std::max(0, modal_field - 1);
     return true;
   }
-  if (k == KEY_DOWN)
+  if (input.key == KEY_DOWN)
   {
     modal_field = std::min(3, modal_field + 1);
     return true;
   }
-  if (modal_field == 4 && (k == KEY_LEFT || k == KEY_RIGHT))
+  if (modal_field == 4 && (input.key == KEY_LEFT || input.key == KEY_RIGHT))
   {
-    return UiTable::handleKey(k);
+    return UiTable::handleKey(input);
   }
 
   // ENTER begins editing
-  if (k == 10 || k == 13)
+  if (input.key == 10 || input.key == 13)
   {
     startEdit();
     return true;
   }
 
   // Save podcast
-  if (k == 's' || k == 'S')
+  if (input.key == 's' || input.key == 'S')
   {
     savePodcast();
     return true;

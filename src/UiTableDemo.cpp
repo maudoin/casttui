@@ -14,13 +14,13 @@ void run_table(int width, bool header, bool focus = false)
     UiTable table(UiTable::Mode::SCROLL, []{}, 5, 0);
     table.buildWindow(height, width, starty, startx);
 
-    int key = ERR;
+    UiInput input;
     while (true)
     {
       Columns cols = [&]{
         if (header)
         {
-          return table.renderHeader(key, {
+          return table.renderHeader(input, {
             HeaderColumn{ 3, std::wstring(L"A"), SortDir::UP },
             HeaderColumn{ HeaderColumn::FILL, std::wstring(L"B (fill) "), SortDir::NONE },
             HeaderColumn{ 4, std::wstring(L"C"), SortDir::NONE }
@@ -28,7 +28,7 @@ void run_table(int width, bool header, bool focus = false)
         }
         else
         {
-          return table.renderHeader(key, {
+          return table.renderHeader(input, {
             HeaderColumn{ 10, std::nullopt, SortDir::NONE },
             HeaderColumn{ HeaderColumn::FILL, std::nullopt, SortDir::NONE },
             HeaderColumn{ 20, std::nullopt, SortDir::NONE }
@@ -45,13 +45,13 @@ void run_table(int width, bool header, bool focus = false)
         return Cell{ text, style };
       };
 
-      table.render(key, rowCount, cols, cellCallback, focus);
+      table.render(input, rowCount, cols, cellCallback, focus);
 
-      key = wgetch(stdscr);
+      input.key = wgetch(stdscr);
 
-      if (!table.handleKey(key))
+      if (!table.handleKey(input))
       {
-        if (key == 10 || key == 13 || key == 32 || key == 27)
+        if (input.key == 10 || input.key == 13 || input.key == 32 || input.key == 27)
         break;
       }
     }

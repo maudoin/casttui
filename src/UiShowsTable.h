@@ -27,7 +27,7 @@ public:
   {}
 
 
-  void render(int k, bool focused, std::function<void()> const& winSelection)
+  void render(UiInput const& input, bool focused, std::function<void()> const& winSelection)
   {
     int h = getHeight();
     int inner_h = h - 2;
@@ -45,7 +45,7 @@ public:
       };
     };
 
-    Columns cols = UiTable::renderHeader(k, {
+    Columns cols = UiTable::renderHeader(input, {
       HeaderColumn{.width = HeaderColumn::FILL, .name = L"Title",   .sort = toSortDir(titleSort), .callback=makeCallback(&MediaViewCols::title, titleSort)},
       HeaderColumn{.width = 12, .name = L"Date",    .sort = toSortDir(dateSort),     .callback=makeCallback(&MediaViewCols::date, dateSort)},
       HeaderColumn{.width = 10, .name = L"Duration",.sort = toSortDir(durationSort), .callback=makeCallback(&MediaViewCols::duration, durationSort)},
@@ -55,7 +55,7 @@ public:
     {
       int idx = row - firstVisibleDataRow();
       if (idx < 0 || idx >= static_cast<int>(shows.size()))
-      return Cell{L"", A_NORMAL};
+      return Cell{};
 
       auto const& s = shows[idx];
 
@@ -78,19 +78,19 @@ public:
       return Cell{text, UiColors::getStyle(isCursor, isSelected)};
     };
 
-    UiTable::render(k, _logic.showCount(), cols, cellCallback, UiColors::focusStyle(focused), winSelection);
+    UiTable::render(input, _logic.showCount(), cols, cellCallback, UiColors::focusStyle(focused), winSelection);
   }
 
 
-  bool handleKey(int k)
+  bool handleKey(UiInput const& input)
   {
-    if (UiTable::handleKey(k))
+    if (UiTable::handleKey(input))
     return true;
 
     using MediaStatus = DowncastLogic::MediaStatus;
 
 
-    if (k == 'u' || k == 'U')
+    if (input.key == 'u' || input.key == 'U')
     {
       if (_logic.isStatusActive(MediaStatus::New))
       _logic.refreshCurrentPodcast();
@@ -99,46 +99,46 @@ public:
 
     if (_logic.anySelection())
     {
-      if (k == 'q' || k == 'Q')
+      if (input.key == 'q' || input.key == 'Q')
       {
         _logic.setSelectedShowsStatus(Status::QUEUED);
         return true;
       }
-      if (k == 's' || k == 'S')
+      if (input.key == 's' || input.key == 'S')
       {
         _logic.setSelectedShowsStatus(Status::SKIPPED);
         return true;
       }
-      if (k == 'n' || k == 'N')
+      if (input.key == 'n' || input.key == 'N')
       {
         _logic.setSelectedShowsStatus(Status::NEW);
         return true;
       }
     }
 
-    if (k == 'd' || k == 'D')
+    if (input.key == 'd' || input.key == 'D')
     {
       if (_logic.isStatusActive(MediaStatus::Queued))
       _logic.startDownload();
       return true;
     }
 
-    if (k == 10 || k == 13) // ENTER
+    if (input.key == 10 || input.key == 13) // ENTER
     {
       _logic.showSelection(cursor(), false, false);
       return true;
     }
 
-    if (k == ' ')
+    if (input.key == ' ')
     {
       _logic.showSelection(cursor(), true, false);
       return true;
     }
 
   #ifdef PDCURSES_WIN32
-    if (k == PADMINUS)
+    if (input.key == PADMINUS)
   #else
-    if (k == '-')
+    if (input.key == '-')
   #endif
     {
       _logic.selectShowRange(0, cursor(), true);
@@ -146,9 +146,9 @@ public:
     }
 
   #ifdef PDCURSES_WIN32
-    if (k == PADPLUS)
+    if (input.key == PADPLUS)
   #else
-    if (k == '+')
+    if (input.key == '+')
   #endif
     {
       _logic.selectShowRange(cursor(), this->_logic.showCount()-1, true);
@@ -156,13 +156,13 @@ public:
     }
 
     // Name sort toggle
-    if (k == 'n' || k == 'N')
+    if (input.key == 'n' || input.key == 'N')
     {
       auto const sort = _logic.getShowSorting(&MediaViewCols::title);
       _logic.setShowSorting(&MediaViewCols::title, DowncastLogic::cycle(sort));
     }
     // Time sort toggle
-    if (k == 't' || k == 'T')
+    if (input.key == 't' || input.key == 'T')
     {
       auto const sort = _logic.getShowSorting(&MediaViewCols::date);
       _logic.setShowSorting(&MediaViewCols::date, DowncastLogic::cycle(sort));
@@ -170,7 +170,7 @@ public:
     }
 
     // Length sort toggle
-    if (k == 'l' || k == 'L')
+    if (input.key == 'l' || input.key == 'L')
     {
       auto const sort = _logic.getShowSorting(&MediaViewCols::duration);
       _logic.setShowSorting(&MediaViewCols::duration, DowncastLogic::cycle(sort));

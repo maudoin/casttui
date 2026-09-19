@@ -21,9 +21,9 @@ public:
   void setAdd();
   void setEdit(PodcastCols const&p);
 
-  void render(int k);
+  void render(UiInput const& input);
 
-  bool handleKey(int k);
+  bool handleKey(UiInput const& input);
 
 private:
   void startEdit();

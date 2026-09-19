@@ -26,7 +26,7 @@ struct MouseEvent
     bool alt;
     mmask_t raw_bstate;
 
-    MouseEvent toLocal(WINDOW* win)
+    MouseEvent toLocal(WINDOW* win)const
     {
         int beginRow, beginCol;
         getbegyx(win, beginRow, beginCol);

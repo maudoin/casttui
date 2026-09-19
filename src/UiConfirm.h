@@ -12,8 +12,8 @@ public:
 
   void set(std::wstring const& title, std::function<void()> const& action);
 
-  void render(int k);
-  bool handleKey(int k);
+  void render(UiInput const& input);
+  bool handleKey(UiInput const& input);
 private:
   void cancel();
 

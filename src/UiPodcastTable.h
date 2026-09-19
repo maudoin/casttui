@@ -41,7 +41,7 @@ public:
   }
 
 
-  void render(int k, bool focused, std::function<void()> const& winSelection)
+  void render(UiInput const& input, bool focused, std::function<void()> const& winSelection)
   {
     int count = _logic.podcastCount() + 2;
 
@@ -54,7 +54,7 @@ public:
       titles.push_back(to_wstring(_logic.podcastTitle(i)));
     }
 
-    Columns cols = UiTable::renderHeader(k, {
+    Columns cols = UiTable::renderHeader(input, {
       HeaderColumn{.width = HeaderColumn::FILL, .name = std::nullopt, .sort = SortDir::NONE}
     },UiColors::focusStyle(focused));
 
@@ -72,13 +72,13 @@ public:
       return Cell{title, UiColors::getStyle(isCursor, isSelected)};
     };
 
-    UiTable::render(k, count, cols, cellCallback, UiColors::focusStyle(focused), winSelection);
+    UiTable::render(input, count, cols, cellCallback, UiColors::focusStyle(focused), winSelection);
   }
 
 
-  bool handleKey(int k)
+  bool handleKey(UiInput const& input)
   {
-    if (UiTable::handleKey(k))
+    if (UiTable::handleKey(input))
     return true;
 
     // Only valid podcast rows (skip Add/All)
@@ -86,17 +86,17 @@ public:
     {
       auto const& p = _logic.podcast(*index);
 
-      if (k == 'r' || k == 'R')
+      if (input.key == 'r' || input.key == 'R')
       {
         _logic.refreshPodcastAtIndex(*index);
         return true;
       }
-      if (k == 'e' || k == 'E')
+      if (input.key == 'e' || input.key == 'E')
       {
         _actions.edit(p);
         return true;
       }
-      if (k == 'd' || k == 'D')
+      if (input.key == 'd' || input.key == 'D')
       {
         int delete_id = p.id;
         _actions.del(L"Delete '" + to_wstring(p.title) + L"'?", [this, delete_id]{
@@ -108,7 +108,7 @@ public:
     }
 
     // ENTER behavior
-    if (k == 10 || k == 13)
+    if (input.key == 10 || input.key == 13)
     {
       if (pickPodcast())
       {

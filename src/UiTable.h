@@ -2,6 +2,8 @@
 
 #include "MouseEvent.h"
 #include "UiApp.h"
+#include "UiColors.h"
+#include "UiInput.h"
 
 #include <string>
 #include <vector>
@@ -10,8 +12,6 @@
 #include <iostream>
 #include <ranges>
 #include <algorithm>
-
-inline bool DEBUG_UI = true;
 
 // --------------------------------------------------------------------
 // SortDir / HeaderColumn
@@ -35,7 +35,7 @@ struct HeaderColumn
 struct ColumnRange
 {
   int start,width;
-  std::optional<MouseEvent> getEvent(int k, WINDOW* win, int row, int col)const;
+  std::optional<MouseEvent> getEvent(UiInput const& input, WINDOW* win, int row, int col)const;
 };
 struct Columns
 {
@@ -51,7 +51,7 @@ struct Columns
 struct Cell
 {
   std::wstring text = L"";
-  int style = A_NORMAL;
+  int style = UiColors::normalStyle();
 };
 
 
@@ -63,7 +63,7 @@ class UiTable
   struct TableRender
   {
     UiTable& table;
-    int k;
+    UiInput input;
     int col;
     int totalInnerW;
     int dataRowCount;
@@ -103,25 +103,25 @@ public:
   void scrollVertical(int amount);
   void scrollHorizontal(int amount);
 
-  bool handleKey(int key);
+  bool handleKey(UiInput const& input);
 
-  Columns renderHeader(int k, std::vector<int> const&headerCols,int borderStyle);
-  Columns renderHeader(int k, std::vector<HeaderColumn> const&headerCols,int borderStyle);
+  Columns renderHeader(UiInput const& input, std::vector<int> const&headerCols,int borderStyle);
+  Columns renderHeader(UiInput const& input, std::vector<HeaderColumn> const&headerCols,int borderStyle);
 
   template<typename GetCell, typename WinSelOp=decltype([]{})>
   void render(
-    int k,
+    UiInput const& input,
     int dataRowCount,
     Columns const& header_cols,
     const GetCell &cellCallback,
     int borderStyle,
     WinSelOp const& winSelOp = {})
   {
-    if (UiApp::mouseHit(k, _win))
+    if (UiApp::mouseHit(input, _win))
     {
       winSelOp();
     }
-    auto tableRender = renderStart(k, dataRowCount, header_cols, borderStyle);
+    auto tableRender = renderStart(input, dataRowCount, header_cols, borderStyle);
     for (int i = 0; i < tableRender.rowCount(); ++i)
     {
       TableRender::Row r = tableRender.startRow(i);
@@ -132,24 +132,24 @@ public:
     }
   }
   TableRender renderStart(
-    int k,
+    UiInput const& input,
     int dataRowCount,
     const Columns &headerCols,
     int borderStyle);
 
   void renderArray(
-    int k,
+    UiInput const& input,
     const std::vector<Cell> &array,
     int borderStyle,
     const std::optional<std::wstring> &title = std::nullopt);
 
   void renderHeaderOnly(
-    int k,
+    UiInput const& input,
     std::vector<HeaderColumn> const&headerCols,
     int borderStyle)
   {
-    auto h = renderHeader(k, headerCols, borderStyle);
-    render(k, 0, h, [](int, int, std::optional<MouseEvent> const&){return Cell{};}, borderStyle);
+    auto h = renderHeader(input, headerCols, borderStyle);
+    render(input, 0, h, [](int, int, std::optional<MouseEvent> const&){return Cell{};}, borderStyle);
   }
 
   int cursor() const { return _cursor; }
@@ -160,7 +160,7 @@ public:
 
 protected:
   template <typename C>
-  Columns renderHeaderImpl(int k, std::vector<C> const&headerCols, int borderStyle);
+  Columns renderHeaderImpl(UiInput const& input, std::vector<C> const&headerCols, int borderStyle);
 
   WINDOW *_win = nullptr;
 

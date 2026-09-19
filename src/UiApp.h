@@ -4,6 +4,7 @@
 
 #include <optional>
 
+struct UiInput;
 class UiApp
 {
 
@@ -13,20 +14,20 @@ public:
   ~UiApp();
 
   void run();
-  static std::optional<MouseEvent> mouseHit(int k, WINDOW* win);
+  static bool mouseHit(UiInput const& input, WINDOW* win);
 
 protected:
-  virtual bool doHandleKey(int k) = 0;
+  virtual bool doHandleKey(UiInput const& input) = 0;
   virtual void doDelWindows() = 0;
   virtual void doBuildWindows(int h, int w) = 0;
-  virtual void doRender(int k, int height, int width) = 0;
+  virtual void doRender(UiInput const& input) = 0;
 
   void buildWindows();
   void delWindows();
 
 private:
-  bool handleKey(int k);
-  void render(int k);
+  bool handleKey(UiInput const& input);
+  void render(UiInput const& input);
 protected:
   bool _isRunning = true;
 };
