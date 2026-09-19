@@ -1,5 +1,6 @@
 #pragma once
 
+#include "UiFieldEditor.h"
 #include "UiTable.h"
 #include "DowncastLogic.h"
 #include "HtmlToText.h"
@@ -26,7 +27,7 @@ public:
   bool handleKey(UiInput const& input);
 
 private:
-  void startEdit();
+  void startEdit(int caretPos);
   void savePodcast();
 
   DowncastLogic& _logic;
@@ -34,13 +35,11 @@ private:
   enum class Mode { AddPodcast, EditPodcast};
   Mode _mode = Mode::AddPodcast;
   int modal_field = 0;
-  bool modal_editing = false;
-  int modal_caret = 0;
+  UiFieldEditor editor;        // the ONLY active editor
   std::string modal_url;
   std::string modal_title;
   std::string modal_target = ".";
   std::string modal_pattern = "{date}-{title}";
-  std::string modal_edit_buffer;
   std::string modal_preview_description;
   std::vector<std::string> modal_preview_shows;
   std::optional<int> modal_edit_id;

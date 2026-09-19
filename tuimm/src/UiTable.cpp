@@ -202,7 +202,7 @@ std::optional<UiInput::MouseEvent> getEvent(
     UiInput::MouseEvent mev = toLocal(win, *(input.mev));
     if (mev.hit({row, col + colRange.start, row + 1, col + colRange.start + colRange.width}))
     {
-      return input.mev;
+      return mev;
     }
   }
   return std::nullopt;

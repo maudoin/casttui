@@ -34,8 +34,6 @@ void UiPodcastSetup::setAdd()
 
   _mode = Mode::AddPodcast;
   modal_field = 0;
-  modal_editing = false;
-  modal_edit_buffer = "";
 }
 
 void UiPodcastSetup::setEdit(PodcastCols const &p)
@@ -51,8 +49,6 @@ void UiPodcastSetup::setEdit(PodcastCols const &p)
 
   _mode = Mode::EditPodcast;
   modal_field = 0;
-  modal_editing = false;
-  modal_edit_buffer = "";
 }
 
 void UiPodcastSetup::render(UiInput const& input)
@@ -102,16 +98,14 @@ void UiPodcastSetup::render(UiInput const& input)
 
     auto setRowNoEdit = [this, row]{
         modal_field = row;
-        modal_edit_buffer.clear();
-        modal_editing = false;
-      };
+        this->editor.cancel();};
     // Field rows
     if (row >= 0 && row < fieldCount)
     {
       auto const& f = fields[row];
 
       bool isCurrentField = (row == modal_field);
-      bool editing  = (modal_editing && isCurrentField);
+      bool editing  = (this->editor.editing && isCurrentField);
 
       if (col == 0)
       {
@@ -121,28 +115,13 @@ void UiPodcastSetup::render(UiInput const& input)
       }
       else
       {
-        //std::wstring displayValue =
-        //  editing ? to_wstring(modal_edit_buffer) + L"_" : f.value;
         std::wstring displayValue;
-        if (editing)
-        {
-          std::wstring w = to_wstring(modal_edit_buffer);
 
-          int cellWidth = cols.vec[1].width;   // UiTable gives you this
-          int scroll = 0;
-          if (modal_caret >= cellWidth)
-              scroll = modal_caret - cellWidth + 1;
+        if (editor.editing && modal_field == row)
+            displayValue = to_wstring(editor.display(cols.vec[1].width));
+        else
+            displayValue = f.value;
 
-          std::wstring slice = w.substr(scroll, cellWidth);
-
-          int caretPos = modal_caret - scroll;
-          if (caretPos >= 0 && caretPos <= (int)slice.size())
-              slice.insert(caretPos, L"_");
-
-          displayValue = slice;
-        } else {
-          displayValue = f.value;
-        }
         int style = UiColors::highlightStyle(isCurrentField && editing);
         if (!f.editable)
         {
@@ -152,14 +131,7 @@ void UiPodcastSetup::render(UiInput const& input)
         if (ev)
         {
           modal_field = row;
-          startEdit();
-          // Move caret to mouse X
-          if (modal_editing) {
-            int rel = ev->x - cols.vec[col].start;   // you already have cell start X in UiTable
-            rel = std::max(0, rel);
-            rel = std::min(rel, (int)modal_edit_buffer.size());
-            modal_caret = rel;
-          }
+          startEdit(ev->x - cols.vec[col].start);
         }
         return Cell{.text=displayValue, .style=style};
       }
@@ -189,72 +161,35 @@ void UiPodcastSetup::render(UiInput const& input)
 
 bool UiPodcastSetup::handleKey(UiInput const& input)
 {
-
-  // Editing _mode
-  if (modal_editing)
+  if (editor.handleKey(input))
   {
-    if (input.keyLeft()) {
-      modal_caret = std::max(0, modal_caret - 1);
-      return true;
-    }
-    else if (input.keyRight()) {
-      modal_caret = std::min((int)modal_edit_buffer.size(), modal_caret + 1);
-      return true;
-    }
-    else if (input.keyBackSpace() || input.key == 127) {
-      if (modal_caret > 0) {
-        modal_edit_buffer.erase(modal_caret - 1, 1);
-        modal_caret--;
-      }
-      return true;
-    }
-    // if (input.key == KEY_BACKSPACE || input.key == 127)
-    // {
-    //   if (!modal_edit_buffer.empty())
-    //   modal_edit_buffer.pop_back();
-    // }
-    else if (input.key == 10 || input.key == 13) // ENTER commits edit
-    {
-      switch (modal_field)
-      {
-        case 0:
-        {
-          modal_url = modal_edit_buffer;
-          auto [pod, shows] = _logic.queryPodcast(modal_url);
-          if (pod)
-          {
-            modal_title = pod->title;
-            modal_preview_description = pod->summary;
-            modal_preview_shows = shows;
-          }
-          break;
-        }
-        case 1:
-          modal_title = modal_edit_buffer;
-          break;
-        case 2:
-          modal_target = modal_edit_buffer;
-          break;
-        case 3:
-          modal_pattern = modal_edit_buffer;
-          break;
-      }
-      modal_editing = false;
-      modal_edit_buffer.clear();
-    }
-    // else
-    // {
-    //   if (k >= 32 && k <= 126)
-    //   modal_edit_buffer.push_back(static_cast<char>(k));
-    // }
-    if (input.key >= 32 && input.key <= 126)
-    {
-      modal_edit_buffer.insert(modal_edit_buffer.begin() + modal_caret,
-                               static_cast<char>(input.key));
-      modal_caret++;
-      return true;
-    }
     return true;
+  }
+  if (editor.editing)
+  {
+      if (input.key == 10 || input.key == 13)
+      {
+        switch (modal_field)
+        {
+          case 0:
+          {
+            editor.commitTo(modal_url);
+            auto [pod, shows] = _logic.queryPodcast(modal_url);
+            if (pod)
+            {
+              modal_title = pod->title;
+              modal_preview_description = pod->summary;
+              modal_preview_shows = shows;
+            }
+            break;
+          }
+          case 1: editor.commitTo(modal_title); break;
+          case 2: editor.commitTo(modal_target); break;
+          case 3: editor.commitTo(modal_pattern); break;
+        }
+        return true;
+      }
+      return true;
   }
 
   // Navigation between fields
@@ -276,7 +211,7 @@ bool UiPodcastSetup::handleKey(UiInput const& input)
   // ENTER begins editing
   if (input.key == 10 || input.key == 13)
   {
-    startEdit();
+    startEdit(0);
     return true;
   }
 
@@ -290,25 +225,15 @@ bool UiPodcastSetup::handleKey(UiInput const& input)
   return false;
 }
 
-void UiPodcastSetup::startEdit()
+void UiPodcastSetup::startEdit(int caretPos)
 {
   switch (modal_field)
   {
-    case 0:
-      modal_edit_buffer = modal_url;
-      break;
-    case 1:
-      modal_edit_buffer = modal_title;
-      break;
-    case 2:
-      modal_edit_buffer = modal_target;
-      break;
-    case 3:
-      modal_edit_buffer = modal_pattern;
-      break;
+    case 0: editor.begin(modal_url, caretPos); break;
+    case 1: editor.begin(modal_title, caretPos); break;
+    case 2: editor.begin(modal_target, caretPos); break;
+    case 3: editor.begin(modal_pattern, caretPos); break;
   }
-  modal_editing = true;
-  modal_caret = (int)modal_edit_buffer.size();   // caret at end
 }
 
 void UiPodcastSetup::savePodcast()
