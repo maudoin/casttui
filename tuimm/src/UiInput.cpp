@@ -74,3 +74,32 @@ UiInput UiInput::init(int key)
   }
   return input;
 }
+
+bool UiInput::keyLeft() const
+{
+  return key == KEY_LEFT;
+}
+bool UiInput::keyRight() const
+{
+  return key == KEY_RIGHT;
+}
+bool UiInput::keyUp() const
+{
+  return key == KEY_UP;
+}
+bool UiInput::keyDown() const
+{
+  return key == KEY_DOWN;
+}
+bool UiInput::keyBackSpace() const
+{
+  return key == KEY_BACKSPACE;
+}
+bool UiInput::keyTab() const
+{
+  return key == 9;
+}
+bool UiInput::keyBackTab() const
+{
+  return key == KEY_BTAB;
+}

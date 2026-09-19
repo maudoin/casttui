@@ -11,6 +11,12 @@
 
 inline bool DEBUG_UI = false;
 
+// PIMPL
+struct UiTableData
+{
+  WINDOW *win = nullptr;
+};
+
 namespace{
 // --------------------------------------------------------------------
 // Safe write helpers
@@ -172,6 +178,36 @@ inline int width(HeaderColumn const& c){return (c.width == HeaderColumn::FIT_LAB
 inline bool fill(int width){return width == HeaderColumn::FILL;}
 inline bool fill(HeaderColumn const& c){return fill(c.width);}
 }
+// ------------------------------------------------------------
+UiInput::MouseEvent toLocal(WINDOW* win, UiInput::MouseEvent const& ev)
+{
+    int beginRow, beginCol;
+    getbegyx(win, beginRow, beginCol);
+    UiInput::MouseEvent locaEv = ev;
+    locaEv.x -= beginCol;
+    locaEv.y -= beginRow;
+    return locaEv;
+}
+}
+// ------------------------------------------------------------
+std::optional<UiInput::MouseEvent> getEvent(
+  UiInput const& input,
+  WINDOW *win,
+  int row,
+  int col,
+  ColumnRange const& colRange)
+{
+  if (input.mev)
+  {
+    UiInput::MouseEvent mev = toLocal(win, *(input.mev));
+    if (mev.hit({row, col + colRange.start, row + 1, col + colRange.start + colRange.width}))
+    {
+      return input.mev;
+    }
+  }
+  return std::nullopt;
+}
+// ------------------------------------------------------------
 template<typename C>
 inline void draw_header_row(
   UiInput const& input,
@@ -211,7 +247,7 @@ inline void draw_header_row(
     if constexpr(requires (C c){c.name;})
     if (header.callback)
     {
-      if (headerRange.getEvent(input, win, row, col))
+      if (getEvent(input, win, row, col, headerRange))
       {
         (*header.callback)();
       }
@@ -253,16 +289,15 @@ inline std::pair<std::optional<int>, std::optional<int>> scrollbar_thumb(
 
   return {thumbStart, thumbStart + thumbSize};
 }
-}//namespace
 // ------------------------------------------------------------
 std::optional<UiInput::MouseEvent> UiTable::TableRender::getEvent(Row& r, int c)
 {
-  return this->cols_def[c].getEvent(input, table._win, viewContentFirstRow+r.i, col);
+  return ::getEvent(input, table._pimpl->win, viewContentFirstRow+r.i, col, this->cols_def[c]);
 }
 void UiTable::TableRender::draw(Row& r, int i, Cell const& cell)
 {
   int row = viewContentFirstRow+r.i;
-  mvwaddwstr_watt(table._win, row, col + r.x, i==0?build_left_border():build_separator(), borderStyle);
+  mvwaddwstr_watt(table._pimpl->win, row, col + r.x, i==0?build_left_border():build_separator(), borderStyle);
 
   int col_text_offset = (dynamicIndex == i) ? table._dynamicColCurrentOffsetX : 0;
   int width = cols_def[i].width;
@@ -281,38 +316,14 @@ void UiTable::TableRender::draw(Row& r, int i, Cell const& cell)
   else if ((int)text.size() > width)
     text = text.substr(0, width);
 
-  mvwaddwstr_watt(table._win, row, col + r.x + 1, text, cell.style);
+  mvwaddwstr_watt(table._pimpl->win, row, col + r.x + 1, text, cell.style);
   r.x += width + 1;
 }
 // ------------------------------------------------------------
 void UiTable::TableRender::endRow(Row const& r)
 {
   int row = viewContentFirstRow+r.i;
-  mvwaddwstr_watt(table._win, row, col + r.x, build_right_border(vparams, row), borderStyle);
-}
-namespace{
-UiInput::MouseEvent toLocal(WINDOW* win, UiInput::MouseEvent const& ev)
-{
-    int beginRow, beginCol;
-    getbegyx(win, beginRow, beginCol);
-    UiInput::MouseEvent locaEv = ev;
-    locaEv.x -= beginCol;
-    locaEv.y -= beginRow;
-    return locaEv;
-}
-}
-// ------------------------------------------------------------
-std::optional<UiInput::MouseEvent> ColumnRange::getEvent(UiInput const& input, WINDOW* win, int row, int col)const
-{
-  if (input.mev)
-  {
-    UiInput::MouseEvent mev = toLocal(win, *(input.mev));
-    if (mev.hit({row, col + start, row + 1, col + start + width}))
-    {
-      return input.mev;
-    }
-  }
-  return std::nullopt;
+  mvwaddwstr_watt(table._pimpl->win, row, col + r.x, build_right_border(vparams, row), borderStyle);
 }
 // ------------------------------------------------------------
 template <typename C>
@@ -369,7 +380,8 @@ UiTable::UiTable(Mode mode,
                  std::function<void()> const &callback,
                  int firstVisibleDataRow,
                  int dynamicColCurrentOffsetX)
-  : _callback(callback)
+  : _pimpl(new UiTableData())
+  , _callback(callback)
   , _cursor(firstVisibleDataRow)
   , _mode(mode)
   , _firstVisibleDataRow(firstVisibleDataRow)
@@ -380,7 +392,11 @@ UiTable::UiTable(Mode mode,
   , _lastKnownViewHeight(0)
 {
 }
-
+// ------------------------------------------------------------
+UiTable::~UiTable()
+{
+  delete _pimpl;
+}
 // ------------------------------------------------------------
 void UiTable::scrollTo(int newCursor)
 {
@@ -462,14 +478,14 @@ bool UiTable::handleKey(UiInput const& input)
 // ------------------------------------------------------------
 void UiTable::delWindow()
 {
-  delwin(_win);
-  _win = nullptr;
+  delwin(_pimpl->win);
+  _pimpl->win = nullptr;
 }
 
 // ------------------------------------------------------------
 void UiTable::buildWindow(int nlines, int ncols, int begy, int begx)
 {
-  _win = newwin(nlines, ncols, begy, begx);
+  _pimpl->win = newwin(nlines, ncols, begy, begx);
 }
 
 // ------------------------------------------------------------
@@ -479,19 +495,19 @@ Columns UiTable::renderHeaderImpl(
   std::vector<C> const& headerCols,
   int borderStyle)
 {
-  werase(_win);
-  keypad(_win, TRUE);
+  werase(_pimpl->win);
+  keypad(_pimpl->win, TRUE);
 
-  int totalWidth = getmaxx(_win);
+  int totalWidth = getmaxx(_pimpl->win);
   Columns resolvedHeaderCols(totalWidth, headerCols);
   // ------------------------------------------------------------
   // Draw header + mid border
   // ------------------------------------------------------------
-  draw_top_border_header(_win, 0, 0, resolvedHeaderCols.vec, borderStyle);
+  draw_top_border_header(_pimpl->win, 0, 0, resolvedHeaderCols.vec, borderStyle);
 
   if (resolvedHeaderCols.drawHeader)
   {
-    draw_header_row(input, _win, 1, 0, headerCols, resolvedHeaderCols.vec, borderStyle);
+    draw_header_row(input, _pimpl->win, 1, 0, headerCols, resolvedHeaderCols.vec, borderStyle);
   }
   return resolvedHeaderCols;
 }
@@ -504,8 +520,8 @@ bool UiTable::mouseHit(UiInput const& input)
   {
     int beginRow, beginCol;
     int h, w;
-    getbegyx(_win, beginRow, beginCol);
-    getmaxyx(_win, h, w);
+    getbegyx(_pimpl->win, beginRow, beginCol);
+    getmaxyx(_pimpl->win, h, w);
     int endRow = h + beginRow;
     int endCol = w + beginCol;
     if ((input.mev->x >= beginCol && input.mev->x < endCol) &&
@@ -524,12 +540,12 @@ UiTable::TableRender UiTable::renderStart(
   int borderStyle)
 {
   int h, w;
-  getmaxyx(_win, h, w);
+  getmaxyx(_pimpl->win, h, w);
 
   if (input.mev)
   {
     int beginRow, beginCol;
-    getbegyx(_win, beginRow, beginCol);
+    getbegyx(_pimpl->win, beginRow, beginCol);
     int endRow = h + beginRow;
     int endCol = w + beginCol;
     if (input.mev && (input.mev->x >= beginCol && input.mev->x < endCol) &&
@@ -566,7 +582,7 @@ UiTable::TableRender UiTable::renderStart(
 
   if (resolvedHeaderCols.drawHeader && h>3)
   {
-    draw_mid_border_header(_win, 2, 0, resolvedHeaderCols.vec, borderStyle);
+    draw_mid_border_header(_pimpl->win, 2, 0, resolvedHeaderCols.vec, borderStyle);
   }
 
   // ------------------------------------------------------------
@@ -610,7 +626,7 @@ UiTable::TableRender::~TableRender()
       (*hparams.first == 1 && *hparams.second == totalInnerW - 2))
   {
     draw_bottom_border_header(
-        table._win,
+        table._pimpl->win,
         viewContentFirstRow + table._lastKnownViewHeight,
         0,
         cols_def,
@@ -619,7 +635,7 @@ UiTable::TableRender::~TableRender()
   else
   {
     draw_bottom_scroll_border(
-        table._win,
+        table._pimpl->win,
         viewContentFirstRow + table._lastKnownViewHeight,
         0,
         totalInnerW,
@@ -627,7 +643,7 @@ UiTable::TableRender::~TableRender()
         borderStyle);
   }
 
-  wrefresh(table._win);
+  wrefresh(table._pimpl->win);
 }
 
 // ------------------------------------------------------------
@@ -651,5 +667,5 @@ void UiTable::renderArray(
 // ------------------------------------------------------------
 int UiTable::getHeight() const
 {
-  return getmaxy(_win);
+  return getmaxy(_pimpl->win);
 }

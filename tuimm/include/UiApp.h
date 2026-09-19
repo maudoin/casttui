@@ -1,11 +1,5 @@
 #pragma once
 
-#if defined(_WIN32)
-#include <curses.h>
-#else
-#include <ncursesw/curses.h>
-#endif
-
 #include <optional>
 
 struct UiInput;
@@ -18,7 +12,6 @@ public:
   ~UiApp();
 
   void run();
-  static bool mouseHit(UiInput const& input, WINDOW* win);
 
 protected:
   virtual bool doHandleKey(UiInput const& input) = 0;

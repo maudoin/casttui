@@ -34,7 +34,6 @@ struct HeaderColumn
 struct ColumnRange
 {
   int start,width;
-  std::optional<UiInput::MouseEvent> getEvent(UiInput const& input, WINDOW* win, int row, int col)const;
 };
 struct Columns
 {
@@ -54,6 +53,8 @@ struct Cell
 };
 
 
+// PIMPL
+struct UiTableData;
 // --------------------------------------------------------------------
 // UiTable
 // --------------------------------------------------------------------
@@ -95,6 +96,7 @@ public:
   };
 
   UiTable(Mode mode = Mode::SCROLL, std::function<void()> const &callback = [] {}, int firstVisibleDataRow = 0, int dynamicColCurrentOffsetX = 0);
+  ~UiTable();
 
   void delWindow();
   void buildWindow(int nlines, int ncols, int begy, int begx);
@@ -161,7 +163,7 @@ protected:
   template <typename C>
   Columns renderHeaderImpl(UiInput const& input, std::vector<C> const&headerCols, int borderStyle);
 
-  WINDOW *_win = nullptr;
+  UiTableData *_pimpl;
 
 private:
   bool mouseHit(UiInput const& input);

@@ -31,7 +31,10 @@ struct UiTableDemo : public UiApp
     }
     return false;
   }
-  void doDelWindows() override{};
+  void doDelWindows() override
+  {
+    table.delWindow();
+  };
   void doBuildWindows(int h, int w) override
   {
     int height = 14;
@@ -62,10 +65,10 @@ struct UiTableDemo : public UiApp
 
     int rowCount = 20;
 
-    auto cellCallback = [&cols](int row, int col, std::optional<UiInput::MouseEvent> const&) -> Cell {
+    auto cellCallback = [&cols](int row, int col, std::optional<UiInput::MouseEvent> const&ev) -> Cell {
       std::wstring base = col==0?L"a":col==1?L"b":L"c";
       std::wstring text = base + std::to_wstring(row);
-      int style = (row % 2 == 0) ? A_BOLD : A_DIM;
+      int style = ev?UiColors::focusedStyle():(row % 2 == 0) ? UiColors::boldStyle() : UiColors::dimmedStyle();
       return Cell{ text, style };
     };
 
@@ -73,7 +76,7 @@ struct UiTableDemo : public UiApp
   }
 };
 
-int main3()
+int main()
 {
 
   UiTableDemo(25, true).run();

@@ -61,12 +61,12 @@ void UiConfirm::render(UiInput const& input)
 bool UiConfirm::handleKey(UiInput const& input)
 {
   // Auto switching windows
-  if (input.key == KEY_RIGHT)
+  if (input.keyRight())
   {
     _field = std::max(1, _field+1);
     return true;
   }
-  else if (input.key == KEY_LEFT)
+  else if (input.keyLeft())
   {
     _field = std::min(0, _field-1);
     return true;

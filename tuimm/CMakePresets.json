@@ -1,0 +1,135 @@
+{
+  "version": 5,
+  "configurePresets": [
+    {
+      "name": "windows clang",
+      "displayName": "Windows clang Build",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-windows",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchain-clang-win.cmake",
+        "CMAKE_BUILD_TYPE": "Release"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "$env{OS}",
+        "rhs": "Windows_NT"
+      }
+    },
+    {
+      "name": "windows clang Debug",
+      "displayName": "Windows clang Debug Build",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-windows-debug",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchain-clang-win.cmake",
+        "CMAKE_BUILD_TYPE": "Debug"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "$env{OS}",
+        "rhs": "Windows_NT"
+      }
+    },
+    {
+      "name": "windows gcc",
+      "displayName": "Windows gcc Build",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-gcc-windows",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchain-gcc-win.cmake",
+        "CMAKE_BUILD_TYPE": "Release"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "$env{OS}",
+        "rhs": "Windows_NT"
+      }
+    },
+    {
+      "name": "windows gcc Debug",
+      "displayName": "Windows gcc Debug Build",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-windows-gcc-debug",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchain-gcc-win.cmake",
+        "CMAKE_BUILD_TYPE": "Debug"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "$env{OS}",
+        "rhs": "Windows_NT"
+      }
+    },
+    {
+      "name": "linux",
+      "displayName": "Linux Build",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-linux",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "$hostSystemName",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "linux Debug",
+      "displayName": "Linux Debug Build",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-linux-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "$hostSystemName",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "wsl",
+      "displayName": "WSL Build",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-wsl",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "$env{WSL_DISTRO_NAME}",
+        "rhs": "Ubuntu"
+      }
+    },
+    {
+      "name": "wsl Debug",
+      "displayName": "WSL Debug Build",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-wsl-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "$env{WSL_DISTRO_NAME}",
+        "rhs": "Ubuntu"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "windows-build-clang",
+      "configurePreset": "windows clang"
+    },
+    {
+      "name": "linux-build",
+      "configurePreset": "linux"
+    },
+    {
+      "name": "wsl-build",
+      "configurePreset": "wsl"
+    }
+  ]
+}

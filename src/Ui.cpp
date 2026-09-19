@@ -280,21 +280,21 @@ private:
     };
 
     // TAB → forward
-    if (input.key == 9)
+    if (input.keyTab())
     {
       _focusedPanel = status_cycle(1);
       return true;
     }
 
     // SHIFT+TAB
-    if (input.key == KEY_BTAB)
+    if (input.keyBackTab())
     {
       _focusedPanel = status_cycle(-1);
       return true;
     }
 
     // Auto switching windows
-    if (input.key == KEY_RIGHT)
+    if (input.keyRight())
     {
       if (_focusedPanel == Focus::Podcasts)
       {
@@ -306,7 +306,7 @@ private:
       }
     }
 
-    if (input.key == KEY_LEFT)
+    if (input.keyLeft())
     {
       if (_focusedPanel == Focus::Shows &&
         _showsUi.dynamicColCurrentOffsetX() == 0)
@@ -322,7 +322,7 @@ private:
       }
     }
 
-    if (input.key == KEY_DOWN)
+    if (input.keyDown())
     {
       if (_focusedPanel == Focus::Status)
       {
@@ -331,7 +331,7 @@ private:
       }
     }
 
-    if (input.key == KEY_UP)
+    if (input.keyUp())
     {
       if (_focusedPanel == Focus::Shows &&
         _showsUi.cursor() == 0)

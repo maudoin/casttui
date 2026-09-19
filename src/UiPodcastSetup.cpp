@@ -91,12 +91,12 @@ void UiPodcastSetup::render(UiInput const& input)
       if (col == 0)
       {
         if (ev){savePodcast();}
-        return Cell{.text=_mode == Mode::AddPodcast ? L"Add podcast (s)" : L"Save podcast (s)", .style=A_BOLD};
+        return Cell{.text=_mode == Mode::AddPodcast ? L"Add podcast (s)" : L"Save podcast (s)", .style=UiColors::boldStyle()};
       }
       if (col == 1)
       {
         if (ev){_doneCallback();}
-        return Cell{.text=L"Cancel (Esc)", .style=A_BOLD};
+        return Cell{.text=L"Cancel (Esc)", .style=UiColors::boldStyle()};
       }
     }
 
@@ -171,7 +171,7 @@ void UiPodcastSetup::render(UiInput const& input)
       if (col==0 && preview==0)
       {
         if (ev){setRowNoEdit();}
-        return Cell{.text=L"Preview", .style=A_BOLD};
+        return Cell{.text=L"Preview", .style=UiColors::boldStyle()};
       }
       if (col==1 && preview < modal_preview_shows.size())
       {
@@ -193,15 +193,15 @@ bool UiPodcastSetup::handleKey(UiInput const& input)
   // Editing _mode
   if (modal_editing)
   {
-    if (input.key == KEY_LEFT) {
+    if (input.keyLeft()) {
       modal_caret = std::max(0, modal_caret - 1);
       return true;
     }
-    else if (input.key == KEY_RIGHT) {
+    else if (input.keyRight()) {
       modal_caret = std::min((int)modal_edit_buffer.size(), modal_caret + 1);
       return true;
     }
-    else if (input.key == KEY_BACKSPACE || input.key == 127) {
+    else if (input.keyBackSpace() || input.key == 127) {
       if (modal_caret > 0) {
         modal_edit_buffer.erase(modal_caret - 1, 1);
         modal_caret--;
@@ -258,17 +258,17 @@ bool UiPodcastSetup::handleKey(UiInput const& input)
   }
 
   // Navigation between fields
-  if (input.key == KEY_UP)
+  if (input.keyUp())
   {
     modal_field = std::max(0, modal_field - 1);
     return true;
   }
-  if (input.key == KEY_DOWN)
+  if (input.keyDown())
   {
     modal_field = std::min(3, modal_field + 1);
     return true;
   }
-  if (modal_field == 4 && (input.key == KEY_LEFT || input.key == KEY_RIGHT))
+  if (modal_field == 4 && (input.keyLeft() || input.keyRight()))
   {
     return UiTable::handleKey(input);
   }

@@ -103,12 +103,12 @@ public:
       );
     };
 
-    if (input.key == KEY_LEFT)
+    if (input.keyLeft())
     {
       move_status_cursor(-1);
       return true;
     }
-    if (input.key == KEY_RIGHT)
+    if (input.keyRight())
     {
       move_status_cursor(1);
       return true;

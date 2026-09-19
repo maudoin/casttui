@@ -26,4 +26,12 @@ struct UiInput
   int key = -1;
   std::optional<MouseEvent> mev;
   int height, width;
+
+  bool keyLeft() const;
+  bool keyRight() const;
+  bool keyUp() const;
+  bool keyDown() const;
+  bool keyBackSpace() const;
+  bool keyTab() const;
+  bool keyBackTab() const;
 };

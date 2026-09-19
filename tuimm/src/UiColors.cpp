@@ -31,6 +31,16 @@ int normalStyle()
   return A_NORMAL;
 }
 
+int boldStyle()
+{
+  return A_BOLD;
+}
+
+int dimmedStyle()
+{
+  return A_DIM;
+}
+
 int focusStyle(bool focused)
 {
   return focused ? focusedStyle() : normalStyle();
