@@ -228,26 +228,6 @@ private:
   // --------------------------------------------------------------------
   bool doHandleKey(UiInput const& input) override
   {
-    // ESC closes app only when no modal is open
-    if (input.keyEsc())
-    {
-      if (_modalPopup == ModalMode::None)
-      {
-        _confirmUi.set(L"Quit", [this]{this->exit();});
-        _modalPopup=ModalMode::Confirm;
-        return true;
-      }
-    }
-    // exit modals
-    if (_modalPopup != ModalMode::None)
-    {
-      if (input.keyEsc()) // ESC
-      {
-        _modalPopup = ModalMode::None;
-        return true;
-      }
-    }
-
     // Modal dispatch
     if (_modalPopup == ModalMode::Confirm)
     {
@@ -261,7 +241,20 @@ private:
 
     if (_modalPopup == ModalMode::Info)
     {
+      if (input.keyEsc())
+      {
+        // info is just a table, handle modal close here
+        _modalPopup = ModalMode::None;
+        return true;
+      }
       return _infoUi.handleKey(input);
+    }
+    // ESC closes app only when no modal is open
+    if (input.keyEsc())
+    {
+      _confirmUi.set(L"Quit", [this]{this->exit();});
+      _modalPopup=ModalMode::Confirm;
+      return true;
     }
 
     // Focus cycling order

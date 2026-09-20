@@ -19,6 +19,7 @@ UiPodcastSetup::UiPodcastSetup(DowncastLogic &_logic, std::function<void()> cons
 , _logic(_logic)
 , _doneCallback(doneCallback)
 , _fields({{&_url, &_title, &_target, &_pattern}})
+, _fileBrowser([this]{this->_showFileBrowser=false;this->_fileBrowser.delWindow();this->_target=this->_fileBrowser.getSelected().string();})
 {
 }
 
@@ -35,6 +36,9 @@ void UiPodcastSetup::setAdd()
 
   _mode = Mode::AddPodcast;
   _field = 0;
+
+  if (_showFileBrowser)_fileBrowser.delWindow();
+  _showFileBrowser=false;
 }
 
 void UiPodcastSetup::setEdit(PodcastCols const &p)
@@ -50,10 +54,18 @@ void UiPodcastSetup::setEdit(PodcastCols const &p)
 
   _mode = Mode::EditPodcast;
   _field = 0;
+
+  if (_showFileBrowser)_fileBrowser.delWindow();
+  _showFileBrowser=false;
 }
 
 void UiPodcastSetup::render(UiInput const& input)
 {
+  if (_showFileBrowser)
+  {
+    _fileBrowser.render(input, true, []{});
+    return;
+  }
   int h = getHeight();
   int inner_h = h - 2;
 
@@ -111,7 +123,21 @@ void UiPodcastSetup::render(UiInput const& input)
       if (col == 0)
       {
         int style = UiColors::highlightStyle(isCurrentField && !editing);
-        if (ev){setRowNoEdit();}
+        if (ev)
+        {
+          if (_fields[_field] == &_target)
+          {
+            _showFileBrowser = true;
+            {
+              int mh = std::min(input.height - 4, 20);
+              int mw = std::min(input.width - 4, 70);
+              int y  = (input.height - mh) / 2;
+              int x  = (input.width - mw) / 2;
+              _fileBrowser.buildWindow(mh, mw, y, x);
+            }
+          }
+          setRowNoEdit();
+        }
         return Cell{.text=f.label, .style=style};
       }
       else
@@ -162,6 +188,10 @@ void UiPodcastSetup::render(UiInput const& input)
 
 bool UiPodcastSetup::handleKey(UiInput const& input)
 {
+  if (_showFileBrowser)
+  {
+    return _fileBrowser.handleKey(input);
+  }
   if (_editor.handleKey(input))
   {
     return true;
@@ -239,5 +269,27 @@ void UiPodcastSetup::savePodcast()
     ? DowncastLogic::InsertPodcastMode::ADD
     : DowncastLogic::InsertPodcastMode::UPDATE);
 
-    _doneCallback();
+  _doneCallback();
+}
+
+void UiPodcastSetup::delWindow()
+{
+  if (_showFileBrowser)
+  {
+    _fileBrowser.delWindow();
   }
+  UiTable::delWindow();
+}
+
+void UiPodcastSetup::buildWindow(int nlines, int ncols, int begy, int begx)
+{
+  if (_showFileBrowser)
+  {
+    int mh = std::min(nlines - 4, 20);
+    int mw = std::min(ncols - 4, 70);
+    int y  = (nlines - mh) / 2;
+    int x  = (ncols - mw) / 2;
+    _fileBrowser.buildWindow(mh, mw, begy+y, begx+x);
+  }
+  UiTable::buildWindow(nlines, ncols, begy, begx);
+}

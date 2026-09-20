@@ -1,6 +1,7 @@
 #pragma once
 
 #include "UiFieldEditor.h"
+#include "UiFileBrowser.h"
 #include "UiTable.h"
 #include "DowncastLogic.h"
 #include "HtmlToText.h"
@@ -26,6 +27,8 @@ public:
 
   bool handleKey(UiInput const& input);
 
+  void delWindow() override;
+  void buildWindow(int nlines, int ncols, int begy, int begx) override;
 private:
   void startEdit(int caretPos);
   void savePodcast();
@@ -45,4 +48,6 @@ private:
   std::optional<int> _edit_id;
   std::function<void()> _doneCallback;
   std::array<std::string*, 4> _fields;
+  bool _showFileBrowser = false;
+  UiFileBrowser _fileBrowser;
 };

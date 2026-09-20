@@ -99,8 +99,8 @@ public:
   UiTable(Mode mode = Mode::SCROLL, std::function<void()> const &callback = [] {}, int firstVisibleDataRow = 0, int dynamicColCurrentOffsetX = 0);
   ~UiTable();
 
-  void delWindow();
-  void buildWindow(int nlines, int ncols, int begy, int begx);
+  virtual void delWindow();
+  virtual void buildWindow(int nlines, int ncols, int begy, int begx);
   void scrollTo(int newCursor);
   void scrollVertical(int amount);
   void scrollHorizontal(int amount);
