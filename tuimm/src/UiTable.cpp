@@ -647,24 +647,6 @@ UiTable::TableRender::~TableRender()
 }
 
 // ------------------------------------------------------------
-void UiTable::renderArray(
-    UiInput const& input,
-    const std::vector<Cell> &array,
-    int borderStyle,
-    const std::optional<std::wstring> &title)
-{
-  auto cellCallback = [&array](int row, int, std::optional<UiInput::MouseEvent> const&) -> Cell
-  {
-    return array[row];
-  };
-
-  Columns cols = renderHeader(input, {
-      HeaderColumn{.width=HeaderColumn::FILL, .name=title}}, borderStyle);
-
-  render(input, static_cast<int>(array.size()), cols, cellCallback, borderStyle);
-}
-
-// ------------------------------------------------------------
 int UiTable::getHeight() const
 {
   return getmaxy(_pimpl->win);

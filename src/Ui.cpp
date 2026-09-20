@@ -188,7 +188,7 @@ private:
       text = L"Ready";
     }
 
-    _bottomBarUi.renderArray(input, std::vector<Cell>{Cell{text}}, UiColors::normalStyle());
+    _bottomBarUi.renderSingleLineRange(input, std::views::single(Cell{text}), UiColors::normalStyle());
   }
 
 

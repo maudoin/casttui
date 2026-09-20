@@ -138,11 +138,34 @@ public:
     const Columns &headerCols,
     int borderStyle);
 
-  void renderArray(
+  template <std::ranges::contiguous_range R>
+      requires std::same_as<std::ranges::range_value_t<R>, Cell>
+  void renderSingleLineRange(
+      UiInput const& input,
+      R&& r,
+      int borderStyle,
+      const std::optional<std::wstring>& title = std::nullopt)
+  {
+      std::span<Cell> span{std::ranges::data(r),std::ranges::size(r)};
+      renderSingleLineRange(input, span, borderStyle, title);
+  }
+
+  void renderSingleLineRange(
     UiInput const& input,
-    const std::vector<Cell> &array,
+    std::span<Cell> span,
     int borderStyle,
-    const std::optional<std::wstring> &title = std::nullopt);
+    const std::optional<std::wstring> &title = std::nullopt)
+  {
+    auto cellCallback = [&span](int row, int, std::optional<UiInput::MouseEvent> const&) -> Cell
+    {
+      return span[row];
+    };
+
+    Columns cols = renderHeader(input, {
+        HeaderColumn{.width=HeaderColumn::FILL, .name=title}}, borderStyle);
+
+    render(input, static_cast<int>(span.size()), cols, cellCallback, borderStyle);
+  }
 
   void renderHeaderOnly(
     UiInput const& input,
