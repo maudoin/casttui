@@ -31,31 +31,6 @@ public:
     caret = 0;
   }
 
-  void insertChar(char c)
-  {
-    buffer.insert(buffer.begin() + caret, c);
-    caret++;
-  }
-
-  void backspace()
-  {
-    if (caret > 0)
-    {
-      buffer.erase(buffer.begin() + caret - 1);
-      caret--;
-    }
-  }
-
-  void moveLeft()
-  {
-    caret = std::max(0, caret - 1);
-  }
-
-  void moveRight()
-  {
-    caret = std::min((int)buffer.size(), caret + 1);
-  }
-
   std::string display(int cellWidth) const
   {
     if (!editing)
@@ -80,17 +55,56 @@ public:
     {
         if (input.keyLeft())  { moveLeft(); return true; }
         if (input.keyRight()) { moveRight(); return true; }
-        if (input.keyBackSpace()) { backspace(); return true; }
-
-
+        if (input.keyBackSpace())
+        {
+          backspace();
+          return true;
+        }
+        if (input.keyDel())
+        {
+          del();
+          return true;
+        }
         if (input.key >= 32 && input.key <= 126)
         {
             insertChar((char)input.key);
             return true;
         }
-
-        return true;
       }
       return false;
     }
+
+private:
+  void insertChar(char c)
+  {
+    buffer.insert(buffer.begin() + caret, c);
+    caret++;
+  }
+
+  void backspace()
+  {
+    if (caret > 0)
+    {
+      buffer.erase(buffer.begin() + caret - 1);
+      caret--;
+    }
+  }
+
+  void del()
+  {
+    if (caret < (int)(buffer.size()-1))
+    {
+      buffer.erase(buffer.begin() + caret);
+    }
+  }
+
+  void moveLeft()
+  {
+    caret = std::max(0, caret - 1);
+  }
+
+  void moveRight()
+  {
+    caret = std::min((int)buffer.size(), caret + 1);
+  }
 };

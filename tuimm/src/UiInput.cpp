@@ -93,7 +93,11 @@ bool UiInput::keyDown() const
 }
 bool UiInput::keyBackSpace() const
 {
-  return key == KEY_BACKSPACE;
+  return key == KEY_BACKSPACE || key == '\b';
+}
+bool UiInput::keyDel() const
+{
+  return key == KEY_DC || key == '\b';
 }
 bool UiInput::keyTab() const
 {

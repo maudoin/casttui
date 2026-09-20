@@ -34,14 +34,15 @@ private:
 
   enum class Mode { AddPodcast, EditPodcast};
   Mode _mode = Mode::AddPodcast;
-  int modal_field = 0;
-  UiFieldEditor editor;        // the ONLY active editor
-  std::string modal_url;
-  std::string modal_title;
-  std::string modal_target = ".";
-  std::string modal_pattern = "{date}-{title}";
-  std::string modal_preview_description;
-  std::vector<std::string> modal_preview_shows;
-  std::optional<int> modal_edit_id;
+  int _field = 0;
+  UiFieldEditor _editor;        // the ONLY active _editor
+  std::string _url;
+  std::string _title;
+  std::string _target = ".";
+  std::string _pattern = "{date}-{title}";
+  std::string _preview_description;
+  std::vector<std::string> _preview_shows;
+  std::optional<int> _edit_id;
   std::function<void()> _doneCallback;
+  std::array<std::string*, 4> _fields;
 };
