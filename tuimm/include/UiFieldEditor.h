@@ -55,6 +55,8 @@ public:
     {
         if (input.keyLeft())  { moveLeft(); return true; }
         if (input.keyRight()) { moveRight(); return true; }
+        if (input.keyHome())  { moveBegin(); return true; }
+        if (input.keyEnd()) { moveEnd(); return true; }
         if (input.keyBackSpace())
         {
           backspace();
@@ -106,5 +108,15 @@ private:
   void moveRight()
   {
     caret = std::min((int)buffer.size(), caret + 1);
+  }
+
+  void moveBegin()
+  {
+    caret = 0;
+  }
+
+  void moveEnd()
+  {
+    caret = (int)buffer.size();
   }
 };

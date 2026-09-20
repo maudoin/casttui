@@ -72,6 +72,22 @@ UiInput UiInput::init(int key)
 #endif
     }
   }
+#ifdef PDCURSES_WIN32
+  if (key == 22)  // ^V = Ctrl-V
+  {
+    char *clip;
+    long len;
+
+    if (PDC_getclipboard(&clip, &len) == PDC_CLIP_SUCCESS)
+    {
+      for (long i = len - 1; i >= 0; i--)
+      {
+        ungetch(clip[i]);   // feed clipboard text into input queue
+      }
+      PDC_freeclipboard(clip);
+    }
+  }
+#endif
   return input;
 }
 
@@ -142,4 +158,12 @@ bool UiInput::keyPageUp() const
 bool UiInput::keyPageDown() const
 {
   return key == KEY_NPAGE;
+}
+bool UiInput::keyHome() const
+{
+  return key == KEY_HOME;
+}
+bool UiInput::keyEnd() const
+{
+  return key == KEY_END;
 }

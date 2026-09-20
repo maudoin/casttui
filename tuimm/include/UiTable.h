@@ -4,13 +4,14 @@
 #include "UiColors.h"
 #include "UiInput.h"
 
+#include <algorithm>
+#include <functional>
+#include <iostream>
+#include <optional>
+#include <ranges>
+#include <span>
 #include <string>
 #include <vector>
-#include <functional>
-#include <optional>
-#include <iostream>
-#include <ranges>
-#include <algorithm>
 
 // --------------------------------------------------------------------
 // SortDir / HeaderColumn

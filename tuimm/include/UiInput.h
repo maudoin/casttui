@@ -42,4 +42,6 @@ struct UiInput
   bool keyMinus() const;
   bool keyPageUp() const;
   bool keyPageDown() const;
+  bool keyHome() const;
+  bool keyEnd() const;
 };
