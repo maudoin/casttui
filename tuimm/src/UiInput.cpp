@@ -103,3 +103,39 @@ bool UiInput::keyBackTab() const
 {
   return key == KEY_BTAB;
 }
+bool UiInput::keyEnterReturn() const
+{
+  return key == 10 || key == 13;
+}
+bool UiInput::keySpace() const
+{
+  return key == 32 || key == ' ';
+}
+bool UiInput::keyEsc() const
+{
+  return key == 27;
+}
+bool UiInput::keyMinus() const
+{
+  #ifdef PDCURSES_WIN32
+    return key == PADMINUS;
+  #else
+    return key == '-';
+  #endif
+}
+bool UiInput::keyPlus() const
+{
+  #ifdef PDCURSES_WIN32
+    return key == PADPLUS;
+  #else
+    return key == '+';
+  #endif
+}
+bool UiInput::keyPageUp() const
+{
+  return key == KEY_PPAGE;
+}
+bool UiInput::keyPageDown() const
+{
+  return key == KEY_NPAGE;
+}

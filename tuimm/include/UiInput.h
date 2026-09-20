@@ -34,4 +34,11 @@ struct UiInput
   bool keyBackSpace() const;
   bool keyTab() const;
   bool keyBackTab() const;
+  bool keyEnterReturn() const;
+  bool keySpace() const;
+  bool keyEsc() const;
+  bool keyPlus() const;
+  bool keyMinus() const;
+  bool keyPageUp() const;
+  bool keyPageDown() const;
 };

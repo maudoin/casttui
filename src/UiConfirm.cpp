@@ -71,7 +71,7 @@ bool UiConfirm::handleKey(UiInput const& input)
     _field = std::min(0, _field-1);
     return true;
   }
-  else if (input.key == 10 || input.key == 13) // ENTER commits edit
+  else if (input.keyEnterReturn())
   {
     if (_field == 1)
     {

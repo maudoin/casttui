@@ -114,8 +114,7 @@ public:
       return true;
     }
 
-    // ENTER selects status
-    if (input.key == 10 || input.key == 13)
+    if (input.keyEnterReturn())
     {
       auto const& [_, status] = _labels[_cursorPosition];
       _logic.setCurrentPodcastRowIndex(

@@ -229,7 +229,7 @@ private:
   bool doHandleKey(UiInput const& input) override
   {
     // ESC closes app only when no modal is open
-    if (input.key == 27)
+    if (input.keyEsc())
     {
       if (_modalPopup == ModalMode::None)
       {
@@ -241,7 +241,7 @@ private:
     // exit modals
     if (_modalPopup != ModalMode::None)
     {
-      if (input.key == 27) // ESC
+      if (input.keyEsc()) // ESC
       {
         _modalPopup = ModalMode::None;
         return true;

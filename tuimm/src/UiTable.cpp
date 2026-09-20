@@ -442,32 +442,32 @@ void UiTable::scrollHorizontal(int amount)
 // ------------------------------------------------------------
 bool UiTable::handleKey(UiInput const& input)
 {
-  if (input.key == KEY_UP)
+  if (input.keyUp())
   {
     scrollVertical(-1);
     return true;
   }
-  if (input.key == KEY_DOWN)
+  if (input.keyDown())
   {
     scrollVertical(1);
     return true;
   }
-  if (input.key == KEY_PPAGE)
+  if (input.keyPageUp())
   {
     scrollVertical(-_lastKnownViewHeight);
     return true;
   }
-  if (input.key == KEY_NPAGE)
+  if (input.keyPageDown())
   {
     scrollVertical(_lastKnownViewHeight);
     return true;
   }
-  if (input.key == KEY_LEFT)
+  if (input.keyLeft())
   {
     scrollHorizontal(-5);
     return true;
   }
-  if (input.key == KEY_RIGHT)
+  if (input.keyRight())
   {
     scrollHorizontal(5);
     return true;

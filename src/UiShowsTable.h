@@ -123,33 +123,25 @@ public:
       return true;
     }
 
-    if (input.key == 10 || input.key == 13) // ENTER
+    if (input.keyEnterReturn())
     {
       _logic.showSelection(cursor(), false, false);
       return true;
     }
 
-    if (input.key == ' ')
+    if (input.keySpace())
     {
       _logic.showSelection(cursor(), true, false);
       return true;
     }
 
-  #ifdef PDCURSES_WIN32
-    if (input.key == PADMINUS)
-  #else
-    if (input.key == '-')
-  #endif
+    if (input.keyMinus())
     {
       _logic.selectShowRange(0, cursor(), true);
       return true;
     }
 
-  #ifdef PDCURSES_WIN32
-    if (input.key == PADPLUS)
-  #else
-    if (input.key == '+')
-  #endif
+    if (input.keyPlus())
     {
       _logic.selectShowRange(cursor(), this->_logic.showCount()-1, true);
       return true;

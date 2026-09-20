@@ -107,8 +107,7 @@ public:
       }
     }
 
-    // ENTER behavior
-    if (input.key == 10 || input.key == 13)
+    if (input.keyEnterReturn())
     {
       if (pickPodcast())
       {

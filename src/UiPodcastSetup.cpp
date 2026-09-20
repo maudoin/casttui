@@ -167,7 +167,7 @@ bool UiPodcastSetup::handleKey(UiInput const& input)
   }
   if (editor.editing)
   {
-      if (input.key == 10 || input.key == 13)
+      if (input.keyReturn())
       {
         switch (modal_field)
         {
@@ -209,7 +209,7 @@ bool UiPodcastSetup::handleKey(UiInput const& input)
   }
 
   // ENTER begins editing
-  if (input.key == 10 || input.key == 13)
+  if (input.keyReturn())
   {
     startEdit(0);
     return true;
