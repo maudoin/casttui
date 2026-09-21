@@ -67,7 +67,12 @@ public:
       return Cell{text, UiColors::getStyle(isCursor, isSelected)};
     };
 
-    UiTable::render(input, _records.size(), cols, cellCallback, UiColors::focusStyle(focused), winSelection);
+    Columns tableCols = UiTable::render(input, _records.size(), cols, cellCallback, UiColors::focusStyle(focused), winSelection, RowReserve(2));
+
+    Columns footerCols = UiTable::renderHeaderOnly(input, {
+      HeaderColumn{.width = HeaderColumn::FILL, .name = L"OK"},
+      HeaderColumn{.width = HeaderColumn::FIT_LABEL, .name = L"Cancel", .callback = _doneCallback},
+    }, UiColors::focusStyle(focused), tableCols);
   }
 
   // ---------------------------

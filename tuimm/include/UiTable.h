@@ -40,6 +40,10 @@ struct Columns
 {
   template <typename C>
   Columns(int innerWidth, std::vector<C> const&headerCols, std::optional<Columns> const& prev = std::nullopt);
+  Columns(std::vector<ColumnRange> const& vec, int rowOffset)
+  : vec(vec)
+  , rowOffset(rowOffset)
+  {}
   std::vector<ColumnRange> vec;
   bool drawHeader = false;
   int rowOffset = 0;
@@ -117,7 +121,7 @@ public:
     std::optional<Columns> const& previousColumns = std::nullopt);
 
   template<typename GetCell, typename WinSelOp=decltype([]{})>
-  void render(
+  Columns render(
     UiInput const& input,
     int dataRowCount,
     Columns const& header_cols,
@@ -139,6 +143,7 @@ public:
         tableRender.draw(r, c, cellCallback(_firstVisibleDataRow+i, c, tableRender.getEvent(r, c)));
       }
     }
+    return Columns(tableRender.cols_def,  tableRender.viewContentFirstRow+ tableRender.rowCount());
   }
   TableRender renderStart(
     UiInput const& input,
@@ -180,15 +185,14 @@ public:
     render(input, static_cast<int>(span.size()), cols, cellCallback, borderStyle, []{}, rowCount);
   }
 
-  void renderHeaderOnly(
+  Columns renderHeaderOnly(
     UiInput const& input,
     std::vector<HeaderColumn> const&headerCols,
     int borderStyle,
-    RowReserve const& rowCount={},
     std::optional<Columns> const& previousColumns = std::nullopt)
   {
     auto h = renderHeader(input, headerCols, borderStyle, previousColumns);
-    render(input, 0, h, [](int, int, std::optional<UiInput::MouseEvent> const&){return Cell{};}, borderStyle, []{}, rowCount);
+    return render(input, 0, h, [](int, int, std::optional<UiInput::MouseEvent> const&){return Cell{};}, borderStyle, []{});
   }
 
   int cursor() const { return _cursor; }
