@@ -19,7 +19,7 @@ UiPodcastSetup::UiPodcastSetup(DowncastLogic &_logic, std::function<void()> cons
 , _logic(_logic)
 , _doneCallback(doneCallback)
 , _fields({{&_url, &_title, &_target, &_pattern}})
-, _fileBrowser([this]{this->_showFileBrowser=false;this->_fileBrowser.delWindow();this->_target=this->_fileBrowser.getSelected().string();})
+, _fileBrowser(L"Select target folder", [this]{this->_showFileBrowser=false;this->_fileBrowser.delWindow();this->_target=this->_fileBrowser.getSelected().string();})
 {
 }
 

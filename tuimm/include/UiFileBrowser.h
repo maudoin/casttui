@@ -20,8 +20,9 @@ public:
     std::filesystem::path extension;
   };
 
-  UiFileBrowser(std::function<void()> const& doneCallback)
+  UiFileBrowser(std::wstring const& title, std::function<void()> const& doneCallback)
   : UiTable(UiTable::Mode::CURSOR)
+  , _title(title)
   , _doneCallback(doneCallback)
   {
     setPwd(std::filesystem::current_path());
@@ -32,19 +33,22 @@ public:
   // ---------------------------
   void render(UiInput const& input, bool focused, std::function<void()> const& winSelection)
   {
+    Columns titleCols = UiTable::renderHeader(input, {
+      HeaderColumn{.width = HeaderColumn::FILL, .name = _title},
+      HeaderColumn{.width = HeaderColumn::FIT_LABEL, .name = L" X ", .callback=_doneCallback},
+    }, UiColors::focusStyle(focused));
     Columns cols = UiTable::renderHeader(input, {
       HeaderColumn{.width = HeaderColumn::FILL, .name = L"Name"},
       HeaderColumn{.width = 10, .name = L"Type"},
       HeaderColumn{.width = 10, .name = L"Ext"},
-    }, UiColors::focusStyle(focused));
+    }, UiColors::focusStyle(focused), titleCols);
 
     auto cellCallback = [&](int row, int col, std::optional<UiInput::MouseEvent> const& ev) -> Cell
     {
-      int idx = row - firstVisibleDataRow();
-      if (idx < 0 || idx >= static_cast<int>(_records.size()))
+      if (row < 0 || row >= static_cast<int>(_records.size()))
         return Cell{};
 
-      auto const& r = _records[idx];
+      auto const& r = _records[row];
 
       std::wstring text;
       if (col == 0) text = r.showName;
@@ -212,6 +216,7 @@ private:
   }
 
 private:
+  std::wstring _title;
   std::filesystem::path _pwd;
   std::vector<FileRecord> _records;
   std::set<std::filesystem::path> _selected;

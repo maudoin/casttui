@@ -636,8 +636,8 @@ UiTable::TableRender UiTable::renderStart(
       [](auto const& hc){ return hc.width == HeaderColumn::FILL; });
   int dynamic_index = (it == resolvedHeaderCols.vec.end() ? -1 : it - resolvedHeaderCols.vec.begin());
 
-  int viewContentFirstRow = 1 + resolvedHeaderCols.rowOffset; // 1 = reserve top line
-  _lastKnownViewHeight = h - (2 + resolvedHeaderCols.rowOffset); // 2 = reserve top andbottom lines
+  int viewContentFirstRow = 1 + resolvedHeaderCols.rowOffset;
+  _lastKnownViewHeight = h - (2 + resolvedHeaderCols.rowOffset); // 2 = reserve top and bottom lines
 
   _dynamicColViewWidth =
       (dynamic_index >= 0 ? resolvedHeaderCols.vec[dynamic_index].width : 0);
@@ -654,7 +654,7 @@ UiTable::TableRender UiTable::renderStart(
 
   if (resolvedHeaderCols.drawHeader && h>3)
   {
-    draw_mid_border_header(_pimpl->win, 2, 0, resolvedHeaderCols.vec, borderStyle);
+    draw_mid_border_header(_pimpl->win, resolvedHeaderCols.rowOffset, 0, resolvedHeaderCols.vec, borderStyle);
   }
 
   // ------------------------------------------------------------
