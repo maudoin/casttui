@@ -174,6 +174,7 @@ inline void draw_transition_separator(
         bool const a = (x == nextAfter);
 
         std::wstring const& str =
+            (b && a && i == (before.size()-1)) ? MidLineCharacters.right :
             (b && a) ? MidLineCharacters.mid :
             (b)      ? BottomLineCharacters.mid :
             (a)      ? TopLineCharacters.mid :
@@ -184,8 +185,6 @@ inline void draw_transition_separator(
         if (b) nextBefore = nextPos(++i, before);
         if (a) nextAfter  = nextPos(++j, after);
     }
-
-    mvwaddwstr_watt(win, row, x, MidLineCharacters.right, borderStyle);
 }
 
 void draw_top_border(
