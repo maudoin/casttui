@@ -39,9 +39,10 @@ struct ColumnRange
 struct Columns
 {
   template <typename C>
-  Columns(int innerWidth, std::vector<C> const&headerCols);
+  Columns(int innerWidth, std::vector<C> const&headerCols, std::optional<Columns> const& prev = std::nullopt);
   std::vector<ColumnRange> vec;
   bool drawHeader = false;
+  int rowOffset = 0;
 };
 
 // --------------------------------------------------------------------
@@ -74,6 +75,7 @@ class UiTable
     int const dynamicIndex;
     int viewContentFirstRow;
     int viewContentDataSize;
+    bool limitedHeight;
 
     struct Row
     {
@@ -107,8 +109,12 @@ public:
 
   bool handleKey(UiInput const& input);
 
-  Columns renderHeader(UiInput const& input, std::vector<int> const&headerCols,int borderStyle);
-  Columns renderHeader(UiInput const& input, std::vector<HeaderColumn> const&headerCols,int borderStyle);
+  class RowReserve{ std::optional<int> index;friend class UiTable;public: RowReserve(std::optional<int> index=std::nullopt):index(index){}};
+
+  Columns renderHeader(UiInput const& input, std::vector<int> const&headerCols,int borderStyle,
+    std::optional<Columns> const& previousColumns = std::nullopt);
+  Columns renderHeader(UiInput const& input, std::vector<HeaderColumn> const&headerCols,int borderStyle,
+    std::optional<Columns> const& previousColumns = std::nullopt);
 
   template<typename GetCell, typename WinSelOp=decltype([]{})>
   void render(
@@ -117,13 +123,14 @@ public:
     Columns const& header_cols,
     const GetCell &cellCallback,
     int borderStyle,
-    WinSelOp const& winSelOp = {})
+    WinSelOp const& winSelOp = {},
+    RowReserve const& rowCount={})
   {
     if (mouseHit(input))
     {
       winSelOp();
     }
-    auto tableRender = renderStart(input, dataRowCount, header_cols, borderStyle);
+    auto tableRender = renderStart(input, dataRowCount, header_cols, borderStyle, rowCount);
     for (int i = 0; i < tableRender.rowCount(); ++i)
     {
       TableRender::Row r = tableRender.startRow(i);
@@ -137,25 +144,30 @@ public:
     UiInput const& input,
     int dataRowCount,
     const Columns &headerCols,
-    int borderStyle);
+    int borderStyle,
+    RowReserve const& rowCount={});
 
   template <std::ranges::contiguous_range R>
-      requires std::same_as<std::ranges::range_value_t<R>, Cell>
+  requires std::same_as<std::ranges::range_value_t<R>, Cell>
   void renderSingleLineRange(
-      UiInput const& input,
-      R&& r,
-      int borderStyle,
-      const std::optional<std::wstring>& title = std::nullopt)
+    UiInput const& input,
+    R&& r,
+    int borderStyle,
+    RowReserve const& rowCount={},
+    const std::optional<std::wstring>& title = std::nullopt,
+    std::optional<Columns> const& previousColumns = std::nullopt)
   {
       std::span<Cell> span{std::ranges::data(r),std::ranges::size(r)};
-      renderSingleLineRange(input, span, borderStyle, title);
+      renderSingleLineRange(input, span, borderStyle, rowCount, title, previousColumns);
   }
 
   void renderSingleLineRange(
     UiInput const& input,
     std::span<Cell> span,
     int borderStyle,
-    const std::optional<std::wstring> &title = std::nullopt)
+    RowReserve const& rowCount={},
+    const std::optional<std::wstring> &title = std::nullopt,
+    std::optional<Columns> const& previousColumns = std::nullopt)
   {
     auto cellCallback = [&span](int row, int, std::optional<UiInput::MouseEvent> const&) -> Cell
     {
@@ -163,18 +175,20 @@ public:
     };
 
     Columns cols = renderHeader(input, {
-        HeaderColumn{.width=HeaderColumn::FILL, .name=title}}, borderStyle);
+        HeaderColumn{.width=HeaderColumn::FILL, .name=title}}, borderStyle, previousColumns);
 
-    render(input, static_cast<int>(span.size()), cols, cellCallback, borderStyle);
+    render(input, static_cast<int>(span.size()), cols, cellCallback, borderStyle, []{}, rowCount);
   }
 
   void renderHeaderOnly(
     UiInput const& input,
     std::vector<HeaderColumn> const&headerCols,
-    int borderStyle)
+    int borderStyle,
+    RowReserve const& rowCount={},
+    std::optional<Columns> const& previousColumns = std::nullopt)
   {
-    auto h = renderHeader(input, headerCols, borderStyle);
-    render(input, 0, h, [](int, int, std::optional<UiInput::MouseEvent> const&){return Cell{};}, borderStyle);
+    auto h = renderHeader(input, headerCols, borderStyle, previousColumns);
+    render(input, 0, h, [](int, int, std::optional<UiInput::MouseEvent> const&){return Cell{};}, borderStyle, []{}, rowCount);
   }
 
   int cursor() const { return _cursor; }
@@ -185,7 +199,8 @@ public:
 
 protected:
   template <typename C>
-  Columns renderHeaderImpl(UiInput const& input, std::vector<C> const&headerCols, int borderStyle);
+  Columns renderHeaderImpl(UiInput const& input, std::vector<C> const&headerCols, int borderStyle,
+    std::optional<Columns> const& previousColumns = std::nullopt);
 
   UiTableData *_pimpl;
 

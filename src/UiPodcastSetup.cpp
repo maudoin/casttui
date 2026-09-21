@@ -66,8 +66,6 @@ void UiPodcastSetup::render(UiInput const& input)
     _fileBrowser.render(input, true, []{});
     return;
   }
-  int h = getHeight();
-  int inner_h = h - 2;
 
   // Rows:
   // 0: caption ("add podcast" / "edit podcast")
@@ -91,8 +89,14 @@ void UiPodcastSetup::render(UiInput const& input)
   int fieldCount = static_cast<int>(fields.size());
 
   // Columns: Label | Value
-  Columns cols = UiTable::renderHeader(input, {20,HeaderColumn::FILL}, UiColors::focusedStyle());
+  Columns colsTitle = UiTable::renderHeader(input, {
+    HeaderColumn{.width = HeaderColumn::FILL, .name = _mode == Mode::EditPodcast?L"Edit podcast":L"Add podcast"},
+    HeaderColumn{.width = HeaderColumn::FIT_LABEL, .name = L" X ", .callback = _doneCallback}
+  }, UiColors::focusedStyle());
+  Columns cols = UiTable::renderHeader(input, {20,HeaderColumn::FILL}, UiColors::focusedStyle(), colsTitle);
 
+  int h = getHeight();
+  int inner_h = h - cols.rowOffset - 2;
   auto cellCallback = [=, this](int row, int col, std::optional<UiInput::MouseEvent> const& ev) -> Cell
   {
     if (row == inner_h - 1)

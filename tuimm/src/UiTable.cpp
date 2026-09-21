@@ -18,6 +18,15 @@ struct UiTableData
 };
 
 namespace{
+struct HLineCharacters{std::wstring left, mid, right;};
+static const std::wstring VLineCharacter(L"│");
+static const std::wstring VScrollCharacter(L"█");
+static const std::wstring HLineCharacter(L"─");
+static const std::wstring HScrollCharacter(L"▄");
+static const HLineCharacters TopLineCharacters{L"╭", L"┬", L"╮"};
+static const HLineCharacters MidLineCharacters{L"├", L"┼", L"┤"};
+static const HLineCharacters BottomLineCharacters{L"╰", L"┴", L"╯"};
+
 // --------------------------------------------------------------------
 // Safe write helpers
 // --------------------------------------------------------------------
@@ -64,22 +73,22 @@ inline void draw_bottom_scroll_border(
     int row,
     int col,
     int inner_width,
+    HLineCharacters const& hLineCharacters,
     std::pair<std::optional<int>, std::optional<int>> hparams,
     int borderStyle)
 {
+  if (inner_width<=0)
+  {
+    return;
+  }
   auto [startOpt, endOpt] = hparams;
-  std::wstring chars;
-  chars.reserve(inner_width);
-
+  mvwaddwstr_watt(win, row, col, hLineCharacters.left, borderStyle);
   for (int c = 0; c < inner_width; ++c)
   {
-    if (startOpt && endOpt && *startOpt <= c && c < *endOpt)
-      chars.append(L"▄"); // FIXED
-    else
-      chars.append(L"─"); // FIXED
+    auto const& midChar =  (startOpt && endOpt && *startOpt <= c && c < *endOpt)?HScrollCharacter:HLineCharacter;
+    mvwaddwstr_watt(win, row, col+c, midChar, borderStyle);
   }
-
-  mvwaddwstr_watt(win, row, col, std::wstring(L"╰") + chars + std::wstring(L"╯"), borderStyle);
+  mvwaddwstr_watt(win, row, col+inner_width-1, hLineCharacters.right, borderStyle);
 }
 
 inline void draw_border_columns(
@@ -87,17 +96,15 @@ inline void draw_border_columns(
     int row,
     int col,
     const std::vector<ColumnRange> &cols,
-    const std::wstring &start,
-    const std::wstring &mid,
-    const std::wstring &end,
+    HLineCharacters const& hLineCharacters,
     int borderStyle)
 {
-  mvwaddwstr_watt(win, row, col, start, borderStyle);
+  mvwaddwstr_watt(win, row, col, hLineCharacters.left, borderStyle);
   for (std::size_t i = 0; i < cols.size(); ++i)
   {
     auto const& range = cols[i];
     mvwaddwstr_watt(win, row, col + range.start, std::wstring(range.width, L'─'), borderStyle);
-    mvwaddwstr_watt(win, row, col + range.start + range.width, (i < cols.size() - 1)?mid:end, borderStyle);
+    mvwaddwstr_watt(win, row, col + range.start + range.width, (i < cols.size() - 1)?hLineCharacters.mid:hLineCharacters.right, borderStyle);
   }
 }
 
@@ -109,7 +116,7 @@ void draw_top_border_header(
     int borderStyle)
 {
   // box(win, 0, 0);
-  draw_border_columns(win, row, col, cols, L"╭", L"┬", L"╮", borderStyle);
+  draw_border_columns(win, row, col, cols, TopLineCharacters, borderStyle);
 }
 
 void draw_mid_border_header(
@@ -119,7 +126,7 @@ void draw_mid_border_header(
     const std::vector<ColumnRange> &cols,
     int borderStyle)
 {
-  draw_border_columns(win, row, col, cols, L"├", L"┼", L"┤", borderStyle);
+  draw_border_columns(win, row, col, cols, MidLineCharacters, borderStyle);
 }
 
 void draw_bottom_border_header(
@@ -129,7 +136,56 @@ void draw_bottom_border_header(
     const std::vector<ColumnRange> &cols,
     int borderStyle)
 {
-  draw_border_columns(win, row, col, cols, L"╰", L"┴", L"╯", borderStyle);
+  draw_border_columns(win, row, col, cols, BottomLineCharacters, borderStyle);
+}
+
+inline void draw_transition_separator(
+    WINDOW *win,
+    int row,
+    int col,
+    const std::vector<ColumnRange> &before,
+    const std::vector<ColumnRange> &after,
+    int borderStyle)
+{
+    mvwaddwstr_watt(win, row, col, MidLineCharacters.left, borderStyle);
+
+    std::size_t i = 0, j = 0;
+
+    auto nextPos = [&](std::size_t idx, const std::vector<ColumnRange> &v)
+    {
+        return (idx < v.size())
+            ? col + v[idx].start + v[idx].width
+            : INT_MAX;
+    };
+
+    int nextBefore = nextPos(i, before);
+    int nextAfter  = nextPos(j, after);
+
+    int x = col + 1;
+
+    while (nextBefore != INT_MAX || nextAfter != INT_MAX)
+    {
+        int const next = std::min(nextBefore, nextAfter);
+
+        while (x < next)
+            mvwaddwstr_watt(win, row, x++, HLineCharacter, borderStyle);
+
+        bool const b = (x == nextBefore);
+        bool const a = (x == nextAfter);
+
+        std::wstring const& str =
+            (b && a) ? MidLineCharacters.mid :
+            (b)      ? BottomLineCharacters.mid :
+            (a)      ? TopLineCharacters.mid :
+                       HLineCharacter;
+
+        mvwaddwstr_watt(win, row, x++, str, borderStyle);
+
+        if (b) nextBefore = nextPos(++i, before);
+        if (a) nextAfter  = nextPos(++j, after);
+    }
+
+    mvwaddwstr_watt(win, row, x, MidLineCharacters.right, borderStyle);
 }
 
 void draw_top_border(
@@ -154,12 +210,12 @@ void draw_bottom_border(
 
 inline std::wstring build_left_border()
 {
-  return L"│";
+  return VLineCharacter;
 }
 
 inline std::wstring build_separator()
 {
-  return L"│";
+  return VLineCharacter;
 }
 
 inline std::wstring build_right_border(
@@ -168,8 +224,8 @@ inline std::wstring build_right_border(
 {
   auto [startOpt, endOpt] = vparams;
   if (startOpt && endOpt && *startOpt <= row && row < *endOpt)
-    return L"█";
-  return L"│";
+    return VScrollCharacter;
+  return VLineCharacter;
 }
 
 namespace{
@@ -243,7 +299,7 @@ inline void draw_header_row(
 
     mvwaddwstr_watt(win, row, col + headerRange.start, cell, borderStyle);
     mvwaddwstr_watt(win, row, col + headerRange.start + headerRange.width,
-      (i == cols.size()-1)?build_right_border({std::nullopt, std::nullopt}, 0):L"│", borderStyle);
+      (i == cols.size()-1)?build_right_border({std::nullopt, std::nullopt}, 0):VLineCharacter, borderStyle);
     if constexpr(requires (C c){c.name;})
     if (header.callback)
     {
@@ -327,7 +383,7 @@ void UiTable::TableRender::endRow(Row const& r)
 }
 // ------------------------------------------------------------
 template <typename C>
-Columns::Columns(int totalWidth, std::vector<C> const&headerCols)
+Columns::Columns(int totalWidth, std::vector<C> const&headerCols, std::optional<Columns> const& prev)
 {
   int const totalInnerW = totalWidth - 2;
   int fixed = 0;
@@ -372,6 +428,7 @@ Columns::Columns(int totalWidth, std::vector<C> const&headerCols)
     drawHeader = std::ranges::any_of(headerCols,
       [](C const &hc){ return hc.name.has_value(); });
   }
+  rowOffset = (prev?prev->rowOffset:0) + (drawHeader?2:0);
 }
 // ------------------------------------------------------------
 // CLASS
@@ -493,26 +550,41 @@ template<typename C>
 Columns UiTable::renderHeaderImpl(
   UiInput const& input,
   std::vector<C> const& headerCols,
-  int borderStyle)
+  int borderStyle,
+  std::optional<Columns> const& previousColumns)
 {
-  werase(_pimpl->win);
-  keypad(_pimpl->win, TRUE);
+  if (!previousColumns)
+  {
+    werase(_pimpl->win);
+    keypad(_pimpl->win, TRUE);
+  }
 
   int totalWidth = getmaxx(_pimpl->win);
-  Columns resolvedHeaderCols(totalWidth, headerCols);
+  Columns resolvedHeaderCols(totalWidth, headerCols, previousColumns);
   // ------------------------------------------------------------
   // Draw header + mid border
   // ------------------------------------------------------------
-  draw_top_border_header(_pimpl->win, 0, 0, resolvedHeaderCols.vec, borderStyle);
+  if (previousColumns)
+  {
+    draw_transition_separator(_pimpl->win, previousColumns->rowOffset, 0, previousColumns->vec, resolvedHeaderCols.vec, borderStyle);
+  }
+  else
+  {
+    draw_top_border_header(_pimpl->win, 0, 0, resolvedHeaderCols.vec, borderStyle);
+  }
 
   if (resolvedHeaderCols.drawHeader)
   {
-    draw_header_row(input, _pimpl->win, 1, 0, headerCols, resolvedHeaderCols.vec, borderStyle);
+    draw_header_row(input, _pimpl->win, (previousColumns?previousColumns->rowOffset:0)+1, 0, headerCols, resolvedHeaderCols.vec, borderStyle);
   }
   return resolvedHeaderCols;
 }
-Columns UiTable::renderHeader(UiInput const& input, std::vector<int> const&headerCols, int borderStyle){ return renderHeaderImpl(input, headerCols, borderStyle); }
-Columns UiTable::renderHeader(UiInput const& input, std::vector<HeaderColumn> const&headerCols, int borderStyle){ return renderHeaderImpl(input, headerCols, borderStyle); }
+Columns UiTable::renderHeader(UiInput const& input, std::vector<int> const&headerCols, int borderStyle,
+   std::optional<Columns> const& previousColumns)
+    { return renderHeaderImpl(input, headerCols, borderStyle, previousColumns); }
+Columns UiTable::renderHeader(UiInput const& input, std::vector<HeaderColumn> const&headerCols, int borderStyle,
+   std::optional<Columns> const& previousColumns)
+    { return renderHeaderImpl(input, headerCols, borderStyle, previousColumns); }
 // ------------------------------------------------------------
 bool UiTable::mouseHit(UiInput const& input)
 {
@@ -537,15 +609,16 @@ UiTable::TableRender UiTable::renderStart(
   UiInput const& input,
   int dataRowCount,
   const Columns &resolvedHeaderCols,
-  int borderStyle)
+  int borderStyle,
+  UiTable::RowReserve const& rowReserve)
 {
-  int h, w;
-  getmaxyx(_pimpl->win, h, w);
+  int h = getmaxy(_pimpl->win) - (rowReserve.index ? *rowReserve.index : 0);
+  int w = getmaxx(_pimpl->win);
 
   if (input.mev)
   {
-    int beginRow, beginCol;
-    getbegyx(_pimpl->win, beginRow, beginCol);
+    int beginRow = getbegy(_pimpl->win) ;
+    int beginCol = getbegx(_pimpl->win);
     int endRow = h + beginRow;
     int endCol = w + beginCol;
     if (input.mev && (input.mev->x >= beginCol && input.mev->x < endCol) &&
@@ -564,8 +637,8 @@ UiTable::TableRender UiTable::renderStart(
       [](auto const& hc){ return hc.width == HeaderColumn::FILL; });
   int dynamic_index = (it == resolvedHeaderCols.vec.end() ? -1 : it - resolvedHeaderCols.vec.begin());
 
-  int viewContentFirstRow = resolvedHeaderCols.drawHeader ? 3 : 1;
-  _lastKnownViewHeight = h - (resolvedHeaderCols.drawHeader? 4 : 2);
+  int viewContentFirstRow = 1 + resolvedHeaderCols.rowOffset; // 1 = reserve top line
+  _lastKnownViewHeight = h - (2 + resolvedHeaderCols.rowOffset); // 2 = reserve top andbottom lines
 
   _dynamicColViewWidth =
       (dynamic_index >= 0 ? resolvedHeaderCols.vec[dynamic_index].width : 0);
@@ -589,16 +662,20 @@ UiTable::TableRender UiTable::renderStart(
   // Data rows
   // ------------------------------------------------------------
   _dynamicColMaxDataWidth = 0;
-  return{*this,
-          input,
-          0, totalInnerW,
-          dataRowCount,
-          std::move(resolvedHeaderCols.vec),
-          borderStyle,
-          vparams,
-          dynamic_index,
-          viewContentFirstRow,
-          std::min(dataRowCount,_lastKnownViewHeight)};
+  return
+  {
+    *this,
+    input,
+    0, totalInnerW,
+    dataRowCount,
+    std::move(resolvedHeaderCols.vec),
+    borderStyle,
+    vparams,
+    dynamic_index,
+    viewContentFirstRow,
+    std::min(dataRowCount,_lastKnownViewHeight),
+    rowReserve.index.has_value()
+  };
 }
 // ------------------------------------------------------------
 UiTable::TableRender::~TableRender()
@@ -616,31 +693,36 @@ UiTable::TableRender::~TableRender()
   // Horizontal scrollbar
   // ------------------------------------------------------------
   auto hparams = scrollbar_thumb(
-      table._dynamicColCurrentOffsetX,
-      table._dynamicColMaxDataWidth,
-      table._dynamicColViewWidth,
-      1,
-      totalInnerW);
+    table._dynamicColCurrentOffsetX,
+    table._dynamicColMaxDataWidth,
+    table._dynamicColViewWidth,
+    1,
+    totalInnerW);
 
   if (!hparams.first || !hparams.second ||
       (*hparams.first == 1 && *hparams.second == totalInnerW - 2))
   {
-    draw_bottom_border_header(
+    if (!limitedHeight)
+    {
+      draw_border_columns(
         table._pimpl->win,
         viewContentFirstRow + table._lastKnownViewHeight,
         0,
         cols_def,
+        limitedHeight?MidLineCharacters:BottomLineCharacters,
         borderStyle);
+    }
   }
   else
   {
     draw_bottom_scroll_border(
-        table._pimpl->win,
-        viewContentFirstRow + table._lastKnownViewHeight,
-        0,
-        totalInnerW,
-        hparams,
-        borderStyle);
+      table._pimpl->win,
+      viewContentFirstRow + table._lastKnownViewHeight,
+      0,
+      totalInnerW,
+      limitedHeight?MidLineCharacters:BottomLineCharacters,
+      hparams,
+      borderStyle);
   }
 
   wrefresh(table._pimpl->win);

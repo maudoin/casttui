@@ -15,10 +15,16 @@ UiConfirm::UiConfirm(std::function<void()> const& cancel)
 , _cancel(cancel)
 {}
 
-void UiConfirm::set(std::wstring const& title, std::function<void()> const& action)
+int UiConfirm::preferredWindowHeight()
+{
+  return 5; // 2 text rows + 3 borders
+}
+
+void UiConfirm::set(std::wstring const& actionName, std::function<void()> const& action, std::wstring const& title)
 {
   _field = 1;//"Cancel"
   _action = action;
+  _actionName = actionName;
   _title = title;
 }
 
@@ -43,17 +49,25 @@ void UiConfirm::render(UiInput const& input)
         .style=style
       };
     }
-    if (ev) _cancel();
-    return Cell{
-      .text=cancel,
-      .style=style
-    };
+    else
+    {
+      if (ev) _cancel();
+      return Cell{
+        .text=cancel,
+        .style=style
+      };
+    }
   };
+
+  Columns titleCols = UiTable::renderHeader(input, {
+    HeaderColumn{ .width = HeaderColumn::FILL, .name=_actionName },
+    HeaderColumn{ .width = HeaderColumn::FIT_LABEL, .name=L" X ", .callback=_cancel}
+  }, UiColors::focusedStyle());
 
   Columns cols = UiTable::renderHeader(input, {
     HeaderColumn{ .width = HeaderColumn::FILL },
     HeaderColumn{ .width = static_cast<int>(cancel.size()) }
-  }, UiColors::focusedStyle());
+  }, UiColors::focusedStyle(), titleCols);
 
   UiTable::render(input, 1, cols, cellCallback, UiColors::focusedStyle());
 }

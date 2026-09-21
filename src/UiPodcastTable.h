@@ -99,7 +99,7 @@ public:
       if (input.key == 'd' || input.key == 'D')
       {
         int delete_id = p.id;
-        _actions.del(L"Delete '" + to_wstring(p.title) + L"'?", [this, delete_id]{
+        _actions.del(to_wstring(p.title), [this, delete_id]{
           this->_logic.deletePodcast(delete_id);
           this->scrollVertical(-1);
         });

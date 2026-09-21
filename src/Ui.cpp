@@ -42,7 +42,7 @@ class Ui : public UiApp
     },
     .del=[&](std::wstring const& title, std::function<void()> const& del)
     {
-      this->_confirmUi.set(title, del);
+      this->_confirmUi.set(title, del, L"Delete");
       this->_modalPopup = ModalMode::Confirm;
     }
   })
@@ -50,7 +50,7 @@ class Ui : public UiApp
   , _actionsUi(UiTable::Mode::SCROLL)
   , _bottomBarUi(UiTable::Mode::SCROLL)
   , _statusUi(_logic, [this]{
-    this->_confirmUi.set(L"Quit", [this]{this->exit();});
+    this->_confirmUi.set(L"Quit", [this]{this->exit();}, L"Confirm shutdown");
     this->_modalPopup = ModalMode::Confirm;
   })
   , _addEditPodcastUi(_logic, [this]{this->_modalPopup = ModalMode::None;})
@@ -210,8 +210,13 @@ private:
 
     std::optional<std::wstring> title =
       shows.empty() ? std::nullopt : std::make_optional(to_wstring(shows[0].title));
+    Columns colsTop = _infoUi.renderHeader(input, {
+      HeaderColumn{.width=HeaderColumn::FILL, .name=title},
+      HeaderColumn{.width=HeaderColumn::FIT_LABEL, .name=L" X ", .callback=[this]{this->_modalPopup=ModalMode::None;}}
+    }, UiColors::focusedStyle());
+
     Columns cols = _infoUi.renderHeader(input, {
-        HeaderColumn{.width=HeaderColumn::FILL, .name=title}}, UiColors::focusedStyle());
+        HeaderColumn{.width=HeaderColumn::FILL}}, UiColors::focusedStyle(), colsTop);
 
     auto getCell = [&](int row, int col, std::optional<UiInput::MouseEvent> const&)
     {
@@ -391,7 +396,7 @@ private:
     _bottomBarUi.buildWindow(bottom_h, right_w, status_h + shows_h + actions_h, left_w);
 
     {
-      int mh = 3;
+      int mh = _confirmUi.preferredWindowHeight();
       int mw = std::min(w - 4, 70);
       int y  = (h - mh) / 2;
       int x  = (w - mw) / 2;
