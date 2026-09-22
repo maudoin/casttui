@@ -105,20 +105,6 @@ public:
     int inner_h = h - cols.rowOffset - 2;
     auto cellCallback = [=, this](int row, int col, std::optional<UiInput::MouseEvent> const& ev) -> Cell
     {
-      if (row == inner_h - 1)
-      {
-        if (col == 0)
-        {
-          if (ev){savePodcast();}
-          return Cell{.text=_mode == Mode::AddPodcast ? L"Add podcast (s)" : L"Save podcast (s)", .style=UiColors::boldStyle()};
-        }
-        if (col == 1)
-        {
-          if (ev){_doneCallback();}
-          return Cell{.text=L"Cancel (Esc)", .style=UiColors::boldStyle()};
-        }
-      }
-
       auto setRowNoEdit = [this, row]{
           _field = row;
           this->_editor.cancel();};
@@ -193,7 +179,12 @@ public:
       return Cell{};
     };
 
-    UiTable::render(input, inner_h, cols, cellCallback, UiColors::focusedStyle());
+    Columns tableCols = UiTable::render(input, inner_h, cols, cellCallback, UiColors::focusedStyle(), []{}, RowReserve(2));
+
+    Columns footerCols = UiTable::renderHeaderOnly(input, {
+      HeaderColumn{.width = HeaderColumn::FILL, .name = L"OK", .callback = [this]{this->savePodcast();}},
+      HeaderColumn{.width = HeaderColumn::FIT_LABEL, .name = L"Cancel", .callback = _doneCallback},
+    }, UiColors::focusedStyle(), tableCols);
   }
 
   bool handleKey(UiInput const& input)
