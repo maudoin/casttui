@@ -11,6 +11,8 @@ struct UiInput
     bool left;
     bool right;
     bool middle;
+    bool wheelUp;
+    bool wheelDown;
     bool prev=0;//not under windows
     bool next=0;//not under windows
     bool ctrl;

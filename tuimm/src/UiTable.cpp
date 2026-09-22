@@ -622,6 +622,26 @@ bool UiTable::handleKey(UiInput const& input)
     scrollVertical(_lastKnownViewHeight);
     return true;
   }
+  if (input.keyHome())
+  {
+    scrollTo(0);
+    return true;
+  }
+  if (input.keyEnd())
+  {
+    scrollTo(_dataRowCount-1);
+    return true;
+  }
+  if (input.mev.has_value() && (input.mev)->wheelUp)
+  {
+    scrollVertical(-5);
+    return true;
+  }
+  if (input.mev.has_value() && (input.mev)->wheelDown)
+  {
+    scrollVertical(5);
+    return true;
+  }
   if (input.keyLeft())
   {
     scrollHorizontal(-5);

@@ -37,6 +37,8 @@ UiInput UiInput::init(int key)
       input.mev->left   = ev.bstate & BUTTON1_PRESSED || ev.bstate & BUTTON1_CLICKED;
       input.mev->middle = ev.bstate & BUTTON2_PRESSED || ev.bstate & BUTTON2_CLICKED;
       input.mev->right  = ev.bstate & BUTTON3_PRESSED || ev.bstate & BUTTON3_CLICKED;
+      input.mev->wheelUp = ev.bstate & BUTTON4_PRESSED || ev.bstate & BUTTON4_CLICKED;
+      input.mev->wheelDown  = ev.bstate & BUTTON5_PRESSED || ev.bstate & BUTTON5_CLICKED;
       // --- Modifier keys ---
 #if defined(PDCURSES)
       // Some PDCurses versions have ev.modifier, some do not.
