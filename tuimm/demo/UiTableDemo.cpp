@@ -23,7 +23,7 @@ struct UiTableDemo : public UiApp
   {
     if (!table.handleKey(input))
     {
-      if (input.keyReturn() || input.keySpace() || input.keyEsc())
+      if (input.keyEnterReturn() || input.keySpace() || input.keyEsc())
       {
         this->exit();
         return true;

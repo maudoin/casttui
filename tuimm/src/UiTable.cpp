@@ -7,6 +7,7 @@
 #endif
 
 #include <algorithm>
+#include <limits>
 #include <ranges>
 
 inline bool DEBUG_UI = false;
@@ -255,7 +256,7 @@ inline void draw_transition_separator(
     {
         return (idx < v.size())
             ? col + v[idx].start + v[idx].width
-            : INT_MAX;
+            : std::numeric_limits<int>::max();
     };
 
     int nextBefore = nextPos(i, before);
@@ -263,7 +264,7 @@ inline void draw_transition_separator(
 
     int x = col + 1;
 
-    while (nextBefore != INT_MAX || nextAfter != INT_MAX)
+    while (nextBefore != std::numeric_limits<int>::max() || nextAfter != std::numeric_limits<int>::max())
     {
         int const next = std::min(nextBefore, nextAfter);
 
