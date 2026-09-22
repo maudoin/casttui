@@ -47,6 +47,7 @@ struct Columns
   std::vector<ColumnRange> vec;
   bool drawHeader = false;
   int rowOffset = 0;
+  int dynamicIndex = -1;
 };
 
 // --------------------------------------------------------------------
