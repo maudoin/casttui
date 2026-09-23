@@ -772,6 +772,49 @@ UiTable::TableRender UiTable::renderStart(
       viewContentFirstRow,
       _lastKnownViewHeight);
 
+  // ------------------------------------------------------------
+  // Mouse click on vertical scrollbar
+  // ------------------------------------------------------------
+
+  if (input.mev)
+  {
+    UiInput::MouseEvent local =
+      toLocal(_pimpl->win, *input.mev);
+
+    const int scrollX = w - 1;
+
+    bool onVerticalScrollbar =
+      vparams.first &&
+      vparams.second &&
+      local.x == scrollX &&
+      local.y >= viewContentFirstRow &&
+      local.y < viewContentFirstRow + _lastKnownViewHeight;
+
+    if (onVerticalScrollbar)
+    {
+      double ratio =
+        double(local.y - viewContentFirstRow + 0.5) /
+        std::max(1, _lastKnownViewHeight - 1);
+
+      int maxOffset =
+        std::max(
+          0,
+          dataRowCount - _lastKnownViewHeight);
+
+      scrollTo(
+        static_cast<int>(
+          ratio * maxOffset));
+
+      // refresh scrollbar geometry using new state
+      vparams = scrollbar_thumb(
+        _firstVisibleDataRow,
+        dataRowCount,
+        _lastKnownViewHeight,
+        viewContentFirstRow,
+        _lastKnownViewHeight);
+    }
+  }
+
 
   if (resolvedHeaderCols.drawHeader && h>3)
   {
