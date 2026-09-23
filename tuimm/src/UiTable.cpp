@@ -563,7 +563,7 @@ void UiTable::scrollTo(int newCursor)
 {
   if (_mode == Mode::CURSOR)
   {
-    _cursor = std::clamp(newCursor, 0, _dataRowCount - 1);
+    _cursor = _dataRowCount ? std::clamp(newCursor, 0, _dataRowCount - 1) : 0;
     int visible = _lastKnownViewHeight;
 
     if (_cursor < _firstVisibleDataRow)
@@ -574,10 +574,9 @@ void UiTable::scrollTo(int newCursor)
   else
   {
     _firstVisibleDataRow =
-        std::clamp(newCursor, 0, _dataRowCount - 1);
+        _dataRowCount ? std::clamp(newCursor, 0, _dataRowCount - 1) : 0;
   }
 }
-
 // ------------------------------------------------------------
 void UiTable::scrollVertical(int amount)
 {
@@ -762,6 +761,9 @@ UiTable::TableRender UiTable::renderStart(
       (resolvedHeaderCols.dynamicIndex >= 0 && resolvedHeaderCols.dynamicIndex < resolvedHeaderCols.vec.size()) ?
         resolvedHeaderCols.vec[resolvedHeaderCols.dynamicIndex].width : 0;
 
+  // ensure content is compatible with cursors
+  scrollVertical(0);
+  scrollHorizontal(0);
   // ------------------------------------------------------------
   // Vertical scrollbar
   // ------------------------------------------------------------
