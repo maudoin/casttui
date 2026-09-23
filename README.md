@@ -1,6 +1,8 @@
 Crossplatform TUI Podcast show manager/downloader with full mouse support
 (not a player, use [musikcube](https://github.com/clangen/musikcube/blob/master/README.md)!)
 
+Watch [demo here](https://asciinema.org/a/pnfvhCQvSaICCxSA)
+
 ```
 ╭─────────────────────╮╭────────┬───┬─────┬───────┬────┬───┬───────────────────────────┬───╮
 │Add podcast...       █│Status: │New│Queue│Skipped│Done│All│                           │ X │
