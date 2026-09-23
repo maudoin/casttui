@@ -2,62 +2,108 @@ Crossplatform TUI Podcast show manager/downloader with full mouse support
 (not a player, use [musikcube](https://github.com/clangen/musikcube/blob/master/README.md)!)
 
 ```
-╭───────────────────╮╭────────┬───┬─────┬───────┬────┬───┬───────────────────────┬───╮
-│Add podcast...     ││Status: │New│Queue│Skipped│Done│All│                       │ X │
-│All                │╰────────┴───┴─────┴───────┴────┴───┴───────────────────────┴───╯
-│Les Grosses Têtes  │╭───────────────────────────────────────┬────────────┬──────────╮
-│À bientôt de te rev││Title                                  │Date        │Duration ↑│
-│FloodCast          │├───────────────────────────────────────┼────────────┼──────────┤
-│2 Heures De Perdues││L'intégrale : "La dernière" du 06 septe│2026-09-06 2│1:46:09   █
-│Riviera Detente    ││L'intégrale : "La dernière" du 13 septe│2026-09-13 2│1:45:45   █
-│Un Bon Moment avec ││Le prix du gros mytho de la semaine est│2026-09-13 1│7:32mn    █
-│Laisse-moi kiffer  ││Le prix du meilleur début de campagne e│2026-09-06 1│6:26mn    █
-│Les Gens Qui Douten││Police partout, racisme aussi - La gros│2026-09-13 1│6:19mn    █
-│Lumières dans la nu││Attal, l’opération 1000 bistrots - La c│2026-09-13 2│6:12mn    █
-│Culture 2000       ││Arrêtons Mélenchon ! - La grosse semain│2026-09-06 2│5:52mn    █
-│Émotions           ││Le charisme (d’huître) de Raphaël Gluck│2026-09-06 2│5:51mn    █
-│Le Cosy Corner     ││Le grand pardon - La chronique de Thoma│2026-09-06 1│5:46mn    █
-│Pardon GPT         ││L’autre 11 septembre - La chronique de │2026-09-13 1│5:32mn    █
-│La dernière        ││Celles et ceux qui ont besoin d’un héro│2026-09-06 2│5:26mn    │
-│Gamberge           ││Le RN et le voile - La chronique de Dja│2026-09-06 2│5:23mn    │
-│Small Talk - Konbin││Celles et ceux qui ne sont pas des anim│2026-09-13 1│5:15mn    │
-│Totemic            ││Fumer la cigarette électronique c’est f│2026-09-13 2│4:58mn    │
-│Si c'est vrai c'est│╰─▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄────────────────────────────────────╯
-│Hollywood French Lo│╭───────────┬────────┬──────────┬──────────┬────────────────────╮
-│4 quart d'heures   ││Refresh (r)│Edit (e)│Delete (d)│Update (u)│                    │
-│Laurent Baffie     │╰───────────┴────────┴──────────┴──────────┴────────────────────╯
-│                   │╭───────────────────────────────────────────────────────────────╮
-│                   ││Ready                                                          │
-╰─▄▄▄▄▄▄▄▄▄─────────╯╰───────────────────────────────────────────────────────────────╯
+╭─────────────────────╮╭────────┬───┬─────┬───────┬────┬───┬───────────────────────────┬───╮
+│Add podcast...       █│Status: │New│Queue│Skipped│Done│All│                           │ X │
+│All                  █╰────────┴───┴─────┴───────┴────┴───┴───────────────────────────┴───╯
+│Les Grosses Têtes    █╭───────────────────────────────────────────┬────────────┬──────────╮
+│À bientôt de te revoi█│Title                                      │Date        │Duration  │
+│FloodCast            █├───────────────────────────────────────────┼────────────┼──────────┤
+│2 Heures De Perdues  █│Kayane, 24 ans, profession : joueuse de jeu│2016-06-08 2│0s        █
+│Riviera Detente      █│Comment l’assassinat de JFK nous a fait ent│2016-06-08 2│0s        │
+│Un Bon Moment avec Ky█│Europe 1 social club – 07/06/16            │2016-06-08 2│0s        │
+│Laisse-moi kiffer    █│Europe 1 social club – 06/06/16            │2016-06-07 2│0s        │
+│Les Gens Qui Doutent █│Europe 1 social club – 03/06/16            │2016-06-04 2│0s        │
+│Lumières dans la nuit█│Europe 1 social club – 02/06/16            │2016-06-03 2│0s        │
+│Culture 2000         █│"Aujourd'hui, chaque joueur de football est│2016-06-02 2│0s        │
+│Émotions             █│Europe 1 social club – 01/06/16            │2016-06-02 2│0s        │
+│Le Cosy Corner       █│"Ils sont partout" : Yvan Attal veut "démon│2016-06-01 2│0s        │
+│Pardon GPT           █│Europe 1 social club – 31/05/16            │2016-06-01 2│0s        │
+│La dernière          █│Jean-Louis Servan-Schreiber est devenu "qua│2016-05-27 2│0s        │
+│Gamberge             █╰██████████████████████████████████████─────┴────────────┴──────────╯
+│Small Talk - Konbini █╭───────────────────────────────────────────────────────────────────╮
+│Totemic              █│                                                                   │
+│Si c'est vrai c'est t█╰───────────────────────────────────────────────────────────────────╯
+│Hollywood French Love│╭───────────────────────────────────────────────────────────────────╮
+│4 quart d'heures     ││Ready                                                              │
+╰███████████──────────╯╰───────────────────────────────────────────────────────────────────╯
 ```
 ```
-╭───────────────────╮╭────────┬───┬─────┬───────┬────┬───┬───────────────────────┬───╮
-│Add podcast...     ││Status: │New│Queue│Skipped│Done│All│                       │ X │
-│All                │╰────────┴───┴─────┴───────┴────┴───┴───────────────────────┴───╯
-│Les Gro╭────────────────────┬───────────────────────────────────────────────╮───────╮
-│À bient│URL                 │https://podcasts.nova.fr/radio-nova-la-derniere│ation  │
-│FloodCa│Title               │La dernière                                    │───────┤
-│2 Heure│Target              │E:\podcasts\der                                │2mn    █
-│Riviera│Pattern             │{date}-novader-{title}                         │7mn    │
-│Un Bon │Description         │<p>Rendez-vous le dimanche en direct de la Radi│7mn    │
-│Laisse-│Preview             │L'intégrale : "La dernière" du 13 septembre 202│9mn    │
-│Les Gen│                    │Attal, l’opération 1000 bistrots - La chronique│3mn    │
-│Lumière│                    │Fumer la cigarette électronique c’est fumer - L│4mn    │
-│Culture│                    │Police partout, racisme aussi - La grosse semai│6mn    │
-│Émotion│                    │Celles et ceux qui ne sont pas des animaux - La│0mn    │
-│Le Cosy│                    │L’autre 11 septembre - La chronique de Mathilde│5mn    │
-│Pardon │                    │Les nazis, c’était mieux avant ! - La chronique│7mn    │
-│La dern│                    │Hollande, ô Désespoir ! - La chronique de Flore│8mn    │
-│Gamberg│                    │Le prix du gros mytho de la semaine est attribu│9mn    │
-│Small T│                    │L'intégrale : "La dernière" du 06 septembre 202│6mn    │
-│Totemic│                    │La perceuse pour femmes - La chronique de Mamar│2mn    │
-│Si c'es│                    │Celles et ceux qui ont besoin d’un héros - La c│───────╯
-│Hollywo│Save podcast (s)    │Cancel (Esc)                                   │───────╮
-│4 quart╰─▄▄▄▄▄▄▄▄▄▄▄▄▄──────────────────────────────────────────────────────╯       │
-│Laurent Baffie     │╰───────────┴────────┴──────────┴───────────────────────────────╯
-│                   │╭───────────────────────────────────────────────────────────────╮
-│                   ││Ready                                                          │
-╰─▄▄▄▄▄▄▄▄▄─────────╯╰───────────────────────────────────────────────────────────────╯
+╭─────────────────────╮╭────────┬───┬─────┬───────┬────┬───┬───────────────────────────┬───╮
+│Add podcast...       █│Status: │New│Queue│Skipped│Done│All│                           │ X │
+│All       ╭────────────────────────────────────────────────────────────────┬───╮──────┴───╯
+│Les Grosse│Edit podcast                                                    │ X │──────────╮
+│À bientôt ├────────────────────┬───────────────────────────────────────────┴───┤Duration  │
+│FloodCast │URL                 │https://podcasts.nova.fr/radio-nova-la-derniere█──────────┤
+│2 Heures D│Title               │La dernière                                    █4:22mn    █
+│Riviera De│Target              │E:\podcasts\der                                █4:57mn    │
+│Un Bon Mom│Pattern             │{date}-novader-{title}                         █3:37mn    │
+│Laisse-moi│Description         │<p>“Comme on a compris que la liberté d’express█5:59mn    │
+│Les Gens Q│Preview             │                                               █1:47:25   │
+│Lumières d│                    │                                               █6:13mn    │
+│Culture 20│                    │                                               █4:14mn    │
+│Émotions  │                    │                                               █3:36mn    │
+│Le Cosy Co│                    │                                               █4:10mn    │
+│Pardon GPT│                    │                                               █5:45mn    │
+│La dernièr│                    │                                               █1:46:51   │
+│Gamberge  │                    │                                               │──────────╯
+│Small Talk│                    │                                               │──────────╮
+│Totemic   ├────────────────────┴────────────────────────────────────────┬──────┤          │
+│Si c'est v│OK                                                           │Cancel│──────────╯
+│Hollywood ╰─────────────────────────────────────────────────────────────┴──────╯──────────╮
+│4 quart d'heures     ││Ready                                                              │
+╰███████████──────────╯╰───────────────────────────────────────────────────────────────────╯
+```
+```
+╭─────────────────────╮╭────────┬───┬─────┬───────┬────┬───┬───────────────────────────┬───╮
+│Add podcast...       █│Status: │New│Queue│Skipped│Done│All│                           │ X │
+│All       ╭────────────────────────────────────────────────────────────────┬───╮──────┴───╯
+│Les Grosse│Select target folder                                            │ X │──────────╮
+│À bientôt ├──────────────────────────────────────────────┬──────────┬──────┴───┤Duration  │
+│FloodCast │Name                                          │Type      │Ext       │──────────┤
+│2 Heures D├──────────────────────────────────────────────┼──────────┼──────────┤4:22mn    █
+│Riviera De│[D] ..                                        │Directory │          █4:57mn    │
+│Un Bon Mom│[D] .git                                      │Directory │          █3:37mn    │
+│Laisse-moi│[D] .vscode                                   │Directory │          █5:59mn    │
+│Les Gens Q│[D] build-windows                             │Directory │          █1:47:25   │
+│Lumières d│[D] build-windows-debug                       │Directory │          █6:13mn    │
+│Culture 20│[D] build-wsl                                 │Directory │          █4:14mn    │
+│Émotions  │[D] build-wsl-debug                           │Directory │          █3:36mn    │
+│Le Cosy Co│[D] cmake                                     │Directory │          █4:10mn    │
+│Pardon GPT│[D] src                                       │Directory │          █5:45mn    │
+│La dernièr│[D] tuimm                                     │Directory │          │1:46:51   │
+│Gamberge  │[F] .gitattributes                            │File      │          │──────────╯
+│Small Talk│[F] .gitignore                                │File      │          │──────────╮
+│Totemic   ├──────────────────────────────────────────────┴──────────┴───┬──────┤          │
+│Si c'est v│OK                                                           │Cancel│──────────╯
+│Hollywood ╰─────────────────────────────────────────────────────────────┴──────╯──────────╮
+│4 quart d'heures     ││Ready                                                              │
+╰███████████──────────╯╰───────────────────────────────────────────────────────────────────╯
+```
+```
+╭─────────────────────╮╭────────┬───┬─────┬───────┬────┬───┬───────────────────────────┬───╮
+│Add podcast...       █│Status: │New│Queue│Skipped│Done│All│                           │ X │
+│A╭──────────────────────────────────────────────────────────────────────────────────┬───╮─╯
+│L│#141 - Cosy Lundi                                                                 │ X │─╮
+│À├──────────────────────────────────────────────────────────────────────────────────┴───┤ │
+│F│                                                                                      █─┤
+│2│[00:00:00] plancha burger et poker                                                    █ █
+│R│[00:24:02] la farandole des cons, et redevenir humain                                 █ │
+│U│[00:51:55] Manor Lords                                                                █ │
+│L│[01:18:27] Comics et marchands de journaux                                            █ │
+│L│[01:51:42] Fallout (série)                                                            █ │
+│L│[02:08:42] Eiyûden Chronicle : Hundred Heroes                                         █ │
+│C│[02:30:20] Remerciements                                                              █ │
+│É│                                                                                      █ │
+│L│La page Patreon du Cosy Corner : https://www.patreon.com/lecosycorner                 █ │
+│P│                                                                                      █ │
+│L│-- Playlist --                                                                        █ │
+│G│                                                                                      │─╯
+│S│- My Bloody Valentine - Only Shallow                                                  │──
+│T│- Placebo - Burger Queen                                                              │(-
+│S│- Pavement - Cut Your Hair                                                            │──
+│H╰──────────────────────────────────────────────────────────────────────────────────────╯─╮
+│4 quart d'heures     ││Ready                                                              │
+╰███████████──────────╯╰───────────────────────────────────────────────────────────────────╯
 ```
 
 Within VSCode console (WSL/Ubuntu)
