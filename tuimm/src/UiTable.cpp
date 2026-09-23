@@ -94,7 +94,7 @@ inline void draw_border_columns(
     WINDOW *win,
     int row,
     int col,
-    const std::vector<ColumnRange> &cols,
+    std::span<ColumnRange const> const cols,
     HLineCharacters const& hLineCharacters,
     int borderStyle)
 {
@@ -111,7 +111,7 @@ inline void draw_bottom_border(
     WINDOW *win,
     int row,
     int col,
-    std::vector<ColumnRange> const &cols,
+    std::span<ColumnRange const> const cols,
     HLineCharacters const &hLineCharacters,
     std::pair<std::optional<int>, std::optional<int>> scrollRange,
     int borderStyle)
@@ -213,7 +213,7 @@ void draw_top_border_header(
     WINDOW *win,
     int row,
     int col,
-    const std::vector<ColumnRange> &cols,
+    std::span<ColumnRange const> cols,
     int borderStyle)
 {
   // box(win, 0, 0);
@@ -224,7 +224,7 @@ void draw_mid_border_header(
     WINDOW *win,
     int row,
     int col,
-    const std::vector<ColumnRange> &cols,
+    std::span<ColumnRange const> cols,
     int borderStyle)
 {
   draw_border_columns(win, row, col, cols, MidLineCharacters, borderStyle);
@@ -234,7 +234,7 @@ void draw_bottom_border_header(
     WINDOW *win,
     int row,
     int col,
-    const std::vector<ColumnRange> &cols,
+    std::span<ColumnRange const> cols,
     int borderStyle)
 {
   draw_border_columns(win, row, col, cols, BottomLineCharacters, borderStyle);
@@ -244,15 +244,15 @@ inline void draw_transition_separator(
     WINDOW *win,
     int row,
     int col,
-    const std::vector<ColumnRange> &before,
-    const std::vector<ColumnRange> &after,
+    std::span<ColumnRange const> before,
+    std::span<ColumnRange const> after,
     int borderStyle)
 {
     mvwaddwstr_watt(win, row, col, MidLineCharacters.left, 1, borderStyle);
 
     std::size_t i = 0, j = 0;
 
-    auto nextPos = [&](std::size_t idx, const std::vector<ColumnRange> &v)
+    auto nextPos = [&](std::size_t idx, const std::span<ColumnRange const> &v)
     {
         return (idx < v.size())
             ? col + v[idx].start + v[idx].width
@@ -295,7 +295,7 @@ void draw_top_border(
     int inner_width,
     int borderStyle)
 {
-  draw_top_border_header(win, row, col, {ColumnRange{0,inner_width}}, borderStyle);
+  draw_top_border_header(win, row, col, std::array{ColumnRange{0,inner_width}}, borderStyle);
 }
 
 void draw_bottom_border(
@@ -305,7 +305,7 @@ void draw_bottom_border(
     int inner_width,
     int borderStyle)
 {
-  draw_bottom_border_header(win, row, col, {ColumnRange{0,inner_width}}, borderStyle);
+  draw_bottom_border_header(win, row, col, std::array{ColumnRange{0,inner_width}}, borderStyle);
 }
 
 inline wchar_t build_left_border()
@@ -370,8 +370,8 @@ inline void draw_header_row(
   WINDOW *win,
   int row,
   int col,
-  const std::vector<C> &cols,
-  const std::vector<ColumnRange> &colRanges,
+  std::span<C> cols,
+  std::vector<ColumnRange> const& colRanges,
   int borderStyle)
 {
   mvwaddwstr_watt(win, row, col, build_left_border(), 1, borderStyle);
@@ -483,7 +483,7 @@ void UiTable::TableRender::endRow(Row const& r)
 }
 // ------------------------------------------------------------
 template <typename C>
-Columns::Columns(int totalWidth, std::vector<C> const&headerCols, std::optional<Columns> const& prev)
+Columns::Columns(int totalWidth, std::span<C const> headerCols, std::optional<Columns> const& prev)
 {
   int const totalInnerW = totalWidth - 2;
   int fixed = 0;
@@ -673,7 +673,7 @@ void UiTable::buildWindow(int nlines, int ncols, int begy, int begx)
 template<typename C>
 Columns UiTable::renderHeaderImpl(
   UiInput const& input,
-  std::vector<C> const& headerCols,
+  std::span<C const> headerCols,
   int borderStyle,
   std::optional<Columns> const& previousColumns)
 {
@@ -703,12 +703,10 @@ Columns UiTable::renderHeaderImpl(
   }
   return resolvedHeaderCols;
 }
-Columns UiTable::renderHeader(UiInput const& input, std::vector<int> const&headerCols, int borderStyle,
-   std::optional<Columns> const& previousColumns)
-    { return renderHeaderImpl(input, headerCols, borderStyle, previousColumns); }
-Columns UiTable::renderHeader(UiInput const& input, std::vector<HeaderColumn> const&headerCols, int borderStyle,
-   std::optional<Columns> const& previousColumns)
-    { return renderHeaderImpl(input, headerCols, borderStyle, previousColumns); }
+template Columns UiTable::renderHeaderImpl(UiInput const& input, std::span<int const> headerCols, int borderStyle,
+   std::optional<Columns> const& previousColumns);
+template Columns UiTable::renderHeaderImpl(UiInput const& input, std::span<HeaderColumn const> headerCols, int borderStyle,
+   std::optional<Columns> const& previousColumns);
 // ------------------------------------------------------------
 bool UiTable::mouseHit(UiInput const& input)
 {

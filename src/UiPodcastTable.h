@@ -54,7 +54,7 @@ public:
       titles.push_back(to_wstring(_logic.podcastTitle(i)));
     }
 
-    Columns cols = UiTable::renderHeader(input, {
+    Columns cols = UiTable::renderHeader(input, std::array{
       HeaderColumn{.width = HeaderColumn::FILL, .name = std::nullopt, .sort = SortDir::NONE}
     },UiColors::focusStyle(focused));
 

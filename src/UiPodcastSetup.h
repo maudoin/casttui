@@ -95,11 +95,11 @@ public:
     int fieldCount = static_cast<int>(fields.size());
 
     // Columns: Label | Value
-    Columns colsTitle = UiTable::renderHeader(input, {
+    Columns colsTitle = UiTable::renderHeader(input, std::array{
       HeaderColumn{.width = HeaderColumn::FILL, .name = _mode == Mode::EditPodcast?L"Edit podcast":L"Add podcast"},
       HeaderColumn{.width = HeaderColumn::FIT_LABEL, .name = L" X ", .callback = _doneCallback}
     }, UiColors::focusedStyle());
-    Columns cols = UiTable::renderHeader(input, {20,HeaderColumn::FILL}, UiColors::focusedStyle(), colsTitle);
+    Columns cols = UiTable::renderHeader(input, std::array{20,HeaderColumn::FILL}, UiColors::focusedStyle(), colsTitle);
 
     int h = getHeight();
     int inner_h = h - cols.rowOffset - 2;

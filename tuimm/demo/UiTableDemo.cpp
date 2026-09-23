@@ -8,13 +8,13 @@ struct UiTableDemo : public UiApp
 {
   int width;
   bool header;
-  bool focus;
+  int style;
   UiTable table;
   bool running = true;
-  UiTableDemo(int width, bool header, bool focus = false)
+  UiTableDemo(int width, bool header, int style = UiColors::normalStyle())
   : width(width)
   , header(header)
-  , focus(focus)
+  , style(style)
   , table(UiTable::Mode::SCROLL, []{}, 5, 0)
   {}
 
@@ -47,19 +47,19 @@ struct UiTableDemo : public UiApp
     Columns cols = [&]{
       if (header)
       {
-        return table.renderHeader(input, {
+        return table.renderHeader(input, std::array{
           HeaderColumn{ 3, std::wstring(L"A"), SortDir::UP },
           HeaderColumn{ HeaderColumn::FILL, std::wstring(L"B (fill) "), SortDir::NONE },
           HeaderColumn{ 4, std::wstring(L"C"), SortDir::NONE }
-        }, focus);
+        }, style);
       }
       else
       {
-        return table.renderHeader(input, {
+        return table.renderHeader(input, std::array{
           HeaderColumn{ 10, std::nullopt, SortDir::NONE },
           HeaderColumn{ HeaderColumn::FILL, std::nullopt, SortDir::NONE },
           HeaderColumn{ 20, std::nullopt, SortDir::NONE }
-        }, focus);
+        }, style);
       }
     }();
 
@@ -72,7 +72,7 @@ struct UiTableDemo : public UiApp
       return Cell{ text, style };
     };
 
-    table.render(input, rowCount, cols, cellCallback, focus);
+    table.render(input, rowCount, cols, cellCallback, style);
   }
 };
 
@@ -80,9 +80,9 @@ int main()
 {
 
   UiTableDemo(25, true).run();
-  UiTableDemo(25, true, true).run();
+  UiTableDemo(25, true, UiColors::focusedStyle()).run();
   UiTableDemo(50, false).run();
-  UiTableDemo(50, false, true).run();
+  UiTableDemo(50, false, UiColors::focusedStyle()).run();
 
   return 0;
 }

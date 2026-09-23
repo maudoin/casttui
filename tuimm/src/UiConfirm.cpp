@@ -59,12 +59,12 @@ void UiConfirm::render(UiInput const& input)
     }
   };
 
-  Columns titleCols = UiTable::renderHeader(input, {
+  Columns titleCols = UiTable::renderHeader(input, std::array{
     HeaderColumn{ .width = HeaderColumn::FILL, .name=_actionName },
     HeaderColumn{ .width = HeaderColumn::FIT_LABEL, .name=L" X ", .callback=_cancel}
   }, UiColors::focusedStyle());
 
-  Columns cols = UiTable::renderHeader(input, {
+  Columns cols = UiTable::renderHeader(input, std::array{
     HeaderColumn{ .width = HeaderColumn::FILL },
     HeaderColumn{ .width = static_cast<int>(cancel.size()) }
   }, UiColors::focusedStyle(), titleCols);

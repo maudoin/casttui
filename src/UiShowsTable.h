@@ -45,7 +45,7 @@ public:
       };
     };
 
-    Columns cols = UiTable::renderHeader(input, {
+    Columns cols = UiTable::renderHeader(input, std::array{
       HeaderColumn{.width = HeaderColumn::FILL, .name = L"Title",   .sort = toSortDir(titleSort), .callback=makeCallback(&MediaViewCols::title, titleSort)},
       HeaderColumn{.width = 12, .name = L"Date",    .sort = toSortDir(dateSort),     .callback=makeCallback(&MediaViewCols::date, dateSort)},
       HeaderColumn{.width = 10, .name = L"Duration",.sort = toSortDir(durationSort), .callback=makeCallback(&MediaViewCols::duration, durationSort)},

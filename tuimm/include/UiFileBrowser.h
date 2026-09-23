@@ -33,11 +33,11 @@ public:
   // ---------------------------
   void render(UiInput const& input, bool focused, std::function<void()> const& winSelection)
   {
-    Columns titleCols = UiTable::renderHeader(input, {
+    Columns titleCols = UiTable::renderHeader(input, std::array{
       HeaderColumn{.width = HeaderColumn::FILL, .name = _title},
       HeaderColumn{.width = HeaderColumn::FIT_LABEL, .name = L" X ", .callback=_doneCallback},
     }, UiColors::focusStyle(focused));
-    Columns cols = UiTable::renderHeader(input, {
+    Columns cols = UiTable::renderHeader(input,std::array{
       HeaderColumn{.width = HeaderColumn::FILL, .name = L"Name"},
       HeaderColumn{.width = 10, .name = L"Type"},
       HeaderColumn{.width = 10, .name = L"Ext"},

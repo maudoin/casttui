@@ -210,12 +210,12 @@ private:
 
     std::optional<std::wstring> title =
       shows.empty() ? std::nullopt : std::make_optional(to_wstring(shows[0].title));
-    Columns colsTop = _infoUi.renderHeader(input, {
+    Columns colsTop = _infoUi.renderHeader(input, std::array{
       HeaderColumn{.width=HeaderColumn::FILL, .name=title},
       HeaderColumn{.width=HeaderColumn::FIT_LABEL, .name=L" X ", .callback=[this]{this->_modalPopup=ModalMode::None;}}
     }, UiColors::focusedStyle());
 
-    Columns cols = _infoUi.renderHeader(input, {
+    Columns cols = _infoUi.renderHeader(input, std::array{
         HeaderColumn{.width=HeaderColumn::FILL}}, UiColors::focusedStyle(), colsTop);
 
     auto getCell = [&](int row, int col, std::optional<UiInput::MouseEvent> const&)
