@@ -206,6 +206,8 @@ private:
     std::optional<Columns> const& previousColumns = std::nullopt);
 
   bool mouseHit(UiInput const& input);
+  std::pair<std::optional<int>, std::optional<int>> vScroll(UiInput const& input, int viewContentFirstRow, int scrollX);
+  std::pair<std::optional<int>, std::optional<int>> hScroll(UiInput const& input, int scrollY, int totalInnerW);
 
   std::function<void()> _callback;
   int _cursor;
