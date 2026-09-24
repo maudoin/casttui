@@ -888,7 +888,30 @@ UiTable::TableRender::~TableRender()
       borderStyle);
   }
 
-  wrefresh(table._pimpl->win);
+  if (!limitedHeight)
+  {
+    wrefresh(table._pimpl->win);
+  }
+}
+void UiTable::renderEmpty(
+  UiInput const& input,
+  Columns const& resolvedHeaderCols,
+  int borderStyle)
+{
+  int h = getmaxy(_pimpl->win);
+  if (h > 0)
+  {
+    draw_bottom_border(
+      _pimpl->win,
+      h - 1,
+      0,
+      resolvedHeaderCols.vec,
+      BottomLineCharacters,
+      {std::nullopt, std::nullopt},
+      borderStyle);
+  }
+
+  wrefresh(_pimpl->win);
 }
 // ------------------------------------------------------------
 std::pair<std::optional<int>, std::optional<int>> UiTable::hScroll(UiInput const& input, int scrollY, int totalInnerW)

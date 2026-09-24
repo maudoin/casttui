@@ -398,17 +398,13 @@ private:
     {
       int mh = _confirmUi.preferredWindowHeight();
       int mw = std::min(w - 4, 70);
-      int y  = (h - mh) / 2;
-      int x  = (w - mw) / 2;
-      _confirmUi.buildWindow(mh, mw, y, x);
+      _confirmUi.buildWindowCentered(mh, mw, h, w);
     }
 
     {
       int mh = std::min(h - 4, 20);
       int mw = std::min(w - 4, 70);
-      int y  = (h - mh) / 2;
-      int x  = (w - mw) / 2;
-      _addEditPodcastUi.buildWindow(mh, mw, y, x);
+      _addEditPodcastUi.buildWindowCentered(mh, mw, h, w);
     }
   }
   void doRender(UiInput const& input) override

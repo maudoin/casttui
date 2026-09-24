@@ -108,6 +108,13 @@ public:
 
   virtual void delWindow();
   virtual void buildWindow(int nlines, int ncols, int begy, int begx);
+  void buildWindowCentered(int nlines, int ncols, int parentHeight, int parentWidth)
+  {
+      int y  = (parentHeight - nlines) / 2;
+      int x  = (parentWidth - ncols) / 2;
+      this->buildWindow(nlines, ncols, y, x);
+  }
+
   void scrollTo(int newCursor);
   void scrollVertical(int amount);
   void scrollHorizontal(int amount);
@@ -157,6 +164,7 @@ public:
     int borderStyle,
     RowReserve const& rowCount={});
 
+
   template <std::ranges::contiguous_range R>
   requires std::same_as<std::ranges::range_value_t<R>, Cell>
   void renderSingleLineRange(
@@ -180,14 +188,16 @@ public:
     render(input, static_cast<int>(span.size()), cols, cellCallback, borderStyle, []{}, rowCount);
   }
 
-  Columns renderHeaderOnly(
+  template <std::ranges::contiguous_range R>
+  requires std::same_as<std::ranges::range_value_t<R>, int> || std::same_as<std::ranges::range_value_t<R>, HeaderColumn>
+  void renderHeaderOnly(
     UiInput const& input,
-    std::vector<HeaderColumn> const&headerCols,
+    R&& headerCols,
     int borderStyle,
     std::optional<Columns> const& previousColumns = std::nullopt)
   {
     auto h = renderHeader(input, headerCols, borderStyle, previousColumns);
-    return render(input, 0, h, [](int, int, std::optional<UiInput::MouseEvent> const&){return Cell{};}, borderStyle, []{});
+    renderEmpty(input, h, borderStyle);
   }
 
   int cursor() const { return _cursor; }
@@ -204,6 +214,11 @@ private:
   template  <typename C>
   Columns renderHeaderImpl(UiInput const& input, std::span<C const> headerCols,int borderStyle,
     std::optional<Columns> const& previousColumns = std::nullopt);
+  /// To finish after header(s)
+  void renderEmpty(
+    UiInput const& input,
+    Columns const& header_cols,
+    int borderStyle);
 
   bool mouseHit(UiInput const& input);
   std::pair<std::optional<int>, std::optional<int>> vScroll(UiInput const& input, int viewContentFirstRow, int scrollX);

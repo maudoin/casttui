@@ -26,10 +26,49 @@
             ]
         },
         {
+            "name": "tuimm_demo Clang GDB Debug MsysUcrt",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build-windows-debug/tuimm/demo/tuimm_demo.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/",
+            "environment": [],
+            "externalConsole": true, // gdb cannot handle pdcurses console context
+            "MIMode": "gdb",
+            "miDebuggerPath": "C:\\msys64\\ucrt64\\bin\\gdb.exe", // default msys gdb install path
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
             "name": "Clang GDB Debug WSL",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build-wsl-debug/casttui",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "tuimm_demo Clang GDB Debug WSL",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build-wsl-debug/tuimm/demo/tuimm_demo",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/",

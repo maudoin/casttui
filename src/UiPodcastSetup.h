@@ -127,9 +127,7 @@ public:
               {
                 int mh = std::min(input.height - 4, 20);
                 int mw = std::min(input.width - 4, 70);
-                int y  = (input.height - mh) / 2;
-                int x  = (input.width - mw) / 2;
-                _fileBrowser.buildWindow(mh, mw, y, x);
+                _fileBrowser.buildWindowCentered(mh, mw, input.height, input.width);
               }
             }
             setRowNoEdit();
@@ -181,7 +179,7 @@ public:
 
     Columns tableCols = UiTable::render(input, inner_h, cols, cellCallback, UiColors::focusedStyle(), []{}, RowReserve(2));
 
-    Columns footerCols = UiTable::renderHeaderOnly(input, {
+    UiTable::renderHeaderOnly(input, std::array{
       HeaderColumn{.width = HeaderColumn::FILL, .name = L"OK", .callback = [this]{this->savePodcast();}},
       HeaderColumn{.width = HeaderColumn::FIT_LABEL, .name = L"Cancel", .callback = _doneCallback},
     }, UiColors::focusedStyle(), tableCols);
@@ -258,17 +256,15 @@ public:
     UiTable::delWindow();
   }
 
-  void buildWindow(int nlines, int ncols, int begy, int begx)
+  void buildWindow(int height, int width, int begy, int begx)
   {
     if (_showFileBrowser)
     {
-      int mh = std::min(nlines - 4, 20);
-      int mw = std::min(ncols - 4, 70);
-      int y  = (nlines - mh) / 2;
-      int x  = (ncols - mw) / 2;
-      _fileBrowser.buildWindow(mh, mw, begy+y, begx+x);
+      int mh = std::min(height - 4, 20);
+      int mw = std::min(width - 4, 70);
+      _fileBrowser.buildWindowCentered(mh, mw, height, width);
     }
-    UiTable::buildWindow(nlines, ncols, begy, begx);
+    UiTable::buildWindow(height, width, begy, begx);
   }
 private:
 
