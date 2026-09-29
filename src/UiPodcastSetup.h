@@ -90,13 +90,21 @@ public:
       std::wstring value;
       bool editable = true;
     };
-    std::array<Field, 5> fields{{
+    std::string patternPreview =
+        _logic.computeBaseFilename(_pattern.c_str(), "sampleEpisodeName",
+                                std::chrono::duration_cast<std::chrono::seconds>(
+                                  std::chrono::system_clock::now()
+                                  - std::chrono::system_clock::time_point{}).count());
+    std::array<Field, 7> fields{{
       Field{.label=L"URL",         .value=to_wstring(_url)},
       Field{.label=L"Title",       .value=to_wstring(_title)},
       Field{.label=L"Target",      .value=to_wstring(_target)},
       Field{.label=L"Pattern",     .value=to_wstring(_pattern)},
+      Field{.label=L"Format",      .value=L"available variables: {date}, {title}\nexample: {date}-ThePodcast-{title}", .editable=false},
+      Field{.label=L"Preview",     .value=to_wstring(patternPreview), .editable=false},
       Field{.label=L"Description", .value=to_wstring(_preview_description), .editable=false}
     }};
+
 
     int fieldCount = static_cast<int>(fields.size());
 
@@ -108,12 +116,12 @@ public:
     Columns cols = UiTable::renderHeader(input, std::array{20,HeaderColumn::FILL}, UiColors::focusedStyle(), colsTitle);
 
     int h = getHeight();
-    int inner_h = h - cols.rowOffset - 2;
     auto cellCallback = [=, this](int row, int col, std::optional<UiInput::MouseEvent> const& ev) -> Cell
     {
-      auto setRowNoEdit = [this, row]{
-          _field = row;
-          this->_editor.cancel();};
+      auto setRowNoEdit = [&]{
+        if (fields[row].editable)_field = row;
+        _editor.cancel();
+      };
       // Field rows
       if (row >= 0 && row < fieldCount)
       {
@@ -179,7 +187,7 @@ public:
       return Cell{};
     };
 
-    Columns tableCols = UiTable::render(input, inner_h, cols, cellCallback, UiColors::focusedStyle(), []{}, RowReserve(2));
+    Columns tableCols = UiTable::render(input, fieldCount, cols, cellCallback, UiColors::focusedStyle(), []{}, RowReserve(2));
 
     UiTable::renderHeaderOnly(input, std::array{
       HeaderColumn{.width = HeaderColumn::FILL, .name = L"OK", .callback = [this]{this->savePodcast();}},
