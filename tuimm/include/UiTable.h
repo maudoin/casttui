@@ -155,7 +155,7 @@ public:
         tableRender.draw(r, c, cellCallback(_firstVisibleDataRow+i, c, tableRender.getEvent(r, c)));
       }
     }
-    return Columns(tableRender.cols_def,  tableRender.viewContentFirstRow+ tableRender.rowCount());
+    return Columns(tableRender.cols_def,  tableRender.viewContentFirstRow+ _lastKnownViewHeight);
   }
   TableRender renderStart(
     UiInput const& input,
