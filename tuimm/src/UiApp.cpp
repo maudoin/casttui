@@ -56,9 +56,11 @@ void UiApp::run()
 {
   render({ERR});
 
+  std::chrono::steady_clock::time_point lastUpdate;
+  std::optional<UiInput::MouseEvent> lastMouseEvent;
+
   while (_isRunning)
   {
-
     int k = wgetch(stdscr);
     if (k == KEY_RESIZE)
     {
@@ -78,10 +80,21 @@ void UiApp::run()
     }
     else
     {
-      UiInput input = UiInput::init(k);
-      getmaxyx(stdscr, input.height, input.width);
-      handleKey(input);
-      render(input);
+      auto now = std::chrono::steady_clock::now();
+      if (k != KEY_MOUSE || now - lastUpdate >= std::chrono::milliseconds(16))
+      {
+        lastUpdate = now;
+        UiInput input = UiInput::init(k);
+        if (!lastMouseEvent ||
+            !input.mev ||
+            lastMouseEvent->x!=input.mev->x ||
+            lastMouseEvent->y!=input.mev->y)
+        {
+          getmaxyx(stdscr, input.height, input.width);
+          handleKey(input);
+          render(input);
+        }
+      }
     }
   }
 }

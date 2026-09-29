@@ -34,9 +34,9 @@ UiInput UiInput::init(int key)
       input.mev->y = ev.y;
 
       // Buttons (same in ncurses + PDCurses)
-      input.mev->left   = ev.bstate & BUTTON1_PRESSED || ev.bstate & BUTTON1_CLICKED;
-      input.mev->middle = ev.bstate & BUTTON2_PRESSED || ev.bstate & BUTTON2_CLICKED;
-      input.mev->right  = ev.bstate & BUTTON3_PRESSED || ev.bstate & BUTTON3_CLICKED;
+      input.mev->left   = ev.bstate & BUTTON1_CLICKED;
+      input.mev->middle = ev.bstate & BUTTON2_CLICKED;
+      input.mev->right  = ev.bstate & BUTTON3_CLICKED;
       input.mev->leftDouble = ev.bstate & BUTTON1_DOUBLE_CLICKED;
       input.mev->middleDouble = ev.bstate & BUTTON2_DOUBLE_CLICKED;
       input.mev->rightDouble = ev.bstate & BUTTON3_DOUBLE_CLICKED;
