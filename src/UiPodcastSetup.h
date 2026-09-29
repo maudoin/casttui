@@ -130,6 +130,7 @@ public:
             if (_field>0 && _field<_fields.size() && _fields[_field] == &_target)
             {
               _showFileBrowser = true;
+              this->forceRefresh();
             }
             setRowNoEdit();
           }

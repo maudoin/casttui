@@ -963,3 +963,9 @@ int UiTable::getHeight() const
 {
   return getmaxy(_pimpl->win);
 }
+// ------------------------------------------------------------
+void UiTable::forceRefresh()
+{
+  // push a fake key event
+  ungetch(ERR);
+}

@@ -208,6 +208,8 @@ public:
 
 protected:
 
+  void forceRefresh();
+
   UiTableData *_pimpl;
 
 private:

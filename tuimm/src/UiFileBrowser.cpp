@@ -79,6 +79,8 @@ void UiFileBrowser::render(UiInput const& input, bool focused, std::function<voi
       if (ev->leftDouble)
       {
         activate(row);
+        // otherwise table will mix prev rows from prev path with next path rows
+        forceRefresh();
       }
       else
       {
