@@ -60,10 +60,6 @@ void UiFileBrowser::render(UiInput const& input, bool focused, std::function<voi
 
   auto cellCallback = [&](int row, int col, std::optional<UiInput::MouseEvent> const& ev) -> Cell
   {
-    if (col == 0 && ev && ev->left)
-    {
-      activate(row);
-    }
     if (row < 0 || row >= static_cast<int>(_records.size()))
       return Cell{};
 
@@ -78,10 +74,17 @@ void UiFileBrowser::render(UiInput const& input, bool focused, std::function<voi
     bool isSelected = _selected.count(r) > 0;
     bool isCursor   = (row == cursor() && focused);
 
-    if (ev)
+    if (col == 0 && ev)
     {
-      scrollTo(row);
-      toggleSelect(r.path());
+      if (ev->leftDouble)
+      {
+        activate(row);
+      }
+      else
+      {
+        scrollTo(row);
+        toggleSelect(r.path());
+      }
     }
 
     return Cell{text, UiColors::getStyle(isCursor, isSelected)};
