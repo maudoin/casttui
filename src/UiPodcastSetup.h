@@ -268,11 +268,7 @@ public:
   void buildWindow(int height, int width, int begy, int begx)
   {
     UiTable::buildWindow(height, width, begy, begx);
-    {
-      int mh = std::min(height - 4, 20);
-      int mw = std::min(width - 4, 70);
-      _fileBrowser.buildWindowCentered(mh, mw, height, width);
-    }
+    _fileBrowser.buildWindow(height, width, begy, begx);
   }
 private:
 
