@@ -25,7 +25,14 @@ public:
   , _logic(_logic)
   , _doneCallback(doneCallback)
   , _fields({{&_url, &_title, &_target, &_pattern}})
-  , _fileBrowser(L"Select target folder", [this]{this->_showFileBrowser=false;this->_fileBrowser.delWindow();this->_target=this->_fileBrowser.getSelected().string();})
+  , _fileBrowser(L"Select target folder", [this](bool ok)
+    {
+      this->_showFileBrowser=false;
+      if (ok)
+      {
+        this->_target=this->_fileBrowser.getSelected().string();
+      }
+    }, false, [](const std::filesystem::directory_entry& e){return e.is_directory();}, true)
   {
   }
 
@@ -43,7 +50,6 @@ public:
     _mode = Mode::AddPodcast;
     _field = 0;
 
-    if (_showFileBrowser)_fileBrowser.delWindow();
     _showFileBrowser=false;
   }
 
@@ -57,11 +63,11 @@ public:
     _pattern = p.pattern;
     _preview_description = p.summary;
     _preview_shows.clear();
+    _fileBrowser.setPwd(p.target);
 
     _mode = Mode::EditPodcast;
     _field = 0;
 
-    if (_showFileBrowser)_fileBrowser.delWindow();
     _showFileBrowser=false;
   }
 
@@ -121,14 +127,9 @@ public:
           int style = UiColors::highlightStyle(isCurrentField && !editing);
           if (ev)
           {
-            if (_fields[_field] == &_target)
+            if (_field>0 && _field<_fields.size() && _fields[_field] == &_target)
             {
               _showFileBrowser = true;
-              {
-                int mh = std::min(input.height - 4, 20);
-                int mw = std::min(input.width - 4, 70);
-                _fileBrowser.buildWindowCentered(mh, mw, input.height, input.width);
-              }
             }
             setRowNoEdit();
           }
@@ -249,7 +250,6 @@ public:
 
   void delWindow()
   {
-    if (_showFileBrowser)
     {
       _fileBrowser.delWindow();
     }
@@ -258,13 +258,12 @@ public:
 
   void buildWindow(int height, int width, int begy, int begx)
   {
-    if (_showFileBrowser)
+    UiTable::buildWindow(height, width, begy, begx);
     {
       int mh = std::min(height - 4, 20);
       int mw = std::min(width - 4, 70);
       _fileBrowser.buildWindowCentered(mh, mw, height, width);
     }
-    UiTable::buildWindow(height, width, begy, begx);
   }
 private:
 

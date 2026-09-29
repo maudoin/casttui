@@ -4,50 +4,80 @@
 #include "UiColors.h"
 
 #include <filesystem>
+#include <format>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
-#include <optional>
 
-UiFileBrowser::UiFileBrowser(std::wstring const& title, std::function<void()> const& doneCallback)
+UiFileBrowser::UiFileBrowser(std::wstring const& title, std::function<void(bool)> const& doneCallback, bool multiSelection, FilterFn filter, bool skipFileInfo)
 : UiTable(UiTable::Mode::CURSOR)
 , _title(title)
+, _multiSelection(multiSelection)
 , _doneCallback(doneCallback)
+, _filter(std::move(filter))
+, _skipFileInfo(skipFileInfo)
 {
   setPwd(std::filesystem::current_path());
 }
 
+namespace
+{
+  std::wstring strSize(std::filesystem::directory_entry const& e)
+  {
+    if (!e.is_regular_file())
+      return L"";
+    static const wchar_t* u[] = {L"B", L"KB", L"MB", L"GB", L"TB"};
+    auto size = e.file_size();
+    int i = 0;
+    for (; size >= 1024 && i < 4; i++) size /= 1024;
+    return std::format(L"{:d} {}", size, u[i]);
+  }
+}
 void UiFileBrowser::render(UiInput const& input, bool focused, std::function<void()> const& winSelection)
 {
   Columns titleCols = UiTable::renderHeader(input, std::array{
     HeaderColumn{.width = HeaderColumn::FILL, .name = _title},
-    HeaderColumn{.width = HeaderColumn::FIT_LABEL, .name = L" X ", .callback=_doneCallback},
+    HeaderColumn{.width = HeaderColumn::FIT_LABEL, .name = L" X ", .callback=[this]{this->_doneCallback(false);}},
   }, UiColors::focusStyle(focused));
-  Columns cols = UiTable::renderHeader(input,std::array{
-    HeaderColumn{.width = HeaderColumn::FILL, .name = L"Name"},
-    HeaderColumn{.width = 10, .name = L"Type"},
-    HeaderColumn{.width = 10, .name = L"Ext"},
+  Columns currentCols = UiTable::renderHeader(input, std::array{
+    HeaderColumn{.width = HeaderColumn::FILL, .name = _pwd.wstring()},
+    HeaderColumn{.width = HeaderColumn::FIT_LABEL, .name = L" ▲ ", .callback=[this]{this->setPwd(_pwd.parent_path());}},
   }, UiColors::focusStyle(focused), titleCols);
+  Columns cols =
+    _skipFileInfo
+    ? UiTable::renderHeader(input, std::array{HeaderColumn{.width = HeaderColumn::FILL}}, UiColors::focusStyle(focused), currentCols)
+    : UiTable::renderHeader(input, std::array{
+    HeaderColumn{.width = HeaderColumn::FILL, .name = L"Name"},
+    HeaderColumn{.width = 6, .name = L"Type"},
+    HeaderColumn{.width = HeaderColumn::FIT_LABEL, .name = L"Ext"},
+    HeaderColumn{.width = HeaderColumn::FIT_LABEL, .name = L"Size"},
+  }, UiColors::focusStyle(focused), currentCols);
 
   auto cellCallback = [&](int row, int col, std::optional<UiInput::MouseEvent> const& ev) -> Cell
   {
+    if (col == 0 && ev && ev->left)
+    {
+      activate(row);
+    }
     if (row < 0 || row >= static_cast<int>(_records.size()))
       return Cell{};
 
     auto const& r = _records[row];
 
     std::wstring text;
-    if (col == 0) text = r.showName;
-    else if (col == 1) text = r.isDir ? L"Directory" : L"File";
-    else               text = r.extension.wstring();
+    if (col == 0) text = r.path().filename().wstring();
+    else if (col == 1) text = r.is_directory() ? L"Folder" : L"File";
+    else if (col == 2) text = r.path().extension().wstring();
+    else               text = strSize(r);
 
-    bool isSelected = _selected.count(r.name) > 0;
+    bool isSelected = _selected.count(r) > 0;
     bool isCursor   = (row == cursor() && focused);
 
     if (ev)
     {
       scrollTo(row);
-      toggleSelect(r.name);
+      toggleSelect(r.path());
     }
 
     return Cell{text, UiColors::getStyle(isCursor, isSelected)};
@@ -56,15 +86,15 @@ void UiFileBrowser::render(UiInput const& input, bool focused, std::function<voi
   Columns tableCols = UiTable::render(input, _records.size(), cols, cellCallback, UiColors::focusStyle(focused), winSelection, RowReserve(2));
 
   UiTable::renderHeaderOnly(input, std::array{
-    HeaderColumn{.width = HeaderColumn::FILL, .name = L"OK"},
-    HeaderColumn{.width = HeaderColumn::FIT_LABEL, .name = L"Cancel", .callback = _doneCallback},
+    HeaderColumn{.width = HeaderColumn::FILL, .name = L"OK", .callback = [this]{this->_doneCallback(true);}},
+    HeaderColumn{.width = HeaderColumn::FIT_LABEL, .name = L"Cancel", .callback = [this]{this->_doneCallback(false);}},
   }, UiColors::focusStyle(focused), tableCols);
 }
 bool UiFileBrowser::handleKey(UiInput const& input)
 {
   if (input.keyEsc())
   {
-    _doneCallback();
+    _doneCallback(false);
     return true;
   }
 
@@ -81,7 +111,7 @@ bool UiFileBrowser::handleKey(UiInput const& input)
   {
     int idx = cursor() - firstVisibleDataRow();
     if (idx >= 0 && idx < static_cast<int>(_records.size()))
-      toggleSelect(_records[idx].name);
+      toggleSelect(_records[idx]);
     return true;
   }
 
@@ -121,10 +151,18 @@ void UiFileBrowser::clearSelected()
 
 void UiFileBrowser::toggleSelect(std::filesystem::path const& p)
 {
-  if (_selected.count(p))
-    _selected.erase(p);
+  if (_multiSelection)
+  {
+    if (_selected.count(p))
+      _selected.erase(p);
+    else
+      _selected.insert(p);
+  }
   else
+  {
+    _selected.clear();
     _selected.insert(p);
+  }
 }
 
 void UiFileBrowser::activate(int idx)
@@ -133,58 +171,33 @@ void UiFileBrowser::activate(int idx)
     return;
 
   auto const& r = _records[idx];
-
-  if (r.isDir)
+  if (r.is_directory() && r.exists())
   {
-    if (r.name == "..")
-      setPwd(_pwd.parent_path());
-    else
-      setPwd(_pwd / r.name);
+    setPwd(r.path());
   }
   else
   {
-    _selected = { r.name };
+    _selected = { r.path().filename() };
     _ok = true;
   }
 }
-
 void UiFileBrowser::updateRecords()
 {
   _records.clear();
-  _records.push_back(FileRecord{
-    true,
-    "..",
-    L"[D] ..",
-    ""
-  });
 
   for (auto const& p : std::filesystem::directory_iterator(_pwd))
   {
-    FileRecord r;
-
-    if (p.is_directory())
-      r.isDir = true;
-    else if (p.is_regular_file())
-      r.isDir = false;
-    else
+    if (_filter && !_filter(p))
       continue;
 
-    r.name = p.path().filename();
-    if (r.name.empty())
-      continue;
-
-    r.extension = p.path().filename().extension();
-
-    r.showName = (r.isDir ? L"[D] " : L"[F] ") + p.path().filename().wstring();
-
-    _records.push_back(r);
+    _records.emplace_back(p);
   }
 
   std::sort(_records.begin(), _records.end(),
     [](auto const& a, auto const& b)
     {
-      if (a.isDir != b.isDir)
-        return a.isDir > b.isDir;
-      return a.name < b.name;
+      if (a.is_directory() != b.is_directory())
+        return a.is_directory() > b.is_directory();
+      return a.path().string() < b.path().string();
     });
 }

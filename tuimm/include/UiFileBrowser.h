@@ -12,22 +12,15 @@
 class UiFileBrowser : public UiTable
 {
 public:
-  struct FileRecord
-  {
-    bool isDir = false;
-    std::filesystem::path name;
-    std::wstring showName;
-    std::filesystem::path extension;
-  };
+  using FilterFn = std::function<bool(const std::filesystem::directory_entry&)>;
 
-  UiFileBrowser(std::wstring const& title, std::function<void()> const& doneCallback);
+  UiFileBrowser(std::wstring const& title, std::function<void(bool)> const& doneCallback, bool multiSelection = false, FilterFn filter = {}, bool skipFileInfo = false);
 
   void render(UiInput const& input, bool focused, std::function<void()> const& winSelection);
 
   bool handleKey(UiInput const& input);
   void setPwd(std::filesystem::path const& p);
   const std::filesystem::path& pwd() const { return _pwd; }
-  const std::vector<FileRecord>& records() const { return _records; }
   bool hasSelected() const { return !_selected.empty(); }
 
   std::filesystem::path getSelected() const;
@@ -36,21 +29,25 @@ public:
 
   void clearSelected();
 
-  void toggleSelect(std::filesystem::path const& p);
-
-  void activate(int idx);
-
   bool ok() const;
   void resetOk();
 
 private:
+
+  void toggleSelect(std::filesystem::path const& p);
+
+  void activate(int idx);
+  const std::vector<std::filesystem::directory_entry>& records() const { return _records; }
   void updateRecords();
 
 private:
   std::wstring _title;
   std::filesystem::path _pwd;
-  std::vector<FileRecord> _records;
+  std::vector<std::filesystem::directory_entry> _records;
+  bool _multiSelection = false;
   std::set<std::filesystem::path> _selected;
   bool _ok = false;
-  std::function<void()> _doneCallback;
+  std::function<void(bool)> _doneCallback;
+  FilterFn _filter;
+  bool _skipFileInfo;
 };
