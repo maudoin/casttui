@@ -3,6 +3,10 @@
 #include "UiTable.h"
 #include "UiColors.h"
 
+#if defined(_WIN32)
+#include <windows.h>
+#endif
+
 #include <filesystem>
 #include <format>
 #include <optional>
@@ -42,7 +46,7 @@ void UiFileBrowser::render(UiInput const& input, bool focused, std::function<voi
   }, UiColors::focusStyle(focused));
   Columns currentCols = UiTable::renderHeader(input, std::array{
     HeaderColumn{.width = HeaderColumn::FILL, .name = _pwd.wstring()},
-    HeaderColumn{.width = HeaderColumn::FIT_LABEL, .name = L" ▲ ", .callback=[this]{this->setPwd(_pwd.parent_path());}},
+    HeaderColumn{.width = HeaderColumn::FIT_LABEL, .name = L" ▲ ", .callback=[this]{this->up();}},
   }, UiColors::focusStyle(focused), titleCols);
   Columns cols =
     _skipFileInfo
@@ -66,7 +70,7 @@ void UiFileBrowser::render(UiInput const& input, bool focused, std::function<voi
     auto const& r = _records[row];
 
     std::wstring text;
-    if (col == 0) text = r.path().filename().wstring();
+    if (col == 0) text = r.path().filename().empty()?r.path().wstring() : r.path().filename().wstring();
     else if (col == 1) text = r.is_directory() ? L"Folder" : L"File";
     else if (col == 2) text = r.path().extension().wstring();
     else               text = strSize(r);
@@ -116,6 +120,30 @@ bool UiFileBrowser::handleKey(UiInput const& input)
   }
 
   return false;
+}
+
+void UiFileBrowser::up()
+{
+#if defined(_WIN32)
+  static std::filesystem::path ROOT_MSG = L"Select drive:";
+  if (_pwd == _pwd.root_path() || _pwd == ROOT_MSG)
+  {
+    _pwd = ROOT_MSG;
+    _records.clear();
+    DWORD mask = GetLogicalDrives();
+    for (char letter = 'A'; letter <= 'Z'; ++letter)
+    {
+      if (mask & (1u << (letter - 'A')))
+      {
+        _records.emplace_back( std::filesystem::path(std::wstring(1, letter) + L":\\"));
+      }
+    }
+  }
+  else
+#endif
+  {
+    setPwd(_pwd.parent_path());
+  }
 }
 
 void UiFileBrowser::setPwd(std::filesystem::path const& p)

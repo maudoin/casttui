@@ -36,6 +36,7 @@ private:
 
   void toggleSelect(std::filesystem::path const& p);
 
+  void up();
   void activate(int idx);
   const std::vector<std::filesystem::directory_entry>& records() const { return _records; }
   void updateRecords();
