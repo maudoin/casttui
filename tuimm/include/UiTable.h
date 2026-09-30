@@ -210,9 +210,9 @@ public:
 
   int getHeight() const;
 
-protected:
-
   void forceRefresh();
+
+protected:
 
   UiTableData *_pimpl;
 

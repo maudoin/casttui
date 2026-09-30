@@ -529,7 +529,7 @@ UiTable::CellRenderStr::~CellRenderStr()
   {
     mvwaddwstr_watt(tr.table._pimpl->win, drawRow,
       tr.col + _row.x, L' ', range.width - used,
-      tr.borderStyle);
+      _attr);
   }
   // next cell starts at separator position
   _row.x = range.start + range.width;

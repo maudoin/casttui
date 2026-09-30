@@ -54,8 +54,8 @@ void UiFileBrowser::render(UiInput const& input, bool focused, std::function<voi
     : UiTable::renderHeader(input, std::array{
     HeaderColumn{.width = HeaderColumn::FILL, .name = L"Name"},
     HeaderColumn{.width = 6, .name = L"Type"},
-    HeaderColumn{.width = HeaderColumn::FIT_LABEL, .name = L"Ext"},
-    HeaderColumn{.width = HeaderColumn::FIT_LABEL, .name = L"Size"},
+    HeaderColumn{.width = 4, .name = L"Ext"},
+    HeaderColumn{.width = 7, .name = L"Size"},
   }, UiColors::focusStyle(focused), currentCols);
 
   auto cellCallback = [&](UiTable::CellRenderStr& str)

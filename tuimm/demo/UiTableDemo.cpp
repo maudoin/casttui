@@ -133,8 +133,8 @@ struct UiTableDemo : public UiApp
     Columns afterTable = _table.render(input, RowCount, cols, cellCallback, _styleOpts[_styleIndex].style, []{}, UiTable::RowReserve{2});
 
     _table.renderHeaderOnly(input, std::array{
-          HeaderColumn{ .width=HeaderColumn::FIT_LABEL, .name=_header?L"Hide header (h)":L"Show header (h)", .callback=[this]{this->_header=!this->_header;} },
-          HeaderColumn{ .width=HeaderColumn::FIT_LABEL, .name=_styleOpts[_styleIndex].name+L" (r)", .callback=[this]{this->_styleIndex = (this->_styleIndex+1)%_styleOpts.size();} },
+          HeaderColumn{ .width=HeaderColumn::FIT_LABEL, .name=_header?L"Hide header (h)":L"Show header (h)", .callback=[this]{this->_header=!this->_header;this->_table.forceRefresh();} },
+          HeaderColumn{ .width=HeaderColumn::FIT_LABEL, .name=_styleOpts[_styleIndex].name+L" (r)", .callback=[this]{this->_styleIndex = (this->_styleIndex+1)%_styleOpts.size();;this->_table.forceRefresh();} },
           HeaderColumn{ .width=HeaderColumn::FILL }
     }, _styleOpts[_styleIndex].style, afterTable);
   }
