@@ -128,7 +128,7 @@ public:
         auto const& f = fields[str.row];
 
         bool isCurrentField = (str.row == _field);
-        bool editing  = (this->_editor.editing && isCurrentField);
+        bool editing  = (this->_editor.editing() && isCurrentField);
 
         if (str.col == 0)
         {
@@ -147,18 +147,11 @@ public:
         }
         else
         {
-          std::wstring displayValue;
-
-          if (_editor.editing && _field == str.row)
-              displayValue = to_wstring(_editor.display(cols.vec[1].width));
-          else
-              displayValue = f.value;
-
-          int style = UiColors::highlightStyle(isCurrentField && editing);
+          str << UiColors::highlightStyle(isCurrentField && editing);
           if (!f.editable)
           {
             if (str.ev){setRowNoEdit();}
-            str << style << displayValue;
+            str << f.value;
             return;
           }
           if (str.ev)
@@ -166,7 +159,10 @@ public:
             _field = str.row;
             startEdit(str.ev->x - cols.vec[str.col].start);
           }
-          str << style << displayValue;
+          if (_editor.editing() && _field == str.row)
+              _editor.display(str, cols.vec[1].width);
+          else
+              str << f.value;
           return;
         }
       }
@@ -207,7 +203,7 @@ public:
     {
       return true;
     }
-    if (_editor.editing)
+    if (_editor.editing())
     {
         if (input.keyEnterReturn())
         {

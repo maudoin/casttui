@@ -1,57 +1,74 @@
 #pragma once
 
 #include "UiInput.h"
+#include "to_wstring.h"
 
 #include <string>
 
 struct UiFieldEditor
 {
+  bool _editing = false;
+  std::string _buffer;
+  int _caret = 0;
 public:
-  bool editing = false;
-  std::string buffer;
-  int caret = 0;
+
+bool editing()const{return _editing;}
 
   void begin(const std::string &initial, int caretPos)
   {
-    buffer = initial;
-    caret = std::max(0, std::min(caretPos, (int)buffer.size()));
-    editing = true;
+    _buffer = initial;
+    _caret = std::max(0, std::min(caretPos, (int)_buffer.size()));
+    _editing = true;
   }
 
   void commitTo(std::string &target)
   {
-    target = buffer;
+    target = _buffer;
     cancel();
   }
 
   void cancel()
   {
-    editing = false;
-    buffer.clear();
-    caret = 0;
+    _editing = false;
+    _buffer.clear();
+    _caret = 0;
   }
 
-  std::string display(int cellWidth) const
+  void display(UiTable::CellRenderStr& str, int colWidth) const
   {
-    if (!editing)
-      return ""; // caller uses committed value
+    if (!_editing)
+    {
+      return;
+    }
+
+    std::wstring buff = to_wstring(_buffer);
+
+    if (_caret == _buffer.size())
+    {
+      str << UiColors::normalStyle() << buff;
+      str << UiColors::highlightedStyle() << L" ";
+      return;
+    }
 
     int scroll = 0;
-    if (caret >= cellWidth)
-      scroll = caret - cellWidth + 1;
+    if (colWidth > 0 && _caret >= colWidth)
+      scroll = _caret - (colWidth - 1);
 
-    std::string slice = buffer.substr(scroll, cellWidth);
+    std::wstring_view visible_slice = std::wstring_view(buff).substr(scroll);
 
-    int caretPos = caret - scroll;
-    if (caretPos >= 0 && caretPos <= (int)slice.size())
-      slice.insert(caretPos, "_");
+    size_t caret_pos = static_cast<size_t>(std::max(0, _caret - scroll));
+    caret_pos = std::min(caret_pos, visible_slice.size());
 
-    return slice;
+    str << UiColors::normalStyle() << visible_slice.substr(0, caret_pos);
+    if (caret_pos<visible_slice.size())
+      str << UiColors::highlightedStyle() << visible_slice.substr(caret_pos, 1);
+    if ((caret_pos+1)<visible_slice.size())
+      str << UiColors::normalStyle()<< visible_slice.substr(caret_pos+1);
   }
 
   bool handleKey(UiInput const& input)
   {
-    if (editing)
+    if (_editing)
     {
         if (input.keyLeft())  { moveLeft(); return true; }
         if (input.keyRight()) { moveRight(); return true; }
@@ -79,44 +96,44 @@ public:
 private:
   void insertChar(char c)
   {
-    buffer.insert(buffer.begin() + caret, c);
-    caret++;
+    _buffer.insert(_buffer.begin() + _caret, c);
+    _caret++;
   }
 
   void backspace()
   {
-    if (caret > 0)
+    if (_caret > 0)
     {
-      buffer.erase(buffer.begin() + caret - 1);
-      caret--;
+      _buffer.erase(_buffer.begin() + _caret - 1);
+      _caret--;
     }
   }
 
   void del()
   {
-    if (caret < (int)(buffer.size()-1))
+    if (_caret < (int)(_buffer.size()-1))
     {
-      buffer.erase(buffer.begin() + caret);
+      _buffer.erase(_buffer.begin() + _caret);
     }
   }
 
   void moveLeft()
   {
-    caret = std::max(0, caret - 1);
+    _caret = std::max(0, _caret - 1);
   }
 
   void moveRight()
   {
-    caret = std::min((int)buffer.size(), caret + 1);
+    _caret = std::min((int)_buffer.size(), _caret + 1);
   }
 
   void moveBegin()
   {
-    caret = 0;
+    _caret = 0;
   }
 
   void moveEnd()
   {
-    caret = (int)buffer.size();
+    _caret = (int)_buffer.size();
   }
 };
