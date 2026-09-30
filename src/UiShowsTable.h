@@ -51,31 +51,30 @@ public:
       HeaderColumn{.width = 10, .name = L"Duration",.sort = toSortDir(durationSort), .callback=makeCallback(&MediaViewCols::duration, durationSort)},
     }, UiColors::focusStyle(focused));
 
-    auto cellCallback = [&](int row, int col, std::optional<UiInput::MouseEvent> const& ev) -> Cell
+    auto cellCallback = [&](UiTable::CellRenderStr& str)
     {
-      int idx = row - firstVisibleDataRow();
-      if (idx < 0 || idx >= static_cast<int>(shows.size()))
-      return Cell{};
+      int idx = str.row - firstVisibleDataRow();
+      if (idx < 0 || idx >= static_cast<int>(shows.size())) return;
 
       auto const& s = shows[idx];
 
       std::wstring text;
-      if (col == 0)
+      if (str.col == 0)
       text = to_wstring(s.title);
-      else if (col == 1)
+      else if (str.col == 1)
       text = to_wstring(s.dateStr());
       else
       text = to_wstring(s.durationStr());
 
-      bool isSelected = (row >= 2 && _logic.isShowRankSelected(row));
-      bool isCursor   = (row == cursor() && focused);
+      bool isSelected = (str.row >= 2 && _logic.isShowRankSelected(str.row));
+      bool isCursor   = (str.row == cursor() && focused);
 
-      if (ev)
+      if (str.ev)
       {
-        scrollTo(row);
-        _logic.showSelection(row, true, false);
+        scrollTo(str.row);
+        _logic.showSelection(str.row, true, false);
       }
-      return Cell{text, UiColors::getStyle(isCursor, isSelected)};
+      str << UiColors::getStyle(isCursor, isSelected) << text;
     };
 
     UiTable::render(input, _logic.showCount(), cols, cellCallback, UiColors::focusStyle(focused), winSelection);

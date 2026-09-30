@@ -116,24 +116,24 @@ public:
     Columns cols = UiTable::renderHeader(input, std::array{20,HeaderColumn::FILL}, UiColors::focusedStyle(), colsTitle);
 
     int h = getHeight();
-    auto cellCallback = [=, this](int row, int col, std::optional<UiInput::MouseEvent> const& ev) -> Cell
+    auto cellCallback = [=, this](UiTable::CellRenderStr& str)
     {
       auto setRowNoEdit = [&]{
-        if (fields[row].editable)_field = row;
+        if (fields[str.row].editable)_field = str.row;
         _editor.cancel();
       };
       // Field rows
-      if (row >= 0 && row < fieldCount)
+      if (str.row >= 0 && str.row < fieldCount)
       {
-        auto const& f = fields[row];
+        auto const& f = fields[str.row];
 
-        bool isCurrentField = (row == _field);
+        bool isCurrentField = (str.row == _field);
         bool editing  = (this->_editor.editing && isCurrentField);
 
-        if (col == 0)
+        if (str.col == 0)
         {
           int style = UiColors::highlightStyle(isCurrentField && !editing);
-          if (ev)
+          if (str.ev)
           {
             if (_field>0 && _field<_fields.size() && _fields[_field] == &_target)
             {
@@ -142,13 +142,14 @@ public:
             }
             setRowNoEdit();
           }
-          return Cell{.text=f.label, .style=style};
+          str << style << f.label;
+          return;
         }
         else
         {
           std::wstring displayValue;
 
-          if (_editor.editing && _field == row)
+          if (_editor.editing && _field == str.row)
               displayValue = to_wstring(_editor.display(cols.vec[1].width));
           else
               displayValue = f.value;
@@ -156,35 +157,36 @@ public:
           int style = UiColors::highlightStyle(isCurrentField && editing);
           if (!f.editable)
           {
-            if (ev){setRowNoEdit();}
-            return Cell{.text=displayValue, .style=style};
+            if (str.ev){setRowNoEdit();}
+            str << style << displayValue;
+            return;
           }
-          if (ev)
+          if (str.ev)
           {
-            _field = row;
-            startEdit(ev->x - cols.vec[col].start);
+            _field = str.row;
+            startEdit(str.ev->x - cols.vec[str.col].start);
           }
-          return Cell{.text=displayValue, .style=style};
+          str << style << displayValue;
+          return;
         }
       }
       // Preview rows
-      if (row >= fieldCount)
+      if (str.row >= fieldCount)
       {
-        int preview = row-fieldCount;
-        if (col==0 && preview==0)
+        int preview = str.row-fieldCount;
+        if (str.col==0 && preview==0)
         {
-          if (ev){setRowNoEdit();}
-          return Cell{.text=L"Preview", .style=UiColors::boldStyle()};
+          if (str.ev){setRowNoEdit();}
+          str << UiColors::boldStyle() << L"Preview";
+          return;
         }
-        if (col==1 && preview < _preview_shows.size())
+        if (str.col==1 && preview < _preview_shows.size())
         {
-          if (ev){setRowNoEdit();}
-          return Cell{.text=to_wstring(_preview_shows[preview]), .style=UiColors::normalStyle()};
+          if (str.ev){setRowNoEdit();}
+          str << UiColors::normalStyle() << to_wstring(_preview_shows[preview]);
+          return;
         }
       }
-
-      // Footer row
-      return Cell{};
     };
 
     Columns tableCols = UiTable::render(input, fieldCount, cols, cellCallback, UiColors::focusedStyle(), []{}, RowReserve(2));

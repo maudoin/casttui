@@ -50,16 +50,6 @@ struct Columns
   int dynamicIndex = -1;
 };
 
-// --------------------------------------------------------------------
-// Cell
-// --------------------------------------------------------------------
-struct Cell
-{
-  std::wstring text = L"";
-  int style = UiColors::normalStyle();
-};
-
-
 // PIMPL
 struct UiTableData;
 // --------------------------------------------------------------------
@@ -94,9 +84,22 @@ class UiTable
     Row startRow(int i){return Row{*this, i};};
     void endRow(Row const& row);
     std::optional<UiInput::MouseEvent> getEvent(Row& row, int col);
-    void draw(Row& row, int col, Cell const& cell);
   };
 public:
+  struct CellRenderStr
+  {
+    int row, col;
+    std::optional<UiInput::MouseEvent> ev;
+    CellRenderStr(TableRender::Row& r, int c);
+    friend CellRenderStr& operator<<(CellRenderStr& s, int attr);
+    friend CellRenderStr& operator<<(CellRenderStr& s, std::wstring_view const& str);
+    ~CellRenderStr();
+  private:
+    TableRender::Row& _row;
+    int _attr;
+    int _logicalSize = 0;
+  };
+  friend CellRenderStr& operator<<(CellRenderStr& s, std::wstring_view const& str);
   enum class Mode
   {
     SCROLL,
@@ -152,7 +155,8 @@ public:
       TableRender::Row r = tableRender.startRow(i);
       for (int c = 0 ; c < tableRender.cols_def.size();++c)
       {
-        tableRender.draw(r, c, cellCallback(_firstVisibleDataRow+i, c, tableRender.getEvent(r, c)));
+        CellRenderStr cellRender(r, c);
+        cellCallback(cellRender);
       }
     }
     return Columns(tableRender.cols_def,  tableRender.viewContentFirstRow+ _lastKnownViewHeight);
@@ -166,7 +170,7 @@ public:
 
 
   template <std::ranges::contiguous_range R>
-  requires std::same_as<std::ranges::range_value_t<R>, Cell>
+  requires std::same_as<std::ranges::range_value_t<R>, std::wstring>
   void renderSingleLineRange(
     UiInput const& input,
     R&& r,
@@ -175,11 +179,11 @@ public:
     const std::optional<std::wstring>& title = std::nullopt,
     std::optional<Columns> const& previousColumns = std::nullopt)
   {
-    std::span<Cell> span{std::ranges::data(r),std::ranges::size(r)};
+    std::span<std::wstring> span{std::ranges::data(r),std::ranges::size(r)};
 
-    auto cellCallback = [&span](int row, int, std::optional<UiInput::MouseEvent> const&) -> Cell
+    auto cellCallback = [&span](UiTable::CellRenderStr& str)
     {
-      return span[row];
+      str << span[str.row];
     };
 
     Columns cols = renderHeader(input, std::array{

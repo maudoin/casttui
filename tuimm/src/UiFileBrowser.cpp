@@ -58,38 +58,37 @@ void UiFileBrowser::render(UiInput const& input, bool focused, std::function<voi
     HeaderColumn{.width = HeaderColumn::FIT_LABEL, .name = L"Size"},
   }, UiColors::focusStyle(focused), currentCols);
 
-  auto cellCallback = [&](int row, int col, std::optional<UiInput::MouseEvent> const& ev) -> Cell
+  auto cellCallback = [&](UiTable::CellRenderStr& str)
   {
-    if (row < 0 || row >= static_cast<int>(_records.size()))
-      return Cell{};
+    if (str.row < 0 || str.row >= static_cast<int>(_records.size()))
+      return;
 
-    auto const& r = _records[row];
+    auto const& r = _records[str.row];
 
     std::wstring text;
-    if (col == 0) text = r.path().filename().empty()?r.path().wstring() : r.path().filename().wstring();
-    else if (col == 1) text = r.is_directory() ? L"Folder" : L"File";
-    else if (col == 2) text = r.path().extension().wstring();
+    if (str.col == 0) text = r.path().filename().empty()?r.path().wstring() : r.path().filename().wstring();
+    else if (str.col == 1) text = r.is_directory() ? L"Folder" : L"File";
+    else if (str.col == 2) text = r.path().extension().wstring();
     else               text = strSize(r);
 
     bool isSelected = _selected.count(r) > 0;
-    bool isCursor   = (row == cursor() && focused);
+    bool isCursor   = (str.row == cursor() && focused);
 
-    if (col == 0 && ev)
+    if (str.col == 0 && str.ev)
     {
-      if (ev->leftDouble)
+      if (str.ev->leftDouble)
       {
-        activate(row);
+        activate(str.row);
         // otherwise table will mix prev rows from prev path with next path rows
         forceRefresh();
       }
       else
       {
-        scrollTo(row);
+        scrollTo(str.row);
         toggleSelect(r.path());
       }
     }
-
-    return Cell{text, UiColors::getStyle(isCursor, isSelected)};
+    str << UiColors::getStyle(isCursor, isSelected) << text;
   };
 
   Columns tableCols = UiTable::render(input, _records.size(), cols, cellCallback, UiColors::focusStyle(focused), winSelection, RowReserve(2));

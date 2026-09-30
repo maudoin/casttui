@@ -58,18 +58,18 @@ public:
       HeaderColumn{.width = HeaderColumn::FILL, .name = std::nullopt, .sort = SortDir::NONE}
     },UiColors::focusStyle(focused));
 
-    auto cellCallback = [&](int row, int /*col*/, std::optional<UiInput::MouseEvent> const& ev) -> Cell
+    auto cellCallback = [&](UiTable::CellRenderStr& str)
     {
-      const std::wstring& title = titles[row];
-      bool isCursor   = focused && row == cursor();
-      bool isSelected = row >= 2 && _logic.isCurrentPodcast(row - 2);
+      const std::wstring& title = titles[str.row];
+      bool isCursor   = focused && str.row == cursor();
+      bool isSelected = str.row >= 2 && _logic.isCurrentPodcast(str.row - 2);
 
-      if (ev)
+      if (str.ev)
       {
-        this->scrollTo(row);
+        this->scrollTo(str.row);
         this->pickPodcast();
       }
-      return Cell{title, UiColors::getStyle(isCursor, isSelected)};
+      str << UiColors::getStyle(isCursor, isSelected) << title;
     };
 
     UiTable::render(input, count, cols, cellCallback, UiColors::focusStyle(focused), winSelection);

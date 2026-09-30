@@ -25,7 +25,7 @@ struct UiTableDemo : public UiApp
   UiTableDemo()
   : _titleTable(UiTable::Mode::SCROLL)
   , _table(UiTable::Mode::CURSOR, [] {}, RowCount/2)
-  , _fileBrowser(L"Select whatever", [this]{this->_path=this->_fileBrowser.getSelected().wstring();this->_mode = Mode::MAIN;})
+  , _fileBrowser(L"Select whatever", [this](bool ok){if (ok)this->_path=this->_fileBrowser.getSelected().wstring();this->_mode = Mode::MAIN;})
   , _confirm([this]{this->_mode=Mode::MAIN;})
   {
     // confirm windows can be used for multiple purposes
@@ -100,7 +100,7 @@ struct UiTableDemo : public UiApp
           HeaderColumn{ .width=HeaderColumn::FILL },
           HeaderColumn{ .width=HeaderColumn::FIT_LABEL, .name=L" X ", .callback=[this]{this->_mode = Mode::CONFIRM;} },
     }, _styleOpts[_styleIndex].style);
-    _titleTable.render(input, 0, titleCols, [](int row, int col, std::optional<UiInput::MouseEvent> const&ev){return Cell{};}, _styleOpts[_styleIndex].style);
+    _titleTable.render(input, 0, titleCols, [](UiTable::CellRenderStr& str){}, _styleOpts[_styleIndex].style);
 
 
     // Main table
@@ -123,10 +123,11 @@ struct UiTableDemo : public UiApp
       }
     }();
 
-    auto cellCallback = [&](int row, int col, std::optional<UiInput::MouseEvent> const&ev) -> Cell {
-      std::wstring base = col==0?L"a":col==1?(std::wstring(200, L'-')+L"b"):L"c";
-      std::wstring text = base + std::to_wstring(row);
-      return Cell{ .text=text, .style=UiColors::highlightStyle(_table.cursor()==row) };
+    auto cellCallback = [&](UiTable::CellRenderStr& str)
+    {
+      std::wstring base = str.col==0?L"a":str.col==1?(std::wstring(200, L'-')+L"b"):L"c";
+      std::wstring text = base + std::to_wstring(str.row);
+      str << UiColors::highlightStyle(_table.cursor()==str.row) << text;
     };
 
     Columns afterTable = _table.render(input, RowCount, cols, cellCallback, _styleOpts[_styleIndex].style, []{}, UiTable::RowReserve{2});

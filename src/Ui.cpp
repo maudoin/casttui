@@ -188,7 +188,7 @@ private:
       text = L"Ready";
     }
 
-    _bottomBarUi.renderSingleLineRange(input, std::views::single(Cell{text}), UiColors::normalStyle());
+    _bottomBarUi.renderSingleLineRange(input, std::views::single(text), UiColors::normalStyle());
   }
 
 
@@ -218,13 +218,13 @@ private:
     Columns cols = _infoUi.renderHeader(input, std::array{
         HeaderColumn{.width=HeaderColumn::FILL}}, UiColors::focusedStyle(), colsTop);
 
-    auto getCell = [&](int row, int col, std::optional<UiInput::MouseEvent> const&)
+    auto getCell = [&](UiTable::CellRenderStr& str)
     {
-      auto range=*std::next(lines.begin(), row);
+      auto range=*std::next(lines.begin(), str.row);
       std::wstring line;
       line.reserve(std::ranges::distance(range));
       std::ranges::for_each(range, [&](wchar_t ch){ line.push_back(ch); });
-      return Cell{.text=line};
+      str << line;
     };
     _infoUi.render(input, static_cast<int>(std::ranges::distance(lines)), cols, getCell, UiColors::focusedStyle());
 

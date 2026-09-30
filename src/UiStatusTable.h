@@ -52,30 +52,32 @@ public:
     // quit
     cols.push_back(HeaderColumn{.width =  static_cast<int>(quitLabel.size())});
 
-    auto cellCallback = [&](int row, int col, std::optional<UiInput::MouseEvent> const& ev) -> Cell
+    auto cellCallback = [&](UiTable::CellRenderStr& str)
     {
-      if (col == 0)
+      if (str.col == 0)
       {
         // Title
-        return Cell{title};
+        str << title;
+        return;
       }
-      if (col == cols.size()-1)
+      if (str.col == cols.size()-1)
       {
         // Quit
-        if (ev){_exit();}
-        return Cell{quitLabel};
+        if (str.ev){_exit();}
+        str << quitLabel;
+        return;
       }
-      int statusIndex = col-1;
+      int statusIndex = str.col-1;
       if (statusIndex >= _labels.size())
       {
         // Spacer
-        return Cell{};
+        return;
       }
       auto const& [label, status] = _labels[statusIndex];
       bool isSelected = _logic.isStatusActive(status);
       bool isCursor   = (statusIndex == _cursorPosition && focused);
 
-      if (ev)
+      if (str.ev)
       {
         this->_cursorPosition = statusIndex;
         auto const& [_, status] = this->_labels[statusIndex];
@@ -85,7 +87,7 @@ public:
           DowncastLogic::SetPodcastOption::FORCE_REFRESH
         );
       }
-      return Cell{label, UiColors::getStyle(isCursor, isSelected)};
+      str << UiColors::getStyle(isCursor, isSelected) << label;
     };
 
     auto colRanges = UiTable::renderHeader(input, cols, UiColors::focusStyle(focused));

@@ -38,24 +38,18 @@ void UiConfirm::render(UiInput const& input)
 {
   std::wstring cancel = L"Cancel";
 
-  auto cellCallback = [&](int, int col, std::optional<UiInput::MouseEvent> const& ev) -> Cell {
-    bool const isCursor = col==_field;
-    int style = UiColors::highlightStyle(isCursor);
-    if (col == 0)
+  auto cellCallback = [&](UiTable::CellRenderStr& str){
+    bool const isCursor = str.col==_field;
+    str << UiColors::highlightStyle(isCursor);
+    if (str.col == 0)
     {
-      if (ev) _action();
-      return Cell{
-        .text=_title,
-        .style=style
-      };
+      if (str.ev) _action();
+      str <<_title;
     }
     else
     {
-      if (ev) _cancel();
-      return Cell{
-        .text=cancel,
-        .style=style
-      };
+      if (str.ev) _cancel();
+      str <<cancel;
     }
   };
 

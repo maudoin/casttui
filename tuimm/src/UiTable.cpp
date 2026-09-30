@@ -450,30 +450,89 @@ std::optional<UiInput::MouseEvent> UiTable::TableRender::getEvent(Row& r, int c)
 {
   return ::getEvent(input, table._pimpl->win, viewContentFirstRow+r.i, col, this->cols_def[c]);
 }
-void UiTable::TableRender::draw(Row& r, int i, Cell const& cell)
+// ------------------------------------------------------------
+UiTable::CellRenderStr::CellRenderStr(TableRender::Row& r, int c)
+: row(r.tableRender.table._firstVisibleDataRow+r.i)
+, col(c)
+, ev(r.tableRender.getEvent(r, c))
+, _row(r)
+, _attr(UiColors::normalStyle())
 {
-  int row = viewContentFirstRow+r.i;
-  mvwaddwstr_watt(table._pimpl->win, row, col + r.x, i==0?build_left_border():build_separator(), 1, borderStyle);
+  auto& tr = _row.tableRender;
+  int drawRow = tr.viewContentFirstRow+r.i;
+  mvwaddwstr_watt(r.tableRender.table._pimpl->win, drawRow, tr.col + r.x, c==0?build_left_border():build_separator(), 1, r.tableRender.borderStyle);
+  ++_row.x;
+}
+// ------------------------------------------------------------
+UiTable::CellRenderStr& operator<<(UiTable::CellRenderStr& s, int attr)
+{
+  s._attr = attr;
+  return s;
+}
+// ------------------------------------------------------------
+UiTable::CellRenderStr& operator<<(UiTable::CellRenderStr& s, std::wstring_view const& text)
+{
+  auto& tr = s._row.tableRender;
+  int drawRow = tr.viewContentFirstRow + s._row.i;
 
-  int col_text_offset = (dynamicIndex == i) ? table._dynamicColCurrentOffsetX : 0;
-  int width = cols_def[i].width;
+  auto const& range = tr.cols_def[s.col];
 
-  std::wstring text = cell.text;
-  if (dynamicIndex == i)
-    table._dynamicColMaxDataWidth = std::max(table._dynamicColMaxDataWidth, static_cast<int>(cell.text.size()));
-  // horizontal scroll
-  if (col_text_offset > 0)
-    text = text.substr(std::min((int)text.size(), col_text_offset));
-  // fill/fit column
-  text.resize(std::max(0, cols_def[i].width), ' ');
+  std::wstring_view str(text);
 
-  if ((int)text.size() < width)
-    text.append(width - text.size(), ' ');
-  else if ((int)text.size() > width)
-    text = text.substr(0, width);
+  int scrollOffset = (tr.dynamicIndex == s.col)
+    ? tr.table._dynamicColCurrentOffsetX
+    : 0;
 
-  mvwaddwstr_watt(table._pimpl->win, row, col + r.x + 1, text, cell.style);
-  r.x += width + 1;
+  int begin = s._logicalSize;
+  int end   = begin + str.size();
+
+  if (end <= scrollOffset)
+  {
+      s._logicalSize = end;
+      return s;
+  }
+
+  int skip = std::max(0, scrollOffset - begin);
+
+  if (skip)
+    str.remove_prefix(skip);
+
+  s._logicalSize = end;
+
+  int used = s._row.x - (range.start + 1);
+  int remaining = range.width - used;
+
+  if (remaining <= 0)
+      return s;
+
+  int n = std::min<int>(remaining, str.size());
+  mvwaddwstr_watt(tr.table._pimpl->win, drawRow, tr.col + s._row.x, str.data(), n, s._attr);
+
+  s._row.x += n;
+
+  return s;
+}
+// ------------------------------------------------------------
+UiTable::CellRenderStr::~CellRenderStr()
+{
+  auto& tr = _row.tableRender;
+  int drawRow = tr.viewContentFirstRow + _row.i;
+  auto const& range = tr.cols_def[col];
+  int used = _row.x - (range.start + 1);
+
+  if (tr.dynamicIndex == col)
+  {
+    tr.table._dynamicColMaxDataWidth =
+      std::max(tr.table._dynamicColMaxDataWidth, _logicalSize);
+  }
+  if (used < range.width)
+  {
+    mvwaddwstr_watt(tr.table._pimpl->win, drawRow,
+      tr.col + _row.x, L' ', range.width - used,
+      tr.borderStyle);
+  }
+  // next cell starts at separator position
+  _row.x = range.start + range.width;
 }
 // ------------------------------------------------------------
 void UiTable::TableRender::endRow(Row const& r)
@@ -849,7 +908,7 @@ UiTable::TableRender::~TableRender()
     TableRender::Row r = startRow(i);
     for (int c = 0 ; c < cols_def.size();++c)
     {
-      draw(r, c, {});
+      CellRenderStr(r, c);
     }
   }
 
