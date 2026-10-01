@@ -236,6 +236,10 @@ bool DowncastLogic::isShowRankSelected(int iRank) const
 //-----------------------------------------------------------------------------------
 void DowncastLogic::showSelection(int rank, bool multiSelection, bool setRange)
 {
+  if (rank<0 || rank>=m_selectedShowRanks.size())
+  {
+    return;
+  }
   if(multiSelection && !setRange)
   {
     //toggle

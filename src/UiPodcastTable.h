@@ -43,36 +43,34 @@ public:
 
   void render(UiInput const& input, bool focused, std::function<void()> const& winSelection)
   {
-    int count = _logic.podcastCount() + 2;
-
-    std::vector<std::wstring> titles;
-    titles.reserve(count);
-    titles.push_back(L"Add podcast...");
-    titles.push_back(L"All");
-    for (int i = 0; i < _logic.podcastCount(); ++i)
-    {
-      titles.push_back(to_wstring(_logic.podcastTitle(i)));
-    }
-
     Columns cols = UiTable::renderHeader(input, std::array{
       HeaderColumn{.width = HeaderColumn::FILL, .name = std::nullopt, .sort = SortDir::NONE}
     },UiColors::focusStyle(focused));
 
     auto cellCallback = [&](UiTable::CellRenderStr& str)
     {
-      const std::wstring& title = titles[str.row];
-      bool isCursor   = focused && str.row == cursor();
-      bool isSelected = str.row >= 2 && _logic.isCurrentPodcast(str.row - 2);
-
       if (str.ev)
       {
         this->scrollTo(str.row);
         this->pickPodcast();
       }
-      str << UiColors::getStyle(isCursor, isSelected) << title;
+
+      bool isCursor   = focused && str.row == cursor();
+      if (str.row == 0)
+      {
+        str <<  UiColors::highlightStyle(isCursor) << L"Add podcast...";
+        return;
+      }
+      if (str.row == 1)
+      {
+        str <<  UiColors::getStyle(isCursor, _logic.noPodcastFilter()) << L"All";
+        return;
+      }
+      int const i = str.row - 2;
+      str << UiColors::getStyle(isCursor, _logic.isCurrentPodcast(i)) << to_wstring(_logic.podcastTitle(i));
     };
 
-    UiTable::render(input, count, cols, cellCallback, UiColors::focusStyle(focused), winSelection);
+    UiTable::render(input, _logic.podcastCount() + 2, cols, cellCallback, UiColors::focusStyle(focused), winSelection);
   }
 
 
@@ -128,16 +126,15 @@ public:
     }
     else if (cursor() == 1)
     {
-      _logic.setCurrentPodcastRowIndex(std::optional<std::optional<int>>{std::nullopt}, std::nullopt);
-      //TODO firstVisibleDataRow() = 0;
-      //TODO shows_table.cursor() = 0;
+      std::optional<std::optional<int>> newPodcastNumber;
+      newPodcastNumber.emplace();
+      newPodcastNumber->reset();
+      _logic.setCurrentPodcastRowIndex(newPodcastNumber, std::nullopt);
       return true;
     }
     else
     {
       _logic.setCurrentPodcastRowIndex(cursor() - 2, std::nullopt);
-      //TODO firstVisibleDataRow() = 0;
-      //TODO shows_table.cursor() = 0;
       return true;
     }
     return false;
