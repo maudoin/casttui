@@ -21,7 +21,12 @@ struct UiTableDemo : public UiApp
   int _styleIndex = 0;
   static const int RowCount = 200000;
   struct StyleOpt{int style;std::wstring name;};
-  static std::array<StyleOpt,3> _styleOpts;
+  inline static std::array<StyleOpt,3> _styleOpts{{
+    {UiColors::normalStyle(), L"normal"},
+    {UiColors::focusedStyle(), L"focused"},
+    {UiColors::highlightedStyle(), L"highlighted"}
+  }};
+
   UiTableDemo()
   : _titleTable(UiTable::Mode::SCROLL)
   , _table(UiTable::Mode::CURSOR, [] {}, RowCount/2)
@@ -125,6 +130,11 @@ struct UiTableDemo : public UiApp
 
     auto cellCallback = [&](UiTable::CellRenderStr& str)
     {
+      if (str.ev)
+      {
+        this->_table.scrollTo(str.row);
+        this->_table.forceRefresh();
+      }
       std::wstring base = str.col==0?L"a":str.col==1?(std::wstring(200, L'-')+L"b"):L"c";
       std::wstring text = base + std::to_wstring(str.row);
       str << UiColors::highlightStyle(_table.cursor()==str.row) << text;
@@ -140,15 +150,12 @@ struct UiTableDemo : public UiApp
   }
 };
 
-std::array<UiTableDemo::StyleOpt,3> UiTableDemo::_styleOpts{{
-  {UiColors::normalStyle(), L"normal"},
-  {UiColors::focusedStyle(), L"focused"},
-  {UiColors::highlightedStyle(), L"highlighted"} }};
 
 }
 
 int main()
 {
-  UiTableDemo().run();
+  UiTableDemo app;
+  app.run();
   return 0;
 }
