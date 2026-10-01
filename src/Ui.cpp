@@ -92,7 +92,7 @@ private:
       }
 
       auto podcastIndexOpt = _podcastUi.getPodcastIndex();
-      if (_focusedPanel == Focus::Podcasts && podcastIndexOpt)
+      if (_focusedPanel == Focus::Podcasts && podcastIndexOpt && !_logic.isBusy())
       {
         int podcastIndex = *podcastIndexOpt;
         items.push_back({ .width=HeaderColumn::FIT_LABEL, .name = L"Refresh (r)", .callback = [this, podcastIndex]{
@@ -123,7 +123,10 @@ private:
     using MediaStatus = DowncastLogic::MediaStatus;
     if (_logic.isStatusActive(MediaStatus::New))
     {
-      items.push_back({ .width=HeaderColumn::FIT_LABEL, .name = L"Update (u)", .callback = [this]{this->_logic.refreshCurrentPodcast();} });
+      if (!_logic.isBusy())
+      {
+        items.push_back({ .width=HeaderColumn::FIT_LABEL, .name = L"Update (u)", .callback = [this]{this->_logic.refreshCurrentPodcast();} });
+      }
     }
 
     if (_logic.isStatusActive(MediaStatus::Queued))
@@ -132,13 +135,13 @@ private:
       {
         items.push_back({ .width=HeaderColumn::FIT_LABEL, .name = L"Downloading…", .callback = []{} });
       }
-      else
+      else if (!_logic.isBusy())
       {
         items.push_back({ .width=HeaderColumn::FIT_LABEL, .name = L"Start Download (d)", .callback = [this]{this->_logic.startDownload();} });
       }
     }
 
-    if (_logic.anySelection())
+    if (_logic.anySelection() && !_logic.isBusy())
     {
       if (!_logic.isStatusActive(MediaStatus::New))
       items.push_back({ .width=HeaderColumn::FIT_LABEL, .name = L"Set New (n)", .callback = [this]{this->_logic.setSelectedShowsStatus(Status::NEW);} });
@@ -429,7 +432,10 @@ private:
       renderActionsBar(input);
       renderBottomBar(input);
     }
-
+    if (_logic.isDownloading() || _logic.isBusy())
+    {
+      _statusUi.forceRefresh();
+    }
   }
   // --------------------------------------------------------------------
 

@@ -383,8 +383,8 @@ void DowncastLogic::writeStorage(OP const& writeOp)
     try {
       writeOp();
     }
-    catch (...) {
-      abort();
+    catch (std::exception const& e) {
+      setLastError(e.what());
     }
     restart();
     m_busy = false;
