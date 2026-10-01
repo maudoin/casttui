@@ -66,14 +66,13 @@ public:
       else
       text = to_wstring(s.durationStr());
 
-      bool isSelected = (str.row >= 2 && _logic.isShowRankSelected(str.row));
-      bool isCursor   = (str.row == cursor() && focused);
-
       if (str.ev)
       {
         scrollTo(str.row);
         _logic.showSelection(str.row, true, false);
       }
+      bool const isSelected = _logic.isShowRankSelected(str.row);
+      bool const isCursor   = (str.row == cursor() && focused);
       str << UiColors::getStyle(isCursor, isSelected) << text;
     };
 
