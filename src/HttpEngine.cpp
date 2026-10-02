@@ -110,6 +110,7 @@ HttpEngine::Result HttpEngine::get(
     auto [host, resource] = splitHostRessource(location);
     httplib::Client cli(host.c_str());
     cli.set_follow_location(false);
+    cli.set_path_encode(false);
 
     if (auto res = cli.Get(resource.c_str(), headers, receiver,progressHandler))
     {
