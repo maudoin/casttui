@@ -209,6 +209,7 @@ public:
   int dynamicColCurrentOffsetX() const { return _dynamicColCurrentOffsetX; }
 
   int getHeight() const;
+  int getWidth() const;
 
   void forceRefresh();
 

@@ -1023,6 +1023,11 @@ int UiTable::getHeight() const
   return getmaxy(_pimpl->win);
 }
 // ------------------------------------------------------------
+int UiTable::getWidth() const
+{
+  return getmaxx(_pimpl->win);
+}
+// ------------------------------------------------------------
 void UiTable::forceRefresh()
 {
   // push a fake key event

@@ -123,7 +123,11 @@ private:
     using MediaStatus = DowncastLogic::MediaStatus;
     if (_logic.isStatusActive(MediaStatus::New))
     {
-      if (!_logic.isBusy())
+      if (_logic.isBusy())
+      {
+        items.push_back({ .width=HeaderColumn::FIT_LABEL, .name = std::wstring(L"Updating… ")+spinChar(), .callback = []{} });
+      }
+      else
       {
         items.push_back({ .width=HeaderColumn::FIT_LABEL, .name = L"Update (u)", .callback = [this]{this->_logic.refreshCurrentPodcast();} });
       }
@@ -133,7 +137,7 @@ private:
     {
       if (_logic.isDownloading())
       {
-        items.push_back({ .width=HeaderColumn::FIT_LABEL, .name = L"Downloading…", .callback = []{} });
+        items.push_back({ .width=HeaderColumn::FIT_LABEL, .name = std::wstring(L"Downloading… ")+spinChar(), .callback = []{} });
       }
       else if (!_logic.isBusy())
       {
@@ -157,41 +161,55 @@ private:
     _actionsUi.renderHeaderOnly(input, items, UiColors::normalStyle());
   }
 
+  static wchar_t spinChar()
+  {
+    static wchar_t spinner_chars[] = L"|/-\\";
+    auto now = std::chrono::system_clock::now();
+    auto ms  = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+    int idx  = static_cast<int>((ms / 100) & 3);
+    return spinner_chars[idx];
+  }
+
   void renderBottomBar(UiInput const& input)
   {
-    std::wstring text;
 
-    if (_logic.isBusy())
+    auto cellCallback = [&](UiTable::CellRenderStr& str)
     {
-      char spinner_chars[] = "|/-\\";
-      auto now = std::chrono::system_clock::now();
-      auto ms  = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-      int idx  = static_cast<int>((ms / 100) & 3);
-      text = L"Updating " + std::wstring(1, spinner_chars[idx]);
-    }
-    else if (_logic.isDownloading())
-    {
-      auto progress = _logic.getCurrentDownloadProgress();
-      wchar_t spinner_chars[] = L"|/-\\";
-      auto now = std::chrono::system_clock::now();
-      auto ms  = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-      int idx  = static_cast<int>((ms / 100) & 3);
+      if (_logic.isBusy())
+      {
+        str << L"Updating " << spinChar();
+      }
+      else if (_logic.isDownloading())
+      {
+        auto progress = _logic.getCurrentDownloadProgress();
+        auto now = std::chrono::system_clock::now();
+        auto ms  = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+        int idx  = static_cast<int>((ms / 100) & 3);
 
-      text =
-      L"Downloading " + std::to_wstring(progress.currentFile) + L"/" +
-      std::to_wstring(progress.totalFiles) + L": " +
-      to_wstring(progress.currentLabel) + L" " + spinner_chars[idx];
-    }
-    else if (auto err = _logic.lastError())
-    {
-      text = L"Error: " + to_wstring(*err);
-    }
-    else
-    {
-      text = L"Ready";
-    }
+        std::wstring text =
+          std::to_wstring(progress.currentFile) + L"/" +
+          std::to_wstring(progress.totalFiles) + L": " +
+          to_wstring(progress.currentLabel) + L" " + spinChar();
+        std::size_t const size = std::max(2,_bottomBarUi.getWidth())-2;
+        text.resize(size, L' ');
+        int const doneChar = (size*progress.currentProgress)/float(progress.currentTotal);
+        std::wstring_view txt(text);
+        std::wstring_view before = txt.substr(0, doneChar);
+        std::wstring_view after = txt.substr(doneChar, txt.size()-doneChar);
+        str << UiColors::highlightedStyle() << before << UiColors::normalStyle() << after;
+      }
+      else if (auto err = _logic.lastError())
+      {
+        str << UiColors::focusedStyle() << L"Error: " + to_wstring(*err);
+      }
+      else
+      {
+        str << L"Ready";
+      }
+    };
 
-    _bottomBarUi.renderSingleLineRange(input, std::views::single(text), UiColors::normalStyle());
+    Columns cols = _bottomBarUi.renderHeader(input, std::array{ HeaderColumn{.width=HeaderColumn::FILL}}, UiColors::normalStyle());
+    _bottomBarUi.render(input, 1, cols, cellCallback, UiColors::normalStyle());
   }
 
 
