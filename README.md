@@ -60,22 +60,22 @@ Watch [demo here](https://asciinema.org/a/pnfvhCQvSaICCxSA)
 │Add podcast...       █│Status: │New│Queue│Skipped│Done│All│                           │ X │
 │All       ╭────────────────────────────────────────────────────────────────┬───╮──────┴───╯
 │Les Grosse│Select target folder                                            │ X │──────────╮
-│À bientôt ├──────────────────────────────────────────────┬──────────┬──────┴───┤Duration  │
-│FloodCast │Name                                          │Type      │Ext       │──────────┤
-│2 Heures D├──────────────────────────────────────────────┼──────────┼──────────┤4:22mn    █
-│Riviera De│[D] ..                                        │Directory │          █4:57mn    │
-│Un Bon Mom│[D] .git                                      │Directory │          █3:37mn    │
-│Laisse-moi│[D] .vscode                                   │Directory │          █5:59mn    │
-│Les Gens Q│[D] build-windows                             │Directory │          █1:47:25   │
-│Lumières d│[D] build-windows-debug                       │Directory │          █6:13mn    │
-│Culture 20│[D] build-wsl                                 │Directory │          █4:14mn    │
-│Émotions  │[D] build-wsl-debug                           │Directory │          █3:36mn    │
-│Le Cosy Co│[D] cmake                                     │Directory │          █4:10mn    │
-│Pardon GPT│[D] src                                       │Directory │          █5:45mn    │
-│La dernièr│[D] tuimm                                     │Directory │          │1:46:51   │
-│Gamberge  │[F] .gitattributes                            │File      │          │──────────╯
-│Small Talk│[F] .gitignore                                │File      │          │──────────╮
-│Totemic   ├──────────────────────────────────────────────┴──────────┴───┬──────┤          │
+│À bientôt ├────────────────────────────────────────────────────────────────┼───┤Duration  │
+│FloodCast │C:\Users\M\dev\casttui                                          │ ▲ │──────────┤
+│2 Heures D├────────────────────────────────────────────────────────────────┴───┤4:51mn    █
+│Riviera De│.git                                                                │1:03:36   │
+│Un Bon Mom│.vscode                                                             │1:08:48   │
+│Laisse-moi│build-windows                                                       │1:09:57   │
+│Les Gens Q│build-windows-debug                                                 │1:04:44   │
+│Lumières d│build-wsl                                                           │54:07mn   │
+│Culture 20│build-wsl-debug                                                     │52:32mn   │
+│Émotions  │cmake                                                               │1:06:12   │
+│Le Cosy Co│src                                                                 │1:11:59   │
+│Pardon GPT│tuimm                                                               │56:35mn   │
+│La dernièr│                                                                    │1:04:03   │
+│Gamberge  │                                                                    │──────────╯
+│Small Talk│                                                                    │──────────╮
+│Totemic   ├─────────────────────────────────────────────────────────────┬──────┤          │
 │Si c'est v│OK                                                           │Cancel│──────────╯
 │Hollywood ╰─────────────────────────────────────────────────────────────┴──────╯──────────╮
 │4 quart d'heures     ││Ready                                                              │
