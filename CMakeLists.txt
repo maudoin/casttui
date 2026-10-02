@@ -67,7 +67,7 @@ set(HV_STATIC ON CACHE BOOL "Build libhv static")
 include(FetchContent)
 
 FetchContent_Declare(httplib
-    URL https://raw.githubusercontent.com/yhirose/cpp-httplib/refs/tags/v0.54.1/httplib.h
+    URL https://raw.githubusercontent.com/yhirose/cpp-httplib/refs/tags/v0.23.1/httplib.h
     DOWNLOAD_NO_EXTRACT TRUE
 )
 
