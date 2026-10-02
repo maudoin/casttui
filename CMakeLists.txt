@@ -40,16 +40,6 @@ add_library(sqlite3_static STATIC
 target_include_directories(sqlite3_static PUBLIC ${sqlite3_SOURCE_DIR})
 
 # ------------------------------------------------------------
-# libhv 1.3.0
-# ------------------------------------------------------------
-FetchContent_Declare(libhv
-    URL https://github.com/ithewei/libhv/archive/refs/tags/v1.3.0.zip
-)
-FetchContent_MakeAvailable(libhv)
-
-set(HV_STATIC ON CACHE BOOL "Build libhv static")
-
-# ------------------------------------------------------------
 # OpenSSL (optional)
 # ------------------------------------------------------------
 # if (WIN32)
@@ -98,7 +88,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     fmt::fmt
-    hv_static
     sqlite3_static
     tuimm
     httplib

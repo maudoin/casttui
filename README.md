@@ -145,8 +145,7 @@ Dependencies
 | [fmt](https://github.com/fmtlib/fmt) | 9.1.0 | https://github.com/fmtlib/fmt/archive/refs/tags/9.1.0.zip |
 | [rapidxml](https://github.com/Fe-Bell/RapidXML) | 1.17 | https://github.com/Fe-Bell/RapidXML/archive/refs/tags/v117.zip |
 | [sqlite3](https://www.sqlite.org) | 3.42.0 | https://www.sqlite.org/2023/sqlite-amalgamation-3420000.zip |
-| [libhv](https://github.com/ithewei/libhv) | 1.3.0 | https://github.com/ithewei/libhv/archive/refs/tags/v1.3.0.zip |
 | [pdcurses](https://github.com/wmcbrine/PDCurses) | 3.9 | https://github.com/wmcbrine/PDCurses/archive/refs/tags/3.9.zip |
-| [httplib](https://github.com/yhirose/cpp-httplib) | 0.54.1 | https://raw.githubusercontent.com/yhirose/cpp-httplib/refs/tags/v0.54.1/httplib.h |
+| [httplib](https://github.com/yhirose/cpp-httplib) | 0.58.0 | https://raw.githubusercontent.com/yhirose/cpp-httplib/refs/tags/v0.54.1/httplib.h |
 | [openssl](https://www.openssl.org) | latest | use distribution manager |
 
