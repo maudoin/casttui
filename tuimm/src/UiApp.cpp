@@ -10,13 +10,12 @@
 #endif
 
 #include <array>
-#include <array>
-#include <string>
-#include <vector>
-#include <optional>
 #include <chrono>
 #include <ctime>
+#include <optional>
 #include <ranges>
+#include <string>
+#include <vector>
 
 #ifndef _WIN32
 #include <locale.h>
