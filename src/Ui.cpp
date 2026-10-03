@@ -26,8 +26,9 @@ class Ui : public UiApp
   enum class Focus { Podcasts, Status, Shows };
   enum class ModalMode { None, AddEditPodcast, Info, Confirm };
   public:
-  explicit Ui(const std::string& db_path)
-  : _logic(db_path)
+  explicit Ui(const std::string& db_path, int argc, char* argv[])
+  : UiApp(argc, argv)
+  , _logic(db_path)
   , _focusedPanel(Focus::Podcasts)
   , _podcastUi(_logic, UiPodcastTable::Actions{
     .add=[&]()
@@ -474,10 +475,10 @@ private:
 };
 
 // --------------------------------------------------------------------
-int main()
+int main(int argc, char* argv[])
 {
+  Ui ui("castapod.db3", argc, argv);
 
-  Ui ui("castapod.db3");
   ui.run();
   return 0;
 }

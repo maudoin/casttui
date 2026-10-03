@@ -1,13 +1,17 @@
 #pragma once
 
+#include <memory>
 #include <optional>
 
 struct UiInput;
+
+class OfflineBuffers;  // forward declaration for pimpl class
+
 class UiApp
 {
 
 public:
-  explicit UiApp();
+  explicit UiApp(int argc, char* argv[]);
 
   ~UiApp();
 
@@ -27,4 +31,6 @@ private:
   bool handleKey(UiInput const& input);
   void render(UiInput const& input);
   bool _isRunning = true;
+
+  std::unique_ptr<OfflineBuffers> _offline;
 };
