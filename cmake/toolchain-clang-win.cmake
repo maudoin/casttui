@@ -3,7 +3,7 @@
 
 # Comment this if you add msys to PATH or compile from Msys console
 set(MSYS2_PREFIX "C:/msys64/ucrt64")
-
+set(ENV{PATH} "C:/msys64/usr/bin;$ENV{PATH}")
 if(DEFINED MSYS2_PREFIX)
   set(CMAKE_C_COMPILER     "${MSYS2_PREFIX}/bin/clang.exe")
   set(CMAKE_CXX_COMPILER   "${MSYS2_PREFIX}/bin/clang++.exe")

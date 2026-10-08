@@ -1,4 +1,4 @@
-set(ENV{PATH} "C:/msys64/ucrt64/bin;$ENV{PATH}")
+set(ENV{PATH} "C:/msys64/ucrt64/bin;C:/msys64/usr/bin;$ENV{PATH}")
 set(CMAKE_C_COMPILER gcc CACHE STRING "" FORCE)
 set(CMAKE_CXX_COMPILER g++ CACHE STRING "" FORCE)
 set(CMAKE_C_COMPILER "C:/msys64/ucrt64/bin/gcc.exe")
