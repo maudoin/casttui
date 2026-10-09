@@ -8,11 +8,6 @@ URL https://github.com/openssl/openssl/releases/download/openssl-3.6.5/openssl-3
 FetchContent_Populate(openssl)
 
 # ==============================================================================
-if(MINGW)
-  message(STATUS "MinGW detected")
-endif()
-
-# ==============================================================================
 find_program(BASH_EXECUTABLE
   NAMES bash
 )
@@ -85,13 +80,23 @@ convert_to_short_path("${openssl_SOURCE_DIR}" openssl_SOURCE_DIR_SANITIZED)
 convert_to_short_path("${CMAKE_BINARY_DIR}" CMAKE_BINARY_DIR_SANITIZED)
 # ==============================================================================
 
+if(MINGW)
+    set(OPENSSL_PLAT "mingw64")
+elseif(UNIX)
+    set(OPENSSL_PLAT "linux-x86_64")
+endif()
+
+include(ProcessorCount)
+ProcessorCount(N)
+message(STATUS "CPUs: ${N}")
+
 include(ExternalProject)
 ExternalProject_Add(openssl_build
   PREFIX ${CMAKE_BINARY_DIR}/_deps/openssl-build
   SOURCE_DIR ${openssl_SOURCE_DIR}
-  CONFIGURE_COMMAND ${BASH_EXECUTABLE} -lc "set -x && unset CC CXX && export CC=${CMAKE_C_COMPILER} && export CXX=${CMAKE_CXX_COMPILER} && cd ${openssl_SOURCE_DIR_SANITIZED} && perl Configure mingw64 no-shared no-asm --prefix=${CMAKE_BINARY_DIR_SANITIZED}/_deps/openssl-build"
-  BUILD_COMMAND ${BASH_EXECUTABLE} -lc "set -x && unset CC CXX && export CC=${CMAKE_C_COMPILER} && export CXX=${CMAKE_CXX_COMPILER} && cd ${openssl_SOURCE_DIR} && pwd && make build_generated libcrypto.a libssl.a"
-  INSTALL_COMMAND ${BASH_EXECUTABLE} -lc "set -x && unset CC CXX && export CC=${CMAKE_C_COMPILER} && export CXX=${CMAKE_CXX_COMPILER} && cd ${openssl_SOURCE_DIR} && pwd && make install"
+  CONFIGURE_COMMAND ${BASH_EXECUTABLE} -lc "set -x && unset CC CXX && export CC=${CMAKE_C_COMPILER} && export CXX=${CMAKE_CXX_COMPILER} && cd ${openssl_SOURCE_DIR_SANITIZED} && perl Configure ${OPENSSL_PLAT} no-asm --prefix=${CMAKE_BINARY_DIR_SANITIZED}/_deps/openssl-build"
+  BUILD_COMMAND ${BASH_EXECUTABLE} -lc "set -x && unset CC CXX && export CC=${CMAKE_C_COMPILER} && export CXX=${CMAKE_CXX_COMPILER} && cd ${openssl_SOURCE_DIR} && pwd && make build_generated libcrypto.a libssl.a -j${N}"
+  INSTALL_COMMAND ${BASH_EXECUTABLE} -lc "set -x && unset CC CXX && export CC=${CMAKE_C_COMPILER} && export CXX=${CMAKE_CXX_COMPILER} && cd ${openssl_SOURCE_DIR} && pwd && make install -j${N}"
   LOG_BUILD OFF
   USES_TERMINAL_BUILD ON
   BUILD_BYPRODUCTS

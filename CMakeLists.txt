@@ -42,12 +42,12 @@ target_include_directories(sqlite3_static PUBLIC ${sqlite3_SOURCE_DIR})
 # ------------------------------------------------------------
 # OpenSSL 4.0.3 (static, mingw64 no-shared)
 # ------------------------------------------------------------
-if (WIN32)
+# if (WIN32)
   include(cmake/fetch-build-openssl-static.cmake)
-else()
-  # Linux/WSL: use system OpenSSL
-  find_package(OpenSSL REQUIRED)
-endif()
+# else()
+#   # Linux/WSL: use system OpenSSL
+#   find_package(OpenSSL REQUIRED)
+# endif()
 # ------------------------------------------------------------
 # cpp-httplib v0.58.0 (single header)
 # ------------------------------------------------------------
@@ -143,4 +143,8 @@ if (WIN32)
   # else()
   #   message(WARNING "Unknown Windows compiler: ${CMAKE_CXX_COMPILER_ID}")
   # endif()
+elseif(UNIX AND NOT APPLE)
+    target_link_options(${PROJECT_NAME} PRIVATE
+        -static-libgcc
+        -static-libstdc++)
 endif()

@@ -12,4 +12,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE tuimm)
 if (WIN32)
     target_link_options(${PROJECT_NAME} PRIVATE -Wl,--subsystem,console)
     target_link_options(${PROJECT_NAME} PRIVATE -static -static-libgcc -static-libstdc++)
+elseif(UNIX AND NOT APPLE)
+    target_link_options(${PROJECT_NAME} PRIVATE
+        -static-libgcc
+        -static-libstdc++)
 endif()
